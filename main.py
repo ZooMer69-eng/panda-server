@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, List
 import json
@@ -13,14 +13,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-rooms: Dict[str, List[WebSocket]] = {}
+rooms: Dict[str, Dict[str, WebSocket]] = {}
 
 @app.websocket("/ws/{room_id}/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     await websocket.accept()
+    
     if room_id not in rooms:
-        rooms[room_id] = []
-    rooms[room_id].append(websocket)
+        rooms[room_id] = {}
+    
+    rooms[room_id][user_id] = websocket
     
     await broadcast(room_id, {
         "type": "player_joined",
@@ -32,14 +34,22 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
         while True:
             data = await websocket.receive_text()
             message = json.loads(data)
+            
+            if message.get("type") == "ping":
+                await websocket.send_text(json.dumps({"type": "pong"}))
+                continue
+                
             if message.get("type") == "tap":
                 await broadcast(room_id, {
                     "type": "player_tapped",
                     "user_id": user_id,
                     "power": message.get("power", 1)
-                }, exclude=websocket)
+                }, exclude_user=user_id)
+                
     except WebSocketDisconnect:
-        rooms[room_id].remove(websocket)
+        if user_id in rooms[room_id]:
+            del rooms[room_id][user_id]
+        
         if len(rooms[room_id]) == 0:
             del rooms[room_id]
         else:
@@ -49,10 +59,10 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 "players_count": len(rooms[room_id])
             })
 
-async def broadcast(room_id: str, message: dict, exclude: WebSocket = None):
+async def broadcast(room_id: str, message: dict, exclude_user: str = None):
     if room_id in rooms:
-        for connection in rooms[room_id]:
-            if connection != exclude:
+        for uid, connection in list(rooms[room_id].items()):
+            if uid != exclude_user:
                 try:
                     await connection.send_text(json.dumps(message))
                 except:
