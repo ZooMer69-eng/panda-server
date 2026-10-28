@@ -22,11 +22,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
         rooms[room_id] = {}
     rooms[room_id][user_id] = websocket
     
-    await broadcast(room_id, {
-        "type": "player_joined",
-        "user_id": user_id,
-        "players_count": len(rooms[room_id])
-    })
+    await broadcast_room_state(room_id)
 
     try:
         while True:
@@ -51,11 +47,15 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
         if len(rooms[room_id]) == 0:
             del rooms[room_id]
         else:
-            await broadcast(room_id, {
-                "type": "player_left",
-                "user_id": user_id,
-                "players_count": len(rooms[room_id])
-            })
+            await broadcast_room_state(room_id)
+
+async def broadcast_room_state(room_id: str):
+    if room_id in rooms:
+        players_list = list(rooms[room_id].keys())
+        await broadcast(room_id, {
+            "type": "room_state",
+            "players": players_list
+        })
 
 async def broadcast(room_id: str, message: dict, exclude_user: str = None):
     if room_id in rooms:
