@@ -18,10 +18,8 @@ rooms: Dict[str, Dict[str, WebSocket]] = {}
 @app.websocket("/ws/{room_id}/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     await websocket.accept()
-    
     if room_id not in rooms:
         rooms[room_id] = {}
-    
     rooms[room_id][user_id] = websocket
     
     await broadcast(room_id, {
