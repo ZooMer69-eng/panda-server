@@ -95,7 +95,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 29.2</title>
+    <title>Panda Game 30.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -476,7 +476,9 @@ HTML_CONTENT = """
                         <div class="profile-avatar-large" id="my-avatar-large">🐼</div>
                     </div>
                     <div class="profile-name" id="my-name-profile">Загрузка...</div>
-                    <div style="font-size:14px; color:#00e5ff; font-weight:900; margin-bottom:5px; cursor:pointer;" onclick="copyId()" title="Нажми, чтобы скопировать">ID: <span id="my-game-id" style="text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; user-select: text; -webkit-user-select: text;">...</span></div>
+                    <div style="font-size:16px; font-weight:900; margin-bottom:5px; z-index:2;">
+                        ID: <a href="javascript:void(0);" onclick="copyId()" style="color:#00e5ff; text-decoration:underline; cursor:pointer;" id="my-game-id">...</a>
+                    </div>
                     <div class="medal-emoji large" id="my-medal-display" style="display:none; margin:0 auto 10px;"></div>
                     <button class="card-price" style="width:auto; display:inline-block; margin-top:5px; background:#2196f3; padding:5px 15px;" onclick="openNameModal()">Изменить ник</button>
                     
@@ -510,9 +512,9 @@ HTML_CONTENT = """
             <div class="content">
                 <div class="section-title">Друзья 👥</div>
                 
-                <!-- БЛОК ЗАЯВОК -->
-                <div id="incoming-requests" style="display: none; margin-bottom: 15px;">
-                    <div class="section-title" style="font-size: 14px; color: #ffd700; margin-bottom: 10px;">Заявки в друзья</div>
+                <!-- ЗАЯВКИ -->
+                <div id="incoming-requests" style="display: none; margin-bottom: 15px; background: rgba(255,215,0,0.1); border: 2px solid #ffd700; padding: 10px; border-radius: 12px;">
+                    <div style="font-size: 14px; color: #ffd700; font-weight: 900; margin-bottom: 10px;">🔔 У тебя есть заявки в друзья!</div>
                     <div class="friend-list" id="requests-list"></div>
                 </div>
 
@@ -760,25 +762,24 @@ HTML_CONTENT = """
 
         function copyId() {
             if (!state.gameId) return;
-            const textToCopy = state.gameId;
-            const idSpan = document.getElementById('my-game-id');
+            const idText = state.gameId;
+            const idElement = document.getElementById('my-game-id');
             const originalText = state.gameId;
 
-            // Визуальный отклик
-            idSpan.innerText = "Копирую...";
-
+            // Попытка 1: Современный API
             if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(textToCopy).then(() => {
-                    idSpan.innerText = "✅ Скопировано!";
+                navigator.clipboard.writeText(idText).then(() => {
+                    idElement.innerText = "✅ Скопировано!";
                     if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                    setTimeout(() => { idSpan.innerText = originalText; }, 1500);
-                }).catch(() => fallbackCopy(textToCopy, idSpan, originalText));
+                    setTimeout(() => { idElement.innerText = originalText; }, 1500);
+                }).catch(() => { fallbackCopy(idText, idElement, originalText); });
             } else {
-                fallbackCopy(textToCopy, idSpan, originalText);
+                fallbackCopy(idText, idElement, originalText);
             }
         }
 
         function fallbackCopy(text, element, original) {
+            // Попытка 2: Старый метод через textarea
             const textArea = document.createElement("textarea");
             textArea.value = text;
             textArea.style.position = "fixed";
@@ -787,13 +788,18 @@ HTML_CONTENT = """
             textArea.focus();
             textArea.select();
             try {
-                document.execCommand('copy');
-                element.innerText = "✅ Скопировано!";
-                if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                setTimeout(() => { element.innerText = original; }, 1500);
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    element.innerText = "✅ Скопировано!";
+                    if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    setTimeout(() => { element.innerText = original; }, 1500);
+                } else {
+                    throw new Error("ExecCommand failed");
+                }
             } catch (err) {
+                // Попытка 3: Окно для ручного копирования
                 element.innerText = original;
-                tg.showAlert("Telegram заблокировал автокопирование. Выделите и скопируйте ID вручную: " + text);
+                tg.showAlert("Telegram заблокировал копирование. Зажми и скопируй ID вручную: " + text);
             }
             document.body.removeChild(textArea);
         }
@@ -1124,7 +1130,7 @@ HTML_CONTENT = """
             }
             container.style.display = 'block';
             list.innerHTML = requests.map(r => `
-                <div class="friend-item" style="background: rgba(255,215,0,0.1); border-color: #ffd700;">
+                <div class="friend-item" style="background: rgba(0,0,0,0.3); border-color: #555; margin-bottom:5px;">
                     <div class="friend-avatar">${r.avatar ? `<img src="${r.avatar}">` : '🐼'}</div>
                     <div class="friend-name-box">
                         <div class="friend-name-row"><span>${r.name}</span></div>
