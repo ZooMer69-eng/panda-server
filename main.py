@@ -1006,7 +1006,6 @@ HTML_CONTENT = """
                 document.getElementById('vp-name').innerHTML += ' <span class="verified-badge" style="font-size:16px; width:20px; height:20px;">✔</span>';
             }
 
-            // Отображение истории подарков
             const historyContainer = document.getElementById('vp-gift-history');
             if (historyContainer) {
                 if (giftHistory && giftHistory.length > 0) {
@@ -1034,7 +1033,6 @@ HTML_CONTENT = """
 
         function claimChest() { document.getElementById('chest-modal').classList.remove('active'); state.lastChest = Date.now(); state.coins += 1000; tg.showAlert("+1000 монет!"); updateUI(); }
         
-        // ИСПРАВЛЕНИЕ ССЫЛКИ: Всегда генерируем ссылку со своим ID (myId), а не с roomId
         function inviteFriend() { 
             const link = `https://t.me/nash_sad_69_bot/play?startapp=${myId}`; 
             const text = `Присоединяйся ко мне в игре!`; 
