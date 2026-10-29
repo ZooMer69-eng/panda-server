@@ -24,7 +24,6 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db():
     try:
-        # sslmode='require' обязателен для Supabase
         conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor, sslmode='require')
         return conn
     except Exception as e:
@@ -110,7 +109,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 32.0</title>
+    <title>Panda Game 33.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -123,7 +122,7 @@ HTML_CONTENT = """
         .gender-btn:hover { background: rgba(76, 175, 80, 0.3); transform: scale(1.05); }
         .gender-btn .icon { font-size: 50px; display: block; margin-bottom: 10px; }
 
-        /* ФОН */
+        /* ФОН И ЭФФЕКТЫ */
         .bg-container { position: absolute; inset: 0; z-index: 1; overflow: hidden; transition: background 1.5s; }
         .bg-base { background: linear-gradient(180deg, #0f172a 0%, #1e293b 40%, #334155 70%, #475569 100%); }
         .bg-romantic { background: linear-gradient(180deg, #2d1b36 0%, #6b3f5c 40%, #a86b7e 70%, #d9a0a8 100%) !important; }
@@ -135,6 +134,24 @@ HTML_CONTENT = """
         .bg-clouds { position: absolute; top: 15%; left: 0; width: 200%; height: 30%; opacity: 0.3; background: radial-gradient(ellipse at 20% 50%, #fff 10%, transparent 40%), radial-gradient(ellipse at 70% 30%, #fff 15%, transparent 50%); animation: floatClouds 60s linear infinite; }
         @keyframes floatClouds { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         
+        /* ЖИВЫЕ ЭФФЕКТЫ (Светлячки и Бабочки) */
+        .bg-effects { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+        .firefly { position: absolute; width: 4px; height: 4px; background: #ffd700; border-radius: 50%; box-shadow: 0 0 10px #ffd700, 0 0 20px #ffd700; opacity: 0; animation: fly linear infinite; }
+        @keyframes fly {
+            0% { transform: translate(0, 0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translate(100px, -100px); opacity: 0; }
+        }
+        .butterfly { position: absolute; font-size: 20px; animation: flutter linear infinite; }
+        @keyframes flutter {
+            0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            50% { transform: translate(150px, -50px) rotate(20deg); }
+            90% { opacity: 1; }
+            100% { transform: translate(300px, -100px) rotate(-20deg); opacity: 0; }
+        }
+
         .bg-mountains { position: absolute; bottom: 20%; left: 0; width: 100%; height: 45%; }
         .bg-mountains svg { width: 100%; height: 100%; filter: drop-shadow(0 -5px 10px rgba(0,0,0,0.5)); }
         
@@ -156,6 +173,9 @@ HTML_CONTENT = """
         .avatar-frame.default { border-color: #fff; }
         .avatar-frame.millionaire { border-color: #ffd700; box-shadow: 0 0 10px #ffd700; }
         .avatar-frame.legend { border-color: #00e5ff; box-shadow: 0 0 20px #00e5ff; animation: spin 4s linear infinite; }
+        .avatar-frame.neon { border-color: #ff00ff; box-shadow: 0 0 15px #ff00ff, inset 0 0 10px #ff00ff; }
+        .avatar-frame.nature { border-color: #8bc34a; box-shadow: 0 0 15px #8bc34a, inset 0 0 10px #8bc34a; animation: pulse 2s infinite alternate; }
+        .avatar-frame.fire { border-color: #ff5722; box-shadow: 0 0 15px #ff5722, inset 0 0 10px #ff5722; animation: fireFlicker 1.5s infinite alternate; }
         
         .name-medal-block { display: flex; flex-direction: column; cursor: pointer; }
         .name-row { display: flex; align-items: center; gap: 5px; }
@@ -187,8 +207,12 @@ HTML_CONTENT = """
         .panda-wrapper.hit { animation: jump 0.25s ease-out; }
         @keyframes jump { 0% { transform: translateY(0); } 30% { transform: translateY(-15px) scale(1.05); } 100% { transform: translateY(0); } }
         
+        /* МАЛЫШ */
+        .baby-panda { position: absolute; bottom: 0; left: -50px; width: 70px; height: 80px; z-index: 9; transition: all 0.5s; animation: babyFloat 2s infinite alternate; }
+        @keyframes babyFloat { 0% { transform: translateY(0); } 100% { transform: translateY(-3px); } }
+
         /* ПИТОМЦЫ */
-        .pet-container { position: absolute; bottom: 0px; right: -70px; width: 90px; height: 90px; z-index: 4; pointer-events: none; display: flex; justify-content: center; align-items: center; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); animation: petIdle 3s infinite alternate ease-in-out; }
+        .pet-container { position: absolute; bottom: 0px; right: -70px; width: 90px; height: 90px; z-index: 4; pointer-events: none; display: flex; justify-content: center; align-items: center; filter: drop-shadow(0 15px 15px rgba(0,0,0,0.6)); animation: petIdle 3s infinite alternate ease-in-out; }
         @keyframes petIdle { 0% { transform: translateY(0) scale(1) rotate(-2deg); } 100% { transform: translateY(-8px) scale(1.05) rotate(2deg); } }
         
         /* Анимации ников */
@@ -313,6 +337,9 @@ HTML_CONTENT = """
         .duo-medal { position: absolute; top: -25px; left: 50%; transform: translateX(-50%); }
         .sad-panda { animation: sadFloat 3s infinite ease-in-out; }
         @keyframes sadFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        
+        .btn-hug { background: #ff9800; color: #fff; border: none; border-radius: 10px; padding: 10px 20px; font-weight: 900; font-size: 14px; cursor: pointer; margin-top: 10px; box-shadow: 0 4px 0 #b26a00; transition: 0.1s; }
+        .btn-hug:active { transform: translateY(4px); box-shadow: none; }
 
         /* ИСТОРИЯ ПОДАРКОВ */
         .gift-history-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; margin-bottom: 5px; font-size: 12px; text-align: left; }
@@ -396,6 +423,7 @@ HTML_CONTENT = """
 
     <!-- ФОН -->
     <div class="bg-container" id="bg-container">
+        <div class="bg-effects" id="bg-effects"></div>
         <div class="bg-sky"><div class="bg-moon"></div><div class="bg-clouds"></div></div>
         <div class="bg-mountains"><svg viewBox="0 0 400 200" preserveAspectRatio="none"><path d="M0,200 L50,80 L120,120 L180,40 L260,90 L340,60 L400,150 L400,200 Z" fill="#1e293b"/><path d="M0,200 L70,110 L150,150 L240,80 L320,130 L400,200 Z" fill="#334155"/></svg></div>
         <div class="bg-bamboo"><div class="stalk" style="height: 70%; left: 5%;"></div><div class="stalk" style="height: 90%; left: 20%;"></div><div class="stalk" style="height: 60%; right: 15%;"></div><div class="stalk" style="height: 80%; right: 5%;"></div></div>
@@ -436,6 +464,17 @@ HTML_CONTENT = """
         <div class="screen active" id="screen-tap">
             <div class="tap-area">
                 <div style="text-align: center; position: relative;">
+                    <!-- Малыш -->
+                    <svg class="baby-panda" id="baby-svg" style="display:none;" viewBox="0 0 100 100">
+                        <circle cx="50" cy="60" r="30" fill="#fff"/>
+                        <circle cx="50" cy="40" r="20" fill="#fff"/>
+                        <circle cx="35" cy="30" r="8" fill="#111"/><circle cx="65" cy="30" r="8" fill="#111"/>
+                        <circle cx="45" cy="35" r="4" fill="#fff"/><circle cx="55" cy="35" r="4" fill="#fff"/>
+                        <ellipse cx="50" cy="45" rx="4" ry="2" fill="#111"/>
+                        <ellipse cx="30" cy="70" rx="8" ry="12" fill="#111"/>
+                        <ellipse cx="70" cy="70" rx="8" ry="12" fill="#111"/>
+                    </svg>
+
                     <div class="panda-wrapper" id="panda-wrapper">
                         <svg viewBox="0 0 200 220" style="width:100%; height:100%; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));">
                             <defs>
@@ -471,7 +510,7 @@ HTML_CONTENT = """
                             </g>
                         </svg>
                     </div>
-                    <!-- ПИТОМЕЦ (Полноценный SVG) -->
+                    <!-- ПИТОМЕЦ -->
                     <div class="pet-container" id="my-pet-container" style="display:none;">
                         <svg class="pet-svg" viewBox="0 0 100 100" style="width:100%; height:100%;">
                             <g id="my-pet-icon"></g>
@@ -556,16 +595,19 @@ HTML_CONTENT = """
             <div class="content">
                 <div class="section-title">Магазин 🛍️</div>
                 <div class="tabs-sub" style="margin-bottom:15px;">
-                    <button class="tab-btn active" onclick="switchShopTab('items', this)">Питомцы</button>
+                    <button class="tab-btn active" onclick="switchShopTab('items', this)">Питомцы и Рамки</button>
                     <button class="tab-btn" onclick="switchShopTab('gems', this)">Гемы 💎</button>
                 </div>
+                <div class="section-title" style="font-size:14px; color:#aaa; text-align:left;">Питомцы</div>
                 <div class="grid" id="shop-grid"></div>
+                <div class="section-title" style="font-size:14px; color:#aaa; text-align:left; margin-top:15px;">Рамки</div>
+                <div class="grid" id="shop-frames-grid"></div>
+                
                 <div class="grid" id="gems-grid" style="display:none;">
                     <div class="card"><div class="card-icon">💎</div><div class="card-title">100 Гемов</div><button class="card-price" onclick="buyGems(50)">50 ⭐</button></div>
                     <div class="card"><div class="card-icon">💎</div><div class="card-title">500 Гемов</div><button class="card-price" onclick="buyGems(200)">200 ⭐</button></div>
                     <div class="card"><div class="card-icon">💎</div><div class="card-title">1000 Гемов</div><button class="card-price" onclick="buyGems(350)">350 ⭐</button></div>
                     <div class="card"><div class="card-icon">💎</div><div class="card-title">5000 Гемов</div><button class="card-price" onclick="buyGems(1500)">1500 ⭐</button></div>
-                    <div class="card"><div class="card-icon">💎</div><div class="card-title">10000 Гемов</div><button class="card-price" onclick="buyGems(2500)">2500 ⭐</button></div>
                 </div>
             </div>
         </div>
@@ -607,7 +649,8 @@ HTML_CONTENT = """
                     </div>
                     <div class="card" style="margin-top:20px; width:80%;">
                         <div id="family-status" style="font-size:16px; font-weight:900; color:#ffd700; margin-bottom:10px;">Вы вместе!</div>
-                        <div id="pregnancy-btn-container"></div>
+                        <button class="btn-hug" onclick="hugPartner()">🤗 Обнять друга</button>
+                        <div id="pregnancy-btn-container" style="margin-top:10px;"></div>
                     </div>
                 </div>
             </div>
@@ -684,9 +727,12 @@ HTML_CONTENT = """
             { id: 'mythic', name: 'Мифик', req: 730, emoji: '👑' }
         ];
         const allFrames = [
-            { id: 'default', name: 'Новичок', cssClass: 'default' }, 
-            { id: 'millionaire', name: 'Богач', cssClass: 'millionaire' },
-            { id: 'legend', name: 'Легенда', cssClass: 'legend' }
+            { id: 'default', name: 'Новичок', cssClass: 'default', price: 0 }, 
+            { id: 'millionaire', name: 'Богач', cssClass: 'millionaire', price: 0 },
+            { id: 'legend', name: 'Легенда', cssClass: 'legend', price: 0 },
+            { id: 'neon', name: 'Неон', cssClass: 'neon', price: 50000 },
+            { id: 'nature', name: 'Природа', cssClass: 'nature', price: 75000 },
+            { id: 'fire', name: 'Огонь', cssClass: 'fire', price: 100000 }
         ];
         const allAnims = [
             { id: 'default', name: 'Обычный', cssClass: 'nick-default' }, 
@@ -839,7 +885,13 @@ HTML_CONTENT = """
             } else {
                 const d = Math.floor((Date.now() - state.accountCreated) / (1000 * 60 * 60 * 24));
                 state.unlockedMedals = allMedals.filter(m => d >= m.req).map(m => m.id);
-                state.unlockedFrames = ['default']; if (state.coins >= 1000000) state.unlockedFrames.push('millionaire'); if (state.streakDays >= 365) state.unlockedFrames.push('legend');
+                state.unlockedFrames = ['default']; 
+                if (state.coins >= 1000000) state.unlockedFrames.push('millionaire'); 
+                if (state.streakDays >= 365) state.unlockedFrames.push('legend');
+                
+                // Рамки за покупку
+                allFrames.forEach(f => { if (f.price > 0 && state.coins >= f.price && !state.unlockedFrames.includes(f.id)) { state.unlockedFrames.push(f.id); } });
+                
                 state.unlockedAnims = ['default']; if (state.streakDays >= 30) state.unlockedAnims.push('gold'); if (state.streakDays >= 180) state.unlockedAnims.push('fire'); if (state.streakDays >= 365) state.unlockedAnims.push('rainbow');
             }
         }
@@ -896,11 +948,24 @@ HTML_CONTENT = """
                 }
             }
 
+            // Малыш
+            const babySvg = document.getElementById('baby-svg');
+            if (babySvg) {
+                if (state.hasBaby) {
+                    babySvg.style.display = 'block';
+                    let babyScale = 0.5 + (state.streakDays * 0.005);
+                    if (babyScale > 1) babyScale = 1;
+                    babySvg.style.transform = `scale(${babyScale})`;
+                } else {
+                    babySvg.style.display = 'none';
+                }
+            }
+
             const mGrid = document.getElementById('medals-grid'); if(mGrid) { mGrid.innerHTML = '';
                 allMedals.forEach(m => { const o = state.unlockedMedals.includes(m.id); const s = state.selectedMedal === m.id; mGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Medal','${m.id}')" style="${o?'':'opacity:0.3;'}"><div class="medal-emoji">${m.emoji}</div><div style="font-size:10px; margin-top:5px;">${m.name}</div></div>`; });
             }
             const fGrid = document.getElementById('frames-grid'); if(fGrid) { fGrid.innerHTML = '';
-                allFrames.forEach(f => { const o = state.unlockedFrames.includes(f.id); const s = state.selectedFrame === f.id; fGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Frame','${f.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon" style="border:4px solid #fff; border-radius:50%; width:30px; height:30px; margin:0 auto; ${f.id==='millionaire'?'border-color:#ffd700; box-shadow:0 0 10px #ffd700;':f.id==='legend'?'border-color:#00e5ff; box-shadow:0 0 15px #00e5ff;':''}"></div><div style="font-size:10px; margin-top:5px;">${f.name}</div></div>`; });
+                allFrames.forEach(f => { const o = state.unlockedFrames.includes(f.id); const s = state.selectedFrame === f.id; fGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Frame','${f.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon" style="border:4px solid #fff; border-radius:50%; width:30px; height:30px; margin:0 auto; ${f.id==='millionaire'?'border-color:#ffd700; box-shadow:0 0 10px #ffd700;':f.id==='legend'?'border-color:#00e5ff; box-shadow:0 0 15px #00e5ff;':f.id==='neon'?'border-color:#ff00ff; box-shadow:0 0 10px #ff00ff;':f.id==='nature'?'border-color:#8bc34a; box-shadow:0 0 10px #8bc34a;':f.id==='fire'?'border-color:#ff5722; box-shadow:0 0 10px #ff5722;':''}"></div><div style="font-size:10px; margin-top:5px;">${f.name}</div></div>`; });
             }
             const aGrid = document.getElementById('anims-grid'); if(aGrid) { aGrid.innerHTML = '';
                 allAnims.forEach(a => { const o = state.unlockedAnims.includes(a.id); const s = state.selectedNickAnim === a.id; aGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('NickAnim','${a.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon ${a.cssClass}" style="font-weight:900; font-size:20px;">Aa</div><div style="font-size:10px;">${a.name}</div></div>`; });
@@ -937,10 +1002,14 @@ HTML_CONTENT = """
         function switchShopTab(tab, btn) { 
             document.querySelectorAll('#screen-shop .tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); 
             document.getElementById('shop-grid').style.display = tab === 'items' ? 'grid' : 'none'; 
+            document.getElementById('shop-frames-grid').style.display = tab === 'items' ? 'grid' : 'none'; 
             document.getElementById('gems-grid').style.display = tab === 'gems' ? 'grid' : 'none'; 
         }
 
-        function buyGems(amount) { tg.showAlert(`Для покупки ${amount} гемов за Telegram Stars нужно подключить платежную систему в BotFather. Скоро добавим!`); }
+        function buyGems(amount) { 
+            // ЗДЕСЬ БУДЕТ ИНТЕГРАЦИЯ С БОТОМ ДЛЯ ОПЛАТЫ
+            tg.showAlert(`Покупка ${amount} гемов через Telegram Stars. В данный момент функция в разработке. Следите за обновлениями!`);
+        }
         
         function spinWheel() {
             const now = Date.now(); if (now - state.lastWheel < 24 * 60 * 60 * 1000 && !state.isAdmin) { tg.showAlert("Завтра!"); return; }
@@ -1019,7 +1088,16 @@ HTML_CONTENT = """
                 const isEq = state.equipped.pet === item.id; 
                 grid.innerHTML += `<div class="card"><div class="card-icon" style="width:60px; height:60px;"><svg viewBox="0 0 100 100">${petsData[item.id].svg}</svg></div><div class="card-title" style="margin-top:10px;">${item.name}</div><button class="card-price ${isOwned ? (isEq ? 'owned' : '') : ''}" onclick="buyItem('${item.id}', ${item.price})">${isOwned ? (isEq ? 'Снять' : 'Надеть') : `${item.price} <span class="icon-coin">$</span>`}</button></div>`; 
             });
+
+            const fGrid = document.getElementById('shop-frames-grid'); if(!fGrid) return; fGrid.innerHTML = '';
+            allFrames.forEach(f => {
+                if (f.price === 0) return;
+                const isOwned = state.unlockedFrames.includes(f.id);
+                const isEq = state.selectedFrame === f.id;
+                fGrid.innerHTML += `<div class="card"><div class="inv-icon" style="border:4px solid #fff; border-radius:50%; width:40px; height:40px; ${f.cssClass==='neon'?'border-color:#ff00ff; box-shadow:0 0 10px #ff00ff;':f.cssClass==='nature'?'border-color:#8bc34a; box-shadow:0 0 10px #8bc34a;':f.cssClass==='fire'?'border-color:#ff5722; box-shadow:0 0 10px #ff5722;':''}"></div><div class="card-title" style="margin-top:10px;">${f.name}</div><button class="card-price ${isOwned ? (isEq ? 'owned' : '') : ''}" onclick="buyFrame('${f.id}', ${f.price})">${isOwned ? (isEq ? 'Снять' : 'Надеть') : `${f.price} <span class="icon-coin">$</span>`}</button></div>`;
+            });
         }
+        
         function buyItem(id, price) { 
             if (state.inventory[id]) { 
                 if (state.equipped.pet === id) state.equipped.pet = 'none';
@@ -1028,6 +1106,17 @@ HTML_CONTENT = """
                 state.coins -= price; state.inventory[id] = true; state.equipped.pet = id; 
             } else { tg.showAlert("Мало монет!"); return; } 
             updateUI(); 
+        }
+
+        function buyFrame(id, price) {
+            const f = allFrames.find(x => x.id === id);
+            if (state.unlockedFrames.includes(id)) { 
+                if (state.selectedFrame === id) state.selectedFrame = 'default';
+                else state.selectedFrame = id;
+            } else if (state.coins >= price) { 
+                state.coins -= price; state.unlockedFrames.push(id); state.selectedFrame = id; 
+            } else { tg.showAlert("Мало монет!"); return; } 
+            updateUI();
         }
 
         function renderDuo() {
@@ -1053,6 +1142,14 @@ HTML_CONTENT = """
                 else { status.innerText = "Самец"; btnCont.innerHTML = ""; }
             }
         }
+
+        function hugPartner() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            // Отправляем запрос на обнимашки
+            ws.send(JSON.stringify({ type: "hug_partner" }));
+            tg.showAlert("🤗 Ты обнял друга! Вы оба получили бонус!");
+        }
+
         function startPregnancy() { state.isPregnant = true; state.pregnancyEnd = Date.now() + (7 * 24 * 60 * 60 * 1000); updateUI(); }
 
         document.getElementById('panda-wrapper').addEventListener('pointerdown', (e) => {
@@ -1167,6 +1264,29 @@ HTML_CONTENT = """
             }
         }
 
+        function spawnEffects() {
+            const bg = document.getElementById('bg-effects');
+            if(!bg) return;
+            setInterval(() => {
+                const isFirefly = Math.random() > 0.5;
+                const el = document.createElement('div');
+                if (isFirefly) {
+                    el.className = 'firefly';
+                    el.style.left = Math.random() * 100 + '%';
+                    el.style.top = Math.random() * 100 + '%';
+                    el.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                } else {
+                    el.className = 'butterfly';
+                    el.innerText = ['🦋', '🦋', '🦋', '🌺'][Math.floor(Math.random() * 4)];
+                    el.style.left = '-50px';
+                    el.style.top = Math.random() * 80 + 10 + '%';
+                    el.style.animationDuration = (Math.random() * 5 + 4) + 's';
+                }
+                bg.appendChild(el);
+                setTimeout(() => el.remove(), isFirefly ? 5000 : 9000);
+            }, 1500);
+        }
+
         function loadGame() {
             const saved = localStorage.getItem('pandaUltimate'); if (saved) { try { state = { ...state, ...JSON.parse(saved) }; } catch(e) {} }
             
@@ -1177,6 +1297,8 @@ HTML_CONTENT = """
 
             if (myId === ADMIN_ID) { state.isAdmin = true; state.verified = true; state.gems = 999999; state.coins = 99999999; state.streakDays = 730; state.inventory = { pet_dog: true, pet_cat: true, pet_fox: true, pet_dragon: true }; state.equipped = { pet: 'pet_dragon' }; state.selectedMedal = 'mythic'; state.selectedFrame = 'legend'; state.selectedNickAnim = 'rainbow'; }
             
+            spawnEffects();
+
             if (!state.gender) document.getElementById('setup-screen').style.display = 'flex'; 
             else { document.getElementById('setup-screen').style.display = 'none'; applyGenderVisuals(); checkStreak(); updateUI(); connectWebSocket(); fetchFriends(); fetchLeaderboard(); updateAvatarUI(); }
         }
@@ -1249,6 +1371,10 @@ HTML_CONTENT = """
                     renderFriendRequests(data.requests);
                 } else if (data.type === 'gift_sent_success') {
                     tg.showAlert(data.message);
+                } else if (data.type === 'hug_received') {
+                    tg.showAlert(`🤗 ${data.from_name} тебя обнял! Ты получил 1000 монет бонусом!`);
+                    state.coins += 1000;
+                    updateUI();
                 } else if (data.type === 'error') {
                     tg.showAlert(data.message);
                 } else if (data.type === 'init_data') {
@@ -1513,6 +1639,23 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     await websocket.send_text(json.dumps({"type": "friend_added", "friend_name": players_db[inviter_id]["name"]}))
                     if inviter_id in active_connections:
                         try: await active_connections[inviter_id].send_text(json.dumps({"type": "friend_added", "friend_name": players_db[user_id]["name"]}))
+                        except: pass
+                continue
+
+            if message.get("type") == "hug_partner":
+                if len(rooms[room_id]["players"]) > 1:
+                    other_id = [uid for uid in rooms[room_id]["players"].keys() if uid != user_id][0]
+                    
+                    players_db[user_id]["coins"] += 1000
+                    players_db[other_id]["coins"] += 1000
+                    
+                    save_player(user_id, players_db[user_id])
+                    save_player(other_id, players_db[other_id])
+                    
+                    await websocket.send_text(json.dumps({"type": "update_stats", "gems": players_db[user_id]["gems"], "coins": players_db[user_id]["coins"]}))
+                    
+                    if other_id in active_connections:
+                        try: await active_connections[other_id].send_text(json.dumps({"type": "hug_received", "from_name": players_db[user_id]["name"]}))
                         except: pass
                 continue
                 
