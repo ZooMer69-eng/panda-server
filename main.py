@@ -95,7 +95,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 29.1</title>
+    <title>Panda Game 29.2</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -476,7 +476,7 @@ HTML_CONTENT = """
                         <div class="profile-avatar-large" id="my-avatar-large">🐼</div>
                     </div>
                     <div class="profile-name" id="my-name-profile">Загрузка...</div>
-                    <div style="font-size:14px; color:#00e5ff; font-weight:900; margin-bottom:5px; cursor:pointer;" onclick="copyId()" title="Нажми, чтобы скопировать">ID: <span id="my-game-id" style="text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px;">...</span></div>
+                    <div style="font-size:14px; color:#00e5ff; font-weight:900; margin-bottom:5px; cursor:pointer;" onclick="copyId()" title="Нажми, чтобы скопировать">ID: <span id="my-game-id" style="text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; user-select: text; -webkit-user-select: text;">...</span></div>
                     <div class="medal-emoji large" id="my-medal-display" style="display:none; margin:0 auto 10px;"></div>
                     <button class="card-price" style="width:auto; display:inline-block; margin-top:5px; background:#2196f3; padding:5px 15px;" onclick="openNameModal()">Изменить ник</button>
                     
@@ -761,17 +761,24 @@ HTML_CONTENT = """
         function copyId() {
             if (!state.gameId) return;
             const textToCopy = state.gameId;
+            const idSpan = document.getElementById('my-game-id');
+            const originalText = state.gameId;
+
+            // Визуальный отклик
+            idSpan.innerText = "Копирую...";
 
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(textToCopy).then(() => {
-                    tg.showAlert("📋 ID скопирован: " + textToCopy);
-                }).catch(() => fallbackCopy(textToCopy));
+                    idSpan.innerText = "✅ Скопировано!";
+                    if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    setTimeout(() => { idSpan.innerText = originalText; }, 1500);
+                }).catch(() => fallbackCopy(textToCopy, idSpan, originalText));
             } else {
-                fallbackCopy(textToCopy);
+                fallbackCopy(textToCopy, idSpan, originalText);
             }
         }
 
-        function fallbackCopy(text) {
+        function fallbackCopy(text, element, original) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
             textArea.style.position = "fixed";
@@ -781,9 +788,12 @@ HTML_CONTENT = """
             textArea.select();
             try {
                 document.execCommand('copy');
-                tg.showAlert("📋 ID скопирован: " + text);
+                element.innerText = "✅ Скопировано!";
+                if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                setTimeout(() => { element.innerText = original; }, 1500);
             } catch (err) {
-                tg.showAlert("Ваш ID: " + text);
+                element.innerText = original;
+                tg.showAlert("Telegram заблокировал автокопирование. Выделите и скопируйте ID вручную: " + text);
             }
             document.body.removeChild(textArea);
         }
@@ -843,7 +853,7 @@ HTML_CONTENT = """
             if(profName) { profName.className = `profile-name ${animCss}`; profName.innerText = state.nickname; }
             
             const idEl = document.getElementById('my-game-id');
-            if(idEl) idEl.innerText = state.gameId || '...';
+            if(idEl && idEl.innerText !== "✅ Скопировано!") idEl.innerText = state.gameId || '...';
 
             const pMed = document.getElementById('my-medal-display');
             if(pMed) {
