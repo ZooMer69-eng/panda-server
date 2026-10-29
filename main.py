@@ -6,6 +6,7 @@ import json
 import os
 import time
 import random
+import sqlite3
 
 app = FastAPI()
 app.add_middleware(
@@ -16,7 +17,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-players_db: Dict[str, dict] = {}
+# --- ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ SQLITE ---
+DB_PATH = "panda_game.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS players
+                 (id TEXT PRIMARY KEY, data TEXT)''')
+    conn.commit()
+    conn.close()
+
+def load_players():
+    players = {}
+    if os.path.exists(DB_PATH):
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("SELECT id, data FROM players")
+        for row in c.fetchall():
+            players[row[0]] = json.loads(row[1])
+        conn.close()
+    return players
+
+def save_player(user_id, data):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO players (id, data) VALUES (?, ?)", (user_id, json.dumps(data)))
+    conn.commit()
+    conn.close()
+
+init_db()
+players_db: Dict[str, dict] = load_players()
 rooms: Dict[str, dict] = {}
 
 HTML_CONTENT = """
@@ -25,7 +56,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 22.0</title>
+    <title>Panda Game 23.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -780,7 +811,21 @@ HTML_CONTENT = """
             saveGame();
         }
 
-        function saveGame() { localStorage.setItem('pandaUltimate', JSON.stringify(state)); }
+        function saveGame() { 
+            localStorage.setItem('pandaUltimate', JSON.stringify(state)); 
+            // Отправляем данные на сервер для сохранения в БД
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ 
+                    type: "update_stats", 
+                    coins: state.coins, 
+                    gems: state.gems,
+                    avatar: state.avatarUrl,
+                    frame: state.selectedFrame,
+                    medal: state.selectedMedal,
+                    nick_style: state.selectedNickAnim
+                }));
+            }
+        }
 
         const shopData = [
             { id: 'pet_dog', name: 'Собачка', price: 5000 },
@@ -1069,6 +1114,9 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
         players_db[user_id] = {"name": f"Panda_{user_id[:4]}", "coins": 0, "gems": 0, "gender": "male", "last_active": time.time(), "friends": [], "gifts": 0, "gift_history": [], "verified": True if user_id == '6877882967' else False, "avatar": "", "frame": "default", "medal": "none", "nick_style": "nick-default"}
     else:
         players_db[user_id]["last_active"] = time.time()
+    
+    # Сохраняем игрока в БД при подключении
+    save_player(user_id, players_db[user_id])
         
     if room_id not in rooms: rooms[room_id] = {"players": {}, "joint_progress": 0}
     
@@ -1076,6 +1124,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
         if existing_uid != user_id:
             if existing_uid not in players_db[user_id]["friends"]: players_db[user_id]["friends"].append(existing_uid)
             if user_id not in players_db[existing_uid]["friends"]: players_db[existing_uid]["friends"].append(user_id)
+            save_player(user_id, players_db[user_id])
+            save_player(existing_uid, players_db[existing_uid])
 
     rooms[room_id]["players"][user_id] = websocket
     await broadcast_room_state(room_id)
@@ -1094,11 +1144,13 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 new_name = message.get("name", "")
                 if new_name and len(new_name) <= 15:
                     players_db[user_id]["name"] = new_name
+                    save_player(user_id, players_db[user_id])
                     await broadcast_room_state(room_id)
                 continue
 
             if message.get("type") == "set_gender":
                 players_db[user_id]["gender"] = message.get("gender", "male")
+                save_player(user_id, players_db[user_id])
                 await broadcast_room_state(room_id)
                 continue
                 
@@ -1110,6 +1162,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 players_db[user_id]["medal"] = message.get("medal", "none")
                 players_db[user_id]["nick_style"] = message.get("nick_style", "nick-default")
                 players_db[user_id]["last_active"] = time.time()
+                save_player(user_id, players_db[user_id])
                 continue
 
             if message.get("type") == "add_friend":
@@ -1117,6 +1170,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 if inviter_id in players_db and inviter_id != user_id:
                     if inviter_id not in players_db[user_id]["friends"]: players_db[user_id]["friends"].append(inviter_id)
                     if user_id not in players_db[inviter_id]["friends"]: players_db[inviter_id]["friends"].append(user_id)
+                    save_player(user_id, players_db[user_id])
+                    save_player(inviter_id, players_db[inviter_id])
                     
                     # Уведомляем обоих
                     await websocket.send_text(json.dumps({"type": "friend_added", "friend_name": players_db[inviter_id]["name"]}))
@@ -1133,6 +1188,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 if target_id in players_db:
                     players_db[target_id]["gifts"] += 1
                     players_db[target_id]["gift_history"].append({"from": from_name, "gift": gift_type, "time": time.time()})
+                    save_player(target_id, players_db[target_id])
                     
                     if target_id in rooms.get(room_id, {}).get("players", {}):
                         try: await rooms[room_id]["players"][target_id].send_text(json.dumps({"type": "gift_received", "gift": gift_type, "from_name": from_name}))
