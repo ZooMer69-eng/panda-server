@@ -25,7 +25,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 21.0</title>
+    <title>Panda Game 22.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -102,7 +102,7 @@ HTML_CONTENT = """
         .panda-wrapper.hit { animation: jump 0.25s ease-out; }
         @keyframes jump { 0% { transform: translateY(0); } 30% { transform: translateY(-15px) scale(1.05); } 100% { transform: translateY(0); } }
         
-        /* ПИТОМЦЫ (Полноценные 3D-модели на заднем плане) */
+        /* ПИТОМЦЫ */
         .pet-container { position: absolute; bottom: 0px; right: -70px; width: 90px; height: 90px; z-index: 4; pointer-events: none; display: flex; justify-content: center; align-items: center; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); animation: petIdle 3s infinite alternate ease-in-out; }
         @keyframes petIdle { 0% { transform: translateY(0) scale(1) rotate(-2deg); } 100% { transform: translateY(-8px) scale(1.05) rotate(2deg); } }
         
@@ -549,7 +549,7 @@ HTML_CONTENT = """
         };
 
         const urlParams = new URLSearchParams(window.location.search);
-        const startParam = tg.initDataUnsafe?.start_param;
+        const startParam = tg.initDataUnsafe?.start_param; // ID пригласившего друга
         const myId = String(tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 10000));
         const roomId = startParam || myId; 
         
@@ -557,12 +557,13 @@ HTML_CONTENT = """
         const API_URL = window.location.origin;
         let ws;
         let currentMode = 'solo';
+        let inviterId = startParam && startParam !== myId ? startParam : null;
 
         // ========== АДМИН РЕЖИМ ==========
         const ADMIN_ID = '6877882967'; 
         if (myId === ADMIN_ID) {
             state.coins = 99999999; state.gems = 999999; state.streakDays = 730; state.isAdmin = true; state.verified = true;
-            state.inventory = { pet_dog: true, pet_cat: true, pet_fox: true, pet_dragon: true, pet_unicorn: true }; state.equipped = { pet: 'pet_dragon' };
+            state.inventory = { pet_dog: true, pet_cat: true, pet_fox: true, pet_dragon: true }; state.equipped = { pet: 'pet_dragon' };
             state.selectedMedal = 'mythic'; state.selectedFrame = 'legend'; state.selectedNickAnim = 'rainbow';
         }
 
@@ -899,7 +900,20 @@ HTML_CONTENT = """
 
         function connectWebSocket() {
             ws = new WebSocket(`${WS_URL}/ws/${roomId}/${myId}`);
-            ws.onopen = () => { document.getElementById('conn-status').innerText = "🟢 Онлайн"; ws.send(JSON.stringify({ type: "set_name", name: state.nickname })); ws.send(JSON.stringify({ type: "set_gender", gender: state.gender })); ws.send(JSON.stringify({ type: "update_stats", coins: state.coins, gems: state.gems })); document.getElementById('loading').style.display = 'none'; };
+            ws.onopen = () => { 
+                document.getElementById('conn-status').innerText = "🟢 Онлайн"; 
+                ws.send(JSON.stringify({ type: "set_name", name: state.nickname })); 
+                ws.send(JSON.stringify({ type: "set_gender", gender: state.gender })); 
+                ws.send(JSON.stringify({ type: "update_stats", coins: state.coins, gems: state.gems })); 
+                
+                // Если мы зашли по приглашению друга
+                if (inviterId) {
+                    ws.send(JSON.stringify({ type: "add_friend", inviter_id: inviterId }));
+                    inviterId = null; // Отправляем только один раз
+                }
+                
+                document.getElementById('loading').style.display = 'none'; 
+            };
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.type === 'room_state') {
@@ -924,6 +938,9 @@ HTML_CONTENT = """
                     state.giftHistory.unshift({ from: data.from_name, gift: data.gift, time: Date.now() });
                     tg.showAlert(`🎁 Тебе подарили ${data.gift} от ${data.from_name}!`);
                     updateUI();
+                } else if (data.type === 'friend_added') {
+                    tg.showAlert(`🤝 Вы теперь друзья с ${data.friend_name}!`);
+                    fetchFriends();
                 }
             };
             ws.onclose = () => { document.getElementById('conn-status').innerText = "🔴 Оффлайн"; setTimeout(connectWebSocket, 3000); };
@@ -1016,7 +1033,14 @@ HTML_CONTENT = """
         };
 
         function claimChest() { document.getElementById('chest-modal').classList.remove('active'); state.lastChest = Date.now(); state.coins += 1000; tg.showAlert("+1000 монет!"); updateUI(); }
-        function inviteFriend() { const link = `https://t.me/nash_sad_69_bot/play?startapp=${roomId}`; const text = `Присоединяйся ко мне в игре!`; if (tg.openTelegramLink) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`); else navigator.clipboard.writeText(link).then(() => tg.showAlert("Скопировано!")); }
+        
+        // ИСПРАВЛЕНИЕ ССЫЛКИ: Всегда генерируем ссылку со своим ID (myId), а не с roomId
+        function inviteFriend() { 
+            const link = `https://t.me/nash_sad_69_bot/play?startapp=${myId}`; 
+            const text = `Присоединяйся ко мне в игре!`; 
+            if (tg.openTelegramLink) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`); 
+            else navigator.clipboard.writeText(link).then(() => tg.showAlert("Скопировано!")); 
+        }
 
         setInterval(() => {
             if (state.energy < state.maxEnergy) state.energy = Math.min(state.maxEnergy, state.energy + state.regen);
@@ -1089,6 +1113,19 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 players_db[user_id]["nick_style"] = message.get("nick_style", "nick-default")
                 players_db[user_id]["last_active"] = time.time()
                 continue
+
+            if message.get("type") == "add_friend":
+                inviter_id = message.get("inviter_id")
+                if inviter_id in players_db and inviter_id != user_id:
+                    if inviter_id not in players_db[user_id]["friends"]: players_db[user_id]["friends"].append(inviter_id)
+                    if user_id not in players_db[inviter_id]["friends"]: players_db[inviter_id]["friends"].append(user_id)
+                    
+                    # Уведомляем обоих
+                    await websocket.send_text(json.dumps({"type": "friend_added", "friend_name": players_db[inviter_id]["name"]}))
+                    if inviter_id in rooms.get(inviter_id, {}).get("players", {}):
+                        try: await rooms[inviter_id]["players"][inviter_id].send_text(json.dumps({"type": "friend_added", "friend_name": players_db[user_id]["name"]}))
+                        except: pass
+                continue
                 
             if message.get("type") == "send_gift":
                 target_id = message.get("to")
@@ -1099,7 +1136,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     players_db[target_id]["gifts"] += 1
                     players_db[target_id]["gift_history"].append({"from": from_name, "gift": gift_type, "time": time.time()})
                     
-                    if target_id in rooms[room_id]["players"]:
+                    if target_id in rooms.get(room_id, {}).get("players", {}):
                         try: await rooms[room_id]["players"][target_id].send_text(json.dumps({"type": "gift_received", "gift": gift_type, "from_name": from_name}))
                         except: pass
                 continue
