@@ -6,6 +6,7 @@ import json
 import os
 import time
 import random
+import string
 import sqlite3
 
 app = FastAPI()
@@ -68,24 +69,24 @@ async def serve_game():
     response.headers["Expires"] = "0"
     return response
 
-# --- ЭНДПОИНТ ДЛЯ ПОИСКА ИГРОКОВ ---
+# --- ПОИСК ИГРОКОВ (ПО НИКУ ИЛИ ID) ---
 @app.get("/api/search_players")
 async def search_players(q: str, my_id: str):
     results = []
     q = q.lower()
     for uid, data in players_db.items():
-        if uid == my_id: continue # Не ищем самого себя
-        if q in data["name"].lower():
-            # Возвращаем ник, короткий ID (последние 4 цифры) и аватарку
-            short_id = uid[-4:] if len(uid) > 4 else uid
+        if uid == my_id: continue
+        game_id = data.get("game_id", "").lower()
+        name = data["name"].lower()
+        if q in name or q in game_id:
             results.append({
                 "id": uid,
                 "name": data["name"],
-                "short_id": short_id,
+                "game_id": data.get("game_id", "N/A"),
                 "avatar": data.get("avatar", ""),
                 "online": (time.time() - data["last_active"]) < 120
             })
-            if len(results) >= 15: break # Ограничиваем вывод 15 игроками
+            if len(results) >= 15: break
     return results
 
 HTML_CONTENT = """
@@ -94,7 +95,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 28.0</title>
+    <title>Panda Game 28.1</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -474,6 +475,7 @@ HTML_CONTENT = """
                         <div class="profile-avatar-large" id="my-avatar-large">🐼</div>
                     </div>
                     <div class="profile-name" id="my-name-profile">Загрузка...</div>
+                    <div style="font-size:12px; color:#00e5ff; font-weight:900; margin-bottom:5px;">ID: <span id="my-game-id">...</span></div>
                     <div class="medal-emoji large" id="my-medal-display" style="display:none; margin:0 auto 10px;"></div>
                     <button class="card-price" style="width:auto; display:inline-block; margin-top:5px; background:#2196f3; padding:5px 15px;" onclick="openNameModal()">Изменить ник</button>
                     
@@ -509,7 +511,7 @@ HTML_CONTENT = """
                 
                 <!-- НОВАЯ СТРОКА ПОИСКА -->
                 <div class="search-container">
-                    <input type="text" id="search-input" class="search-input" placeholder="Введи ник игрока...">
+                    <input type="text" id="search-input" class="search-input" placeholder="Ник или ID игрока...">
                     <button class="search-btn" onclick="searchPlayers()">Найти</button>
                 </div>
                 <div id="search-results" class="friend-list"></div>
@@ -625,7 +627,7 @@ HTML_CONTENT = """
             bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }],
             lastMiniGame: 0, lastChest: 0, lastWheel: 0,
             friends: [], giftsReceived: 0, giftHistory: [],
-            nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: '',
+            nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: '', gameId: '',
             unlockedMedals: [], unlockedFrames: [], unlockedAnims: []
         };
 
@@ -789,7 +791,6 @@ HTML_CONTENT = """
             const animCss = allAnims.find(a => a.id === state.selectedNickAnim)?.cssClass || 'nick-default';
             const med = allMedals.find(m => m.id === state.selectedMedal);
 
-            // Header
             const hFrame = document.getElementById('header-frame'); if(hFrame) hFrame.className = `avatar-frame ${frame}`;
             const nameEl = document.getElementById('my-name');
             if(nameEl) { nameEl.className = `header-nick ${animCss}`; nameEl.innerText = state.nickname; }
@@ -800,25 +801,26 @@ HTML_CONTENT = """
                 else hMed.style.display = 'none';
             }
 
-            // Profile Page
             const pFrame = document.getElementById('profile-frame'); if(pFrame) pFrame.className = `avatar-frame ${frame}`;
             const profName = document.getElementById('my-name-profile');
             if(profName) { profName.className = `profile-name ${animCss}`; profName.innerText = state.nickname; }
             
+            // Вывод Игрового ID
+            const idEl = document.getElementById('my-game-id');
+            if(idEl) idEl.innerText = state.gameId || '...';
+
             const pMed = document.getElementById('my-medal-display');
             if(pMed) {
                 if (med) { pMed.style.display = 'block'; pMed.innerText = med.emoji; }
                 else pMed.style.display = 'none';
             }
 
-            // Динамический фон профиля
             const bgElem = document.getElementById('profile-bg');
             if(bgElem) {
                 const hue = parseInt(myId) % 360;
                 bgElem.style.backgroundImage = `linear-gradient(135deg, hsl(${hue}, 70%, 40%), hsl(${(hue+60)%360}, 70%, 20%))`;
             }
 
-            // Pet
             const petEl = document.getElementById('my-pet-container');
             const petIcon = document.getElementById('my-pet-icon');
             if (petEl && petIcon) {
@@ -830,7 +832,6 @@ HTML_CONTENT = """
                 }
             }
 
-            // Grids
             const mGrid = document.getElementById('medals-grid'); if(mGrid) { mGrid.innerHTML = '';
                 allMedals.forEach(m => { const o = state.unlockedMedals.includes(m.id); const s = state.selectedMedal === m.id; mGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Medal','${m.id}')" style="${o?'':'opacity:0.3;'}"><div class="medal-emoji">${m.emoji}</div><div style="font-size:10px; margin-top:5px;">${m.name}</div></div>`; });
             }
@@ -1026,7 +1027,6 @@ HTML_CONTENT = """
             }
         }
 
-        // --- ЛОГИКА ПОИСКА ИГРОКОВ ---
         async function searchPlayers() {
             const query = document.getElementById('search-input').value.trim();
             if (!query) return;
@@ -1048,7 +1048,7 @@ HTML_CONTENT = """
                         <div class="friend-name-box">
                             <div class="friend-name-row">
                                 <span>${p.name}</span>
-                                <span style="font-size:10px; color:#aaa;">#${p.short_id}</span>
+                                <span style="font-size:10px; color:#aaa;">#${p.game_id}</span>
                                 ${p.online ? '<span class="status-dot status-online"></span>' : ''}
                             </div>
                         </div>
@@ -1064,7 +1064,7 @@ HTML_CONTENT = """
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: "add_friend_by_id", target_id: targetId }));
                 tg.showAlert("Запрос отправлен!");
-                document.getElementById('search-results').innerHTML = ''; // Очищаем поиск
+                document.getElementById('search-results').innerHTML = '';
                 document.getElementById('search-input').value = '';
             }
         }
@@ -1146,6 +1146,9 @@ HTML_CONTENT = """
                     tg.showAlert(data.message);
                 } else if (data.type === 'error') {
                     tg.showAlert(data.message);
+                } else if (data.type === 'init_data') {
+                    state.gameId = data.game_id;
+                    renderProfile();
                 }
             };
             ws.onclose = () => { document.getElementById('conn-status').innerText = "🔴 Оффлайн"; setTimeout(connectWebSocket, 3000); };
@@ -1268,7 +1271,14 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     else:
         players_db[user_id]["last_active"] = time.time()
     
+    # Генерация Игрового ID, если его нет
+    if "game_id" not in players_db[user_id]:
+        players_db[user_id]["game_id"] = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    
     save_player(user_id, players_db[user_id])
+    
+    # Отправляем ID клиенту
+    await websocket.send_text(json.dumps({"type": "init_data", "game_id": players_db[user_id]["game_id"]}))
         
     if room_id not in rooms: rooms[room_id] = {"players": {}, "joint_progress": 0}
     
@@ -1317,7 +1327,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 save_player(user_id, players_db[user_id])
                 continue
 
-            # НОВЫЙ ОБРАБОТЧИК: ДОБАВЛЕНИЕ В ДРУЗЬЯ ПО ID (ИЗ ПОИСКА)
             if message.get("type") == "add_friend_by_id":
                 target_id = message.get("target_id")
                 if target_id in players_db and target_id != user_id:
