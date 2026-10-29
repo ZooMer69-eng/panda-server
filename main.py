@@ -59,15 +59,15 @@ init_db()
 players_db: Dict[str, dict] = load_players()
 rooms: Dict[str, dict] = {}
 
-# --- ИСПРАВЛЕНИЕ: Обработка HEAD запросов ---
-@app.head("/")
-@app.head("/health")
-async def head_check():
-    return HTMLResponse(content="", status_code=200)
-
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
+# --- ОБРАБОТКА HEAD И GET ЗАПРОСОВ ---
+@app.api_route("/", methods=["GET", "HEAD"])
+@app.api_route("/health", methods=["GET", "HEAD"])
+async def serve_game():
+    response = HTMLResponse(content=HTML_CONTENT)
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 HTML_CONTENT = """
 <!DOCTYPE html>
@@ -75,7 +75,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 25.0</title>
+    <title>Panda Game 27.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -570,37 +570,20 @@ HTML_CONTENT = """
     <div id="error-log"></div>
 
     <script>
-        // ПРОВЕРКА И ЗАЩИТА ОТ ЗАВИСАНИЯ НА ЭКРАНЕ ЗАГРУЗКИ
-        function hideLoadingScreen() {
-            const loader = document.getElementById('loading');
-            if (loader) {
-                loader.style.opacity = '0';
-                setTimeout(() => loader.style.display = 'none', 500);
-            }
-        }
+        let eyeTimeout = null; // ИСПРАВЛЕНИЕ: Переменная объявлена глобально!
 
-        // Принудительно прячем загрузку через 3 секунды, даже если сервер лагает
-        setTimeout(hideLoadingScreen, 3000);
+        setTimeout(() => { document.getElementById('loading-text').innerText = "Сервер просыпается..."; }, 4000);
+        setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 500);
 
         window.onerror = function(msg, url, line) {
             if (msg.includes("Script error") || msg.includes("NetworkError") || msg.includes("Failed to fetch")) return true; 
-            const errLog = document.getElementById('error-log');
-            if(errLog) {
-                errLog.style.display = 'block';
-                errLog.innerText = "Ошибка: " + msg + " | Строка: " + line;
-            }
+            document.getElementById('error-log').style.display = 'block';
+            document.getElementById('error-log').innerText = "Ошибка: " + msg + " | Строка: " + line;
             return false;
         };
 
-        let tg;
-        try {
-            tg = window.Telegram.WebApp;
-            tg.expand();
-        } catch (e) {
-            console.warn("Telegram WebApp API не загрузился. Играем в браузере.");
-            // Создаем заглушку, чтобы код не падал
-            tg = { showAlert: alert, expand: () => {}, initDataUnsafe: { user: { id: 12345, photo_url: "" } } };
-        }
+        const tg = window.Telegram.WebApp;
+        tg.expand();
 
         let state = {
             coins: 500, gems: 0, gender: null, streakDays: 1, lastLogin: 0, accountCreated: Date.now(),
@@ -620,12 +603,12 @@ HTML_CONTENT = """
         const myId = String(tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 10000));
         const roomId = startParam || myId; 
         
-        const WS_URL = window.location.origin.replace('https://', 'wss://').replace('http://', 'ws://'); 
+        const WS_URL = window.location.origin.replace('https://', 'wss://'); 
         const API_URL = window.location.origin;
         let ws;
         let currentMode = 'solo';
         
-        let inviterId = (startParam && /^[0-9]+$/.test(startParam) && startParam !== myId) ? startParam : null;
+        let inviterId = (startParam && /^\d+$/.test(startParam) && startParam !== myId) ? startParam : null;
 
         // ========== АДМИН РЕЖИМ ==========
         const ADMIN_ID = '6877882967'; 
@@ -655,7 +638,7 @@ HTML_CONTENT = """
             { id: 'rainbow', name: 'Радуга', cssClass: 'nick-rainbow' }
         ];
 
-        // ПИТОМЦЫ
+        // КРАСИВЫЕ ДЕТАЛИЗИРОВАННЫЕ SVG ПИТОМЦЫ (В ПОЛНЫЙ РОСТ)
         const petsData = {
             'pet_dog': { 
                 name: 'Собачка', 
@@ -1056,7 +1039,7 @@ HTML_CONTENT = """
                     inviterId = null; 
                 }
                 
-                hideLoadingScreen(); // Прячем загрузку ТОЛЬКО когда есть связь
+                document.getElementById('loading').style.display = 'none'; 
             };
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
@@ -1177,10 +1160,8 @@ HTML_CONTENT = """
 
         function claimChest() { document.getElementById('chest-modal').classList.remove('active'); state.lastChest = Date.now(); state.coins += 1000; tg.showAlert("+1000 монет!"); updateUI(); }
         
-        // ГЕНЕРАЦИЯ ССЫЛКИ: Добавляем случайное число в конце, чтобы Telegram не кэшировал
         function inviteFriend() { 
-            const randomHash = Math.floor(Math.random() * 999999);
-            const link = `https://t.me/nash_sad_69_bot/play?startapp=${myId}_${randomHash}`; 
+            const link = `https://t.me/nash_sad_69_bot/play?startapp=${myId}`; 
             const text = `Присоединяйся ко мне в игре!`; 
             if (tg.openTelegramLink) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`); 
             else navigator.clipboard.writeText(link).then(() => tg.showAlert("Скопировано!")); 
@@ -1204,20 +1185,14 @@ HTML_CONTENT = """
 </html>
 """
 
-# --- ВАЖНО: ЗАПРЕТ КЭШИРОВАНИЯ НА УРОВНЕ СЕРВЕРА ---
 @app.get("/")
 async def serve_game():
-    response = HTMLResponse(content=HTML_CONTENT)
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    return response
+    return HTMLResponse(content=HTML_CONTENT)
 
 @app.websocket("/ws/{room_id}/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     await websocket.accept()
     
-    # Очищаем room_id от мусора (если пришел startapp=123_456, берем только 123)
     if "_" in room_id:
         room_id = room_id.split("_")[0]
 
@@ -1277,7 +1252,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
 
             if message.get("type") == "add_friend":
                 inviter_id = message.get("inviter_id")
-                # Очищаем inviter_id от мусора (на случай если пришел с _)
                 if inviter_id and "_" in inviter_id:
                     inviter_id = inviter_id.split("_")[0]
 
