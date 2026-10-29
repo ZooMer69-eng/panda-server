@@ -25,14 +25,13 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 15.0</title>
+    <title>Panda Game 16.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: #0a120e; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
 
-        /* ОБЩИЕ СТИЛИ */
         #setup-screen { position: fixed; inset: 0; background: rgba(10, 18, 14, 0.98); z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; }
         .gender-btns { display: flex; gap: 20px; margin-top: 20px; }
         .gender-btn { background: rgba(255,255,255,0.1); border: 2px solid #4caf50; border-radius: 20px; padding: 20px 30px; cursor: pointer; transition: 0.2s; }
@@ -86,7 +85,6 @@ HTML_CONTENT = """
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; }
         .screen.active { display: flex; }
 
-        /* ТАП */
         .tap-area { flex: 1; display: flex; justify-content: center; align-items: center; gap: 20px; position: relative; padding-bottom: 20px; }
         .panda-wrapper { position: relative; width: 190px; height: 210px; transform-origin: center bottom; cursor: pointer; transition: transform 1s ease-in-out; z-index: 5; }
         .panda-wrapper.partner-panda { width: 140px; height: 160px; opacity: 0.9; pointer-events: none; }
@@ -174,7 +172,7 @@ HTML_CONTENT = """
         .profile-stats { display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; }
         .profile-stats span { font-weight: 900; color: #fff; display: block; font-size: 16px; }
         
-        .inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+        .inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; margin-bottom: 20px; }
         .inv-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; text-align: center; border: 2px solid transparent; cursor: pointer; }
         .inv-item.selected { border-color: #4caf50; background: rgba(76, 175, 80, 0.2); }
         .inv-icon { font-size: 24px; margin-bottom: 5px; filter: grayscale(1); }
@@ -309,6 +307,11 @@ HTML_CONTENT = """
                                     <ellipse cx="100" cy="105" rx="8" ry="5" fill="#111" />
                                     <path id="mouth-path" d="M 92 112 Q 100 118 108 112" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" />
                                     <g id="gender-bow" style="display:none;"><path d="M 120 30 L 140 20 L 140 40 Z" fill="#ff69b4" /><path d="M 150 30 L 170 20 L 170 40 Z" fill="#ff69b4" /><circle cx="145" cy="30" r="6" fill="#ff1493" /></g>
+                                    <!-- ОДЕЖДА -->
+                                    <g id="acc-hat" style="display:none;"><path d="M 50 40 Q 100 10 150 40 L 155 50 Q 100 30 45 50 Z" fill="#2196f3" /></g>
+                                    <g id="acc-glasses" style="display:none;"><circle cx="70" cy="85" r="18" fill="rgba(0,0,0,0.8)" stroke="#333" stroke-width="4" /><circle cx="130" cy="85" r="18" fill="rgba(0,0,0,0.8)" stroke="#333" stroke-width="4" /><path d="M 88 85 L 112 85" stroke="#333" stroke-width="4" /></g>
+                                    <g id="acc-crown" style="display:none;"><path d="M 60 40 L 70 10 L 100 30 L 130 10 L 140 40 Z" fill="#ffd700" stroke="#ffb300" stroke-width="2"/></g>
+                                    <g id="acc-bowtie" style="display:none;"><path d="M 90 120 L 70 110 L 70 130 Z" fill="#e91e63" /><path d="M 110 120 L 130 110 L 130 130 Z" fill="#e91e63" /><circle cx="100" cy="120" r="6" fill="#ad1457" /></g>
                                 </g>
                                 <g class="front-legs">
                                     <g class="hand-left"><ellipse cx="45" cy="145" rx="18" ry="22" fill="#1a1a1a" /><ellipse cx="38" cy="160" rx="6" ry="5" fill="url(#padGrad)" /><ellipse cx="48" cy="162" rx="6" ry="5" fill="url(#padGrad)" /></g>
@@ -402,7 +405,12 @@ HTML_CONTENT = """
                 </div>
                 <div class="grid" id="shop-grid"></div>
                 <div class="grid" id="gems-grid" style="display:none;">
+                    <!-- 5 СЛОТОВ ДЛЯ ГЕМОВ -->
                     <div class="card"><div class="card-icon">💎</div><div class="card-title">100 Гемов</div><button class="card-price" onclick="buyGems(50)">50 ⭐</button></div>
+                    <div class="card"><div class="card-icon">💎</div><div class="card-title">500 Гемов</div><button class="card-price" onclick="buyGems(200)">200 ⭐</button></div>
+                    <div class="card"><div class="card-icon">💎</div><div class="card-title">1000 Гемов</div><button class="card-price" onclick="buyGems(350)">350 ⭐</button></div>
+                    <div class="card"><div class="card-icon">💎</div><div class="card-title">5000 Гемов</div><button class="card-price" onclick="buyGems(1500)">1500 ⭐</button></div>
+                    <div class="card"><div class="card-icon">💎</div><div class="card-title">10000 Гемов</div><button class="card-price" onclick="buyGems(2500)">2500 ⭐</button></div>
                 </div>
             </div>
         </div>
@@ -443,6 +451,8 @@ HTML_CONTENT = """
     <div id="error-log"></div>
 
     <script>
+        let eyeTimeout = null; // Исправление ошибки eyeTimeout is not defined
+
         setTimeout(() => { document.getElementById('loading-text').innerText = "Сервер просыпается..."; }, 4000);
         setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 500);
 
@@ -456,6 +466,7 @@ HTML_CONTENT = """
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        // Инициализация массивов, чтобы не было ошибки includes
         let state = {
             coins: 500, gems: 0, gender: null, streakDays: 1, lastLogin: 0, accountCreated: Date.now(),
             tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 5,
@@ -465,7 +476,8 @@ HTML_CONTENT = """
             bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }],
             lastMiniGame: 0, lastChest: 0, lastWheel: 0,
             friends: [], giftsReceived: 0,
-            nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: ''
+            nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: '',
+            unlockedMedals: [], unlockedFrames: [], unlockedAnims: []
         };
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -520,6 +532,10 @@ HTML_CONTENT = """
         }
 
         function checkUnlocks() {
+            if (!state.unlockedMedals) state.unlockedMedals = [];
+            if (!state.unlockedFrames) state.unlockedFrames = [];
+            if (!state.unlockedAnims) state.unlockedAnims = [];
+
             if (state.isAdmin) {
                 state.unlockedMedals = allMedals.map(m => m.id); state.unlockedFrames = allFrames.map(f => f.id); state.unlockedAnims = allAnims.map(a => a.id);
             } else {
@@ -530,29 +546,41 @@ HTML_CONTENT = """
             }
         }
 
-        function equip(type, id) { if (state['unlocked' + type + 's'].includes(id)) { state['selected' + type] = id; updateUI(); } }
+        function equip(type, id) {
+            if (type === 'Medal' && state.unlockedMedals.includes(id)) state.selectedMedal = id;
+            if (type === 'Frame' && state.unlockedFrames.includes(id)) state.selectedFrame = id;
+            if (type === 'NickAnim' && state.unlockedAnims.includes(id)) state.selectedNickAnim = id;
+            updateUI();
+        }
 
         function renderProfile() {
             const av = document.getElementById('my-avatar-large'); const frame = allFrames.find(f => f.id === state.selectedFrame);
             if (frame) av.setAttribute('style', `border: 3px solid #ffd700; ${frame.css}`); if (state.streakDays >= 365 || state.isAdmin) av.classList.add('border-legend'); else av.classList.remove('border-legend');
 
-            const mGrid = document.getElementById('medals-grid'); mGrid.innerHTML = '';
-            allMedals.forEach(m => { const o = state.unlockedMedals.includes(m.id); const s = state.selectedMedal === m.id; mGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Medal','${m.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon" style="${o&&m.css?m.css:''}">${m.icon}</div><div style="font-size:10px;">${m.name}</div></div>`; });
+            const mGrid = document.getElementById('medals-grid'); if(mGrid) { mGrid.innerHTML = '';
+                allMedals.forEach(m => { const o = state.unlockedMedals.includes(m.id); const s = state.selectedMedal === m.id; mGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Medal','${m.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon" style="${o&&m.css?m.css:''}">${m.icon}</div><div style="font-size:10px;">${m.name}</div></div>`; });
+            }
             
-            const fGrid = document.getElementById('frames-grid'); fGrid.innerHTML = '';
-            allFrames.forEach(f => { const o = state.unlockedFrames.includes(f.id); const s = state.selectedFrame === f.id; fGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Frame','${f.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon" style="border:2px solid #fff; border-radius:50%; width:30px; height:30px; margin:0 auto; ${f.css}"></div><div style="font-size:10px; margin-top:5px;">${f.name}</div></div>`; });
+            const fGrid = document.getElementById('frames-grid'); if(fGrid) { fGrid.innerHTML = '';
+                allFrames.forEach(f => { const o = state.unlockedFrames.includes(f.id); const s = state.selectedFrame === f.id; fGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Frame','${f.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon" style="border:2px solid #fff; border-radius:50%; width:30px; height:30px; margin:0 auto; ${f.css}"></div><div style="font-size:10px; margin-top:5px;">${f.name}</div></div>`; });
+            }
             
-            const aGrid = document.getElementById('anims-grid'); aGrid.innerHTML = '';
-            allAnims.forEach(a => { const o = state.unlockedAnims.includes(a.id); const s = state.selectedNickAnim === a.id; aGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('NickAnim','${a.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon ${a.css}" style="font-weight:900;">Aa</div><div style="font-size:10px;">${a.name}</div></div>`; });
+            const aGrid = document.getElementById('anims-grid'); if(aGrid) { aGrid.innerHTML = '';
+                allAnims.forEach(a => { const o = state.unlockedAnims.includes(a.id); const s = state.selectedNickAnim === a.id; aGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('NickAnim','${a.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon ${a.css}" style="font-weight:900;">Aa</div><div style="font-size:10px;">${a.name}</div></div>`; });
+            }
 
             const medD = allMedals.find(m => m.id === state.selectedMedal);
-            document.getElementById('my-medal-display').innerText = medD ? `Медаль: ${medD.name}` : 'Медаль: Нет';
-            document.getElementById('gifts-list').innerText = state.giftsReceived > 0 ? `Подарков: ${state.giftsReceived} 🎁` : 'Подарков пока нет';
+            if(document.getElementById('my-medal-display')) document.getElementById('my-medal-display').innerText = medD ? `Медаль: ${medD.name}` : 'Медаль: Нет';
+            if(document.getElementById('gifts-list')) document.getElementById('gifts-list').innerText = state.giftsReceived > 0 ? `Подарков: ${state.giftsReceived} 🎁` : 'Подарков пока нет';
             
-            // Установка анимации ника
+            // Установка анимации ника везде
             const animCss = allAnims.find(a => a.id === state.selectedNickAnim)?.css || 'nick-default';
-            document.getElementById('my-name').className = `panda-name ${animCss}`;
-            document.getElementById('stat-coins').innerText = state.coins.toLocaleString(); document.getElementById('stat-gems').innerText = state.gems.toLocaleString(); document.getElementById('stat-streak').innerText = state.streakDays;
+            if(document.getElementById('my-name')) document.getElementById('my-name').className = `panda-name ${animCss}`;
+            if(document.getElementById('my-name-profile')) document.getElementById('my-name-profile').className = `profile-name ${animCss}`;
+            
+            if(document.getElementById('stat-coins')) document.getElementById('stat-coins').innerText = state.coins.toLocaleString(); 
+            if(document.getElementById('stat-gems')) document.getElementById('stat-gems').innerText = state.gems.toLocaleString(); 
+            if(document.getElementById('stat-streak')) document.getElementById('stat-streak').innerText = state.streakDays;
         }
 
         function renderFarm() {
@@ -572,7 +600,13 @@ HTML_CONTENT = """
             saveGame(); updateUI();
         }
 
-        function switchShopTab(tab, btn) { document.querySelectorAll('#screen-shop .tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('shop-grid').style.display = tab === 'items' ? 'grid' : 'none'; document.getElementById('gems-grid').style.display = tab === 'gems' ? 'grid' : 'none'; }
+        function switchShopTab(tab, btn) { 
+            document.querySelectorAll('#screen-shop .tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); 
+            document.getElementById('shop-grid').style.display = tab === 'items' ? 'grid' : 'none'; 
+            document.getElementById('gems-grid').style.display = tab === 'gems' ? 'grid' : 'none'; 
+        }
+
+        function buyGems(amount) { tg.showAlert(`Для покупки ${amount} гемов за Telegram Stars нужно подключить платежную систему в BotFather. Скоро добавим!`); }
         
         function spinWheel() {
             const now = Date.now(); if (now - state.lastWheel < 24 * 60 * 60 * 1000 && !state.isAdmin) { tg.showAlert("Завтра!"); return; }
@@ -601,15 +635,25 @@ HTML_CONTENT = """
         }
 
         function updateUI() {
-            document.getElementById('coins').innerText = Math.floor(state.coins).toLocaleString(); document.getElementById('gems').innerText = Math.floor(state.gems).toLocaleString();
-            document.getElementById('energy').innerText = Math.floor(state.energy); document.getElementById('max-energy').innerText = state.maxEnergy; document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%';
-            document.getElementById('streak-badge').innerText = `🔥 Серия: ${state.streakDays}`;
+            if(document.getElementById('coins')) document.getElementById('coins').innerText = Math.floor(state.coins).toLocaleString(); 
+            if(document.getElementById('gems')) document.getElementById('gems').innerText = Math.floor(state.gems).toLocaleString();
+            if(document.getElementById('energy')) document.getElementById('energy').innerText = Math.floor(state.energy); 
+            if(document.getElementById('max-energy')) document.getElementById('max-energy').innerText = state.maxEnergy; 
+            if(document.getElementById('energy-fill')) document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%';
+            if(document.getElementById('streak-badge')) document.getElementById('streak-badge').innerText = `🔥 Серия: ${state.streakDays}`;
             
+            // Отображение одежды
             ['hat', 'glasses', 'crown', 'bowtie'].forEach(item => { const el = document.getElementById('acc-' + item); if (el) el.style.display = state.equipped[item] ? 'block' : 'none'; });
             
             checkUnlocks(); renderProfile(); renderFarm(); renderShop(); renderFamily();
+            
             if (state.isPregnant) { document.querySelector('.belly-normal').style.display = 'none'; document.querySelector('.belly-pregnant').style.display = 'block'; if (Date.now() >= state.pregnancyEnd) { state.isPregnant = false; state.hasBaby = true; document.querySelector('.belly-normal').style.display = 'block'; document.querySelector('.belly-pregnant').style.display = 'none'; tg.showAlert("🎉 Родился малыш!"); } } 
             else { document.querySelector('.belly-normal').style.display = 'block'; document.querySelector('.belly-pregnant').style.display = 'none'; }
+            
+            // Обновление имени (на случай если было "Загрузка...")
+            if(document.getElementById('my-name') && state.nickname) document.getElementById('my-name').innerText = state.nickname;
+            if(document.getElementById('my-name-profile') && state.nickname) document.getElementById('my-name-profile').innerText = state.nickname;
+
             saveGame();
         }
 
@@ -640,7 +684,7 @@ HTML_CONTENT = """
             setTimeout(() => { earL.style.transform = 'translateY(0)'; earR.style.transform = 'translateY(0)'; }, 200);
 
             const eyeL = document.getElementById('eye-L'); const eyeR = document.getElementById('eye-R'); eyeL.classList.remove('slow-open'); eyeR.classList.remove('slow-open'); eyeL.classList.add('closed'); eyeR.classList.add('closed');
-            clearTimeout(eyeTimeout);
+            if(eyeTimeout) clearTimeout(eyeTimeout);
             eyeTimeout = setTimeout(() => { eyeL.classList.add('slow-open'); eyeR.classList.add('slow-open'); eyeL.classList.remove('closed'); eyeR.classList.remove('closed'); setTimeout(() => { eyeL.classList.remove('slow-open'); eyeR.classList.remove('slow-open'); }, 2100); }, 300);
 
             const coin = document.createElement('div'); coin.className = 'particle-coin'; coin.innerText = `+${earn}`; coin.style.left = (e.clientX - 15) + 'px'; coin.style.top = (e.clientY - 20) + 'px'; document.body.appendChild(coin); setTimeout(() => coin.remove(), 900);
@@ -654,8 +698,27 @@ HTML_CONTENT = """
             if (tabId === 'farm') renderFarm(); if (tabId === 'friends') { fetchFriends(); fetchLeaderboard(); }
         }
 
+        function switchFriendsTab(tab, btn) {
+            document.querySelectorAll('.tabs-sub .tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active');
+            if (tab === 'list') {
+                document.getElementById('friends-list-container').style.display = 'block';
+                document.getElementById('leaderboard-container').style.display = 'none';
+                fetchFriends();
+            } else {
+                document.getElementById('friends-list-container').style.display = 'none';
+                document.getElementById('leaderboard-container').style.display = 'block';
+                fetchLeaderboard();
+            }
+        }
+
         function loadGame() {
             const saved = localStorage.getItem('pandaUltimate'); if (saved) { try { state = { ...state, ...JSON.parse(saved) }; } catch(e) {} }
+            
+            // Принудительная инициализация массивов, если их нет в кэше
+            if (!state.unlockedMedals) state.unlockedMedals = [];
+            if (!state.unlockedFrames) state.unlockedFrames = [];
+            if (!state.unlockedAnims) state.unlockedAnims = [];
+
             if (myId === ADMIN_ID) { state.isAdmin = true; state.verified = true; state.gems = 999999; state.coins = 99999999; state.streakDays = 730; state.inventory = { hat: true, glasses: true, crown: true, bowtie: true }; state.equipped = { hat: true, glasses: true, crown: true, bowtie: true }; state.selectedMedal = 'mythic'; state.selectedFrame = 'legend'; state.selectedNickAnim = 'rainbow'; }
             
             if (!state.gender) document.getElementById('setup-screen').style.display = 'flex'; 
@@ -718,7 +781,12 @@ HTML_CONTENT = """
             if (document.getElementById('screen-farm').classList.contains('active')) { renderFarm(); }
             const now = Date.now(); let changed = false;
             state.bamboos.forEach(b => { if (b.stage === 1 && now - b.planted > 60000) { b.stage = 2; changed = true; } if (b.stage === 2 && now - b.planted > 120000) { b.stage = 3; changed = true; } });
-            if (changed) saveGame(); updateUI();
+            if (changed) saveGame(); 
+            
+            // Постоянное обновление UI для работы таймеров
+            if(document.getElementById('coins')) document.getElementById('coins').innerText = Math.floor(state.coins).toLocaleString();
+            if(document.getElementById('energy')) document.getElementById('energy').innerText = Math.floor(state.energy);
+            if(document.getElementById('energy-fill')) document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%';
         }, 1000);
 
         loadGame();
