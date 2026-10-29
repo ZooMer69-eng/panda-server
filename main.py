@@ -59,7 +59,7 @@ def save_player(user_id, data):
 init_db()
 players_db: Dict[str, dict] = load_players()
 rooms: Dict[str, dict] = {}
-active_connections: Dict[str, WebSocket] = {} # Для мгновенных уведомлений
+active_connections: Dict[str, WebSocket] = {} 
 
 @app.api_route("/", methods=["GET", "HEAD"])
 @app.api_route("/health", methods=["GET", "HEAD"])
@@ -70,7 +70,6 @@ async def serve_game():
     response.headers["Expires"] = "0"
     return response
 
-# --- ПОИСК ИГРОКОВ ---
 @app.get("/api/search_players")
 async def search_players(q: str, my_id: str):
     results = []
@@ -96,7 +95,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 29.0</title>
+    <title>Panda Game 29.1</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -477,7 +476,7 @@ HTML_CONTENT = """
                         <div class="profile-avatar-large" id="my-avatar-large">🐼</div>
                     </div>
                     <div class="profile-name" id="my-name-profile">Загрузка...</div>
-                    <div style="font-size:14px; color:#00e5ff; font-weight:900; margin-bottom:5px; cursor:pointer;" onclick="copyId()" title="Нажми, чтобы скопировать">ID: <span id="my-game-id">...</span> 📋</div>
+                    <div style="font-size:14px; color:#00e5ff; font-weight:900; margin-bottom:5px; cursor:pointer;" onclick="copyId()" title="Нажми, чтобы скопировать">ID: <span id="my-game-id" style="text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px;">...</span></div>
                     <div class="medal-emoji large" id="my-medal-display" style="display:none; margin:0 auto 10px;"></div>
                     <button class="card-price" style="width:auto; display:inline-block; margin-top:5px; background:#2196f3; padding:5px 15px;" onclick="openNameModal()">Изменить ник</button>
                     
@@ -761,11 +760,32 @@ HTML_CONTENT = """
 
         function copyId() {
             if (!state.gameId) return;
-            navigator.clipboard.writeText(state.gameId).then(() => {
-                tg.showAlert("📋 ID скопирован: " + state.gameId);
-            }).catch(() => {
-                tg.showAlert("Не удалось скопировать. Ваш ID: " + state.gameId);
-            });
+            const textToCopy = state.gameId;
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    tg.showAlert("📋 ID скопирован: " + textToCopy);
+                }).catch(() => fallbackCopy(textToCopy));
+            } else {
+                fallbackCopy(textToCopy);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                tg.showAlert("📋 ID скопирован: " + text);
+            } catch (err) {
+                tg.showAlert("Ваш ID: " + text);
+            }
+            document.body.removeChild(textArea);
         }
 
         function goToProfile() { switchTab('profile', document.querySelectorAll('.nav-btn')[5]); }
@@ -1157,7 +1177,7 @@ HTML_CONTENT = """
                 ws.send(JSON.stringify({ type: "set_name", name: state.nickname })); 
                 ws.send(JSON.stringify({ type: "set_gender", gender: state.gender })); 
                 ws.send(JSON.stringify({ type: "update_stats", coins: state.coins, gems: state.gems })); 
-                ws.send(JSON.stringify({ type: "get_friend_requests" })); // Запрашиваем заявки при входе
+                ws.send(JSON.stringify({ type: "get_friend_requests" })); 
                 
                 if (inviterId) {
                     ws.send(JSON.stringify({ type: "add_friend", inviter_id: inviterId }));
@@ -1195,7 +1215,7 @@ HTML_CONTENT = """
                     fetchFriends();
                 } else if (data.type === 'new_friend_request') {
                     tg.showAlert(`🔔 Новая заявка в друзья от ${data.from_name}!`);
-                    ws.send(JSON.stringify({ type: "get_friend_requests" })); // Обновляем список
+                    ws.send(JSON.stringify({ type: "get_friend_requests" })); 
                 } else if (data.type === 'friend_requests_list') {
                     state.friendRequests = data.requests;
                     renderFriendRequests(data.requests);
