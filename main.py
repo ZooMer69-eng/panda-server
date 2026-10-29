@@ -25,7 +25,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 18.0</title>
+    <title>Panda Game 19.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -81,6 +81,10 @@ HTML_CONTENT = """
         .res-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
         .coins-box { font-size: 18px; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 3px; }
         .gems-box { font-size: 14px; font-weight: 900; color: #00e5ff; display: flex; align-items: center; gap: 3px; cursor: pointer; }
+        
+        /* КРАСИВАЯ МОНЕТКА И АЛМАЗ */
+        .icon-coin { display: inline-block; width: 16px; height: 16px; background: radial-gradient(circle at 30% 30%, #fff000, #ffb300, #b26a00); border-radius: 50%; border: 1px solid #e6a800; box-shadow: 0 1px 3px rgba(0,0,0,0.5); text-align: center; line-height: 14px; font-size: 10px; font-weight: 900; color: #8a5100; vertical-align: middle; margin-left: 2px; }
+        .icon-gem { display: inline-block; font-size: 16px; filter: drop-shadow(0 0 3px #00e5ff); margin-left: 2px; }
 
         .energy-box { display: flex; flex-direction: column; align-items: flex-end; cursor: pointer; }
         .energy-text { font-size: 10px; font-weight: 700; color: #fff; margin-bottom: 3px; }
@@ -93,20 +97,17 @@ HTML_CONTENT = """
         .screen.active { display: flex; }
 
         /* ТАП */
-        .tap-area { flex: 1; display: flex; justify-content: center; align-items: flex-end; gap: 20px; position: relative; padding-bottom: 10px; }
-        .panda-wrapper { position: relative; width: 190px; height: 210px; transform-origin: center bottom; cursor: pointer; transition: transform 1s ease-in-out; z-index: 5; margin-bottom: 0; }
+        .tap-area { flex: 1; display: flex; justify-content: center; align-items: flex-end; gap: 20px; position: relative; padding-bottom: 10px; z-index: 5; }
+        .panda-wrapper { position: relative; width: 190px; height: 210px; transform-origin: center bottom; cursor: pointer; transition: transform 1s ease-in-out; z-index: 10; margin-bottom: 0; }
         .panda-wrapper:active { transform: scale(0.95); }
         .panda-wrapper.hit { animation: jump 0.25s ease-out; }
         @keyframes jump { 0% { transform: translateY(0); } 30% { transform: translateY(-15px) scale(1.05); } 100% { transform: translateY(0); } }
         
-        /* ПИТОМЦЫ (Отдельно от прыжка) */
-        .pet-container { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 80px; z-index: 10; pointer-events: none; transition: all 0.5s; }
-        .pet-svg { width: 100%; height: 100%; animation: petIdle 3s infinite alternate ease-in-out; }
-        @keyframes petIdle { 0% { transform: translateY(0) scale(1); } 100% { transform: translateY(-5px) scale(1.02); } }
-        .pet-eye { animation: blinkPet 4s infinite; transform-origin: center; }
-        @keyframes blinkPet { 0%, 96%, 100% { transform: scaleY(1); } 98% { transform: scaleY(0.1); } }
+        /* ПИТОМЦЫ (На заднем плане) */
+        .pet-container { position: absolute; bottom: 10px; right: -50px; width: 100px; height: 100px; z-index: 4; pointer-events: none; display: flex; justify-content: center; align-items: center; font-size: 60px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5)); animation: petIdle 3s infinite alternate ease-in-out; }
+        @keyframes petIdle { 0% { transform: translateY(0) scale(1) rotate(0deg); } 100% { transform: translateY(-5px) scale(1.05) rotate(5deg); } }
         
-        /* Анимации ников (Исправленные) */
+        /* Анимации ников */
         .nick-default { color: #fff; }
         .nick-gold { background: linear-gradient(90deg, #ffd700, #ff8c00, #ffd700); background-size: 200% auto; color: transparent; -webkit-background-clip: text; background-clip: text; animation: goldShine 3s linear infinite; filter: drop-shadow(0 0 2px rgba(255,215,0,0.5)); }
         .nick-fire { color: #ff4500; text-shadow: 0 0 5px #ff4500, 0 0 15px #ff0000; animation: fireFlicker 1.5s infinite alternate; }
@@ -182,11 +183,14 @@ HTML_CONTENT = """
 
         /* ПРОФИЛЬ */
         .profile-card { background: rgba(0,0,0,0.6); border-radius: 15px; padding: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+        /* ДИНАМИЧЕСКИЙ ФОН ПРОФИЛЯ */
+        .profile-bg { position: absolute; inset: 0; z-index: 0; opacity: 0.3; background-size: cover; background-position: center; }
+        
         .profile-avatar-large { width: 80px; height: 80px; border-radius: 50%; background: #333; display: flex; justify-content: center; align-items: center; font-size: 40px; position: relative; overflow: hidden; border: 2px solid #fff; z-index: 2;}
         .profile-avatar-large img { width: 100%; height: 100%; object-fit: cover; }
-        .profile-frame-wrap { position: relative; width: 90px; height: 90px; display: flex; justify-content: center; align-items: center; margin-bottom: 10px; }
-        .profile-name { font-size: 22px; font-weight: 900; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
-        .profile-stats { display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; width: 100%; }
+        .profile-frame-wrap { position: relative; width: 90px; height: 90px; display: flex; justify-content: center; align-items: center; margin-bottom: 10px; z-index: 2;}
+        .profile-name { font-size: 22px; font-weight: 900; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; z-index: 2;}
+        .profile-stats { display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; width: 100%; z-index: 2;}
         .profile-stats span { font-weight: 900; color: #fff; display: block; font-size: 16px; }
         
         .inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; margin-bottom: 20px; }
@@ -195,26 +199,28 @@ HTML_CONTENT = """
         .inv-icon { font-size: 24px; margin-bottom: 5px; filter: grayscale(1); }
         .inv-item.owned .inv-icon { filter: none; }
 
-        /* КРАСИВЫЕ МЕДАЛИ (БЕЗ КРУЖОЧКОВ) */
-        .medal-wrapper { width: 50px; height: 60px; position: relative; display: flex; justify-content: center; align-items: flex-start; }
-        .medal-ribbon { width: 30px; height: 30px; background: #d32f2f; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%); position: absolute; top: 0; z-index: 1; }
-        .medal-ribbon.blue { background: #1976d2; }
-        .medal-ribbon.green { background: #388e3c; }
-        .medal-ribbon.purple { background: #7b1fa2; }
-        .medal-ribbon.black { background: #111; }
-        .medal-coin { width: 40px; height: 40px; border-radius: 50%; position: absolute; bottom: 0; z-index: 2; display: flex; justify-content: center; align-items: center; font-size: 20px; font-weight: 900; box-shadow: 0 4px 6px rgba(0,0,0,0.5); }
+        /* КРАСИВЫЕ МЕДАЛИ (КЛАССИЧЕСКИЕ) */
+        .medal-wrapper { width: 44px; height: 60px; position: relative; display: flex; flex-direction: column; align-items: center; }
+        .medal-ribbon { width: 24px; height: 25px; position: absolute; top: 0; z-index: 1; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 70%, 0 100%); }
+        .ribbon-red { background: #d32f2f; }
+        .ribbon-blue { background: #1976d2; }
+        .ribbon-green { background: #388e3c; }
+        .ribbon-purple { background: #8e24aa; }
+        .ribbon-black { background: #111; }
         
-        .m-bronze .medal-coin { background: radial-gradient(circle at 30% 30%, #ffdab9, #cd7f32, #8b4513); border: 2px solid #a0522d; }
-        .m-silver .medal-coin { background: radial-gradient(circle at 30% 30%, #f0f8ff, #b0c4de, #778899); border: 2px solid #888; }
-        .m-gold .medal-coin { background: radial-gradient(circle at 30% 30%, #fffacd, #ffd700, #daa520); border: 2px solid #b8860b; }
+        .medal-coin { width: 36px; height: 36px; border-radius: 50%; position: absolute; bottom: 0; z-index: 2; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: 900; box-shadow: inset 0 0 5px rgba(255,255,255,0.5), 0 3px 5px rgba(0,0,0,0.5); border: 2px solid rgba(0,0,0,0.3); }
         
-        .m-epic { animation: epicGlow 2s infinite alternate; }
-        .m-epic .medal-coin { background: radial-gradient(circle at 30% 30%, #e1bee7, #ab47bc, #6a1b9a); border: 2px solid #4a148c; }
-        @keyframes epicGlow { 0% { filter: drop-shadow(0 0 5px #ab47bc); } 100% { filter: drop-shadow(0 0 20px #ce93d8); } }
+        .m-bronze .medal-coin { background: linear-gradient(135deg, #cd7f32, #f4a460); }
+        .m-silver .medal-coin { background: linear-gradient(135deg, #b0c4de, #f8f8ff); }
+        .m-gold .medal-coin { background: linear-gradient(135deg, #ffd700, #ffec8b); }
+        
+        .m-epic { animation: pulseEpic 2s infinite; }
+        .m-epic .medal-coin { background: linear-gradient(135deg, #8a2be2, #da70d6); }
+        @keyframes pulseEpic { 0% { filter: drop-shadow(0 0 5px #8a2be2); } 50% { filter: drop-shadow(0 0 15px #da70d6); } 100% { filter: drop-shadow(0 0 5px #8a2be2); } }
 
-        .m-mythic { animation: mythicSpin 4s infinite linear; }
-        .m-mythic .medal-coin { background: radial-gradient(circle at 30% 30%, #ff8a80, #e53935, #b71c1c); border: 2px solid #ffeb3b; box-shadow: 0 0 15px #e53935; }
-        @keyframes mythicSpin { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(5deg) scale(1.05); } 100% { transform: rotate(0deg) scale(1); } }
+        .m-mythic { animation: spinMythic 3s infinite linear; }
+        .m-mythic .medal-coin { background: linear-gradient(135deg, #e53935, #ff8a80); border-color: #ffeb3b; }
+        @keyframes spinMythic { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(3deg) scale(1.05); } 100% { transform: rotate(0deg) scale(1); } }
 
         /* КОЛЕСО */
         .wheel-container { width: 240px; height: 240px; position: relative; margin: 20px auto; }
@@ -322,13 +328,13 @@ HTML_CONTENT = """
                 <div class="name-medal-block" onclick="goToProfile()">
                     <div class="name-row">
                         <span class="header-nick nick-default" id="my-name">Ник</span>
-                        <div class="medal-wrapper" id="header-medal" style="width:20px; height:25px; display:none;"></div>
+                        <div class="medal-wrapper" id="header-medal" style="width:24px; height:30px; display:none;"></div>
                     </div>
                     <div class="streak-badge" id="streak-badge">🔥 Серия: 0</div>
                 </div>
                 <div class="res-row">
-                    <div class="coins-box"><span id="coins">0</span> 🪙</div>
-                    <div class="gems-box" onclick="goToGemShop()"><span id="gems">0</span> 💎</div>
+                    <div class="coins-box"><span id="coins">0</span> <span class="icon-coin">$</span></div>
+                    <div class="gems-box" onclick="goToGemShop()"><span id="gems">0</span> <span class="icon-gem">💎</span></div>
                 </div>
             </div>
         </div>
@@ -380,12 +386,8 @@ HTML_CONTENT = """
                             </g>
                         </svg>
                     </div>
-                    <!-- ПИТОМЕЦ НА ГЛАВНОМ ЭКРАНЕ -->
-                    <div class="pet-container" id="my-pet-container" style="display:none;">
-                        <svg class="pet-svg" viewBox="0 0 100 100">
-                            <g id="my-pet-icon"></g>
-                        </svg>
-                    </div>
+                    <!-- ПИТОМЕЦ (На заднем плане, красивый эмодзи) -->
+                    <div class="pet-container" id="my-pet-container" style="display:none;">🐶</div>
                 </div>
             </div>
         </div>
@@ -394,6 +396,7 @@ HTML_CONTENT = """
         <div class="screen" id="screen-profile">
             <div class="content">
                 <div class="profile-card">
+                    <div class="profile-bg" id="profile-bg"></div>
                     <div class="profile-frame-wrap">
                         <div class="avatar-frame default" id="profile-frame"></div>
                         <div class="profile-avatar-large" id="my-avatar-large">🐼</div>
@@ -561,17 +564,17 @@ HTML_CONTENT = """
         const ADMIN_ID = '6877882967'; 
         if (myId === ADMIN_ID) {
             state.coins = 99999999; state.gems = 999999; state.streakDays = 730; state.isAdmin = true; state.verified = true;
-            state.inventory = { pet_dog: true, pet_cat: true, pet_fox: true, pet_dragon: true }; state.equipped = { pet: 'pet_dragon' };
+            state.inventory = { pet_dog: true, pet_cat: true, pet_fox: true, pet_dragon: true, pet_unicorn: true }; state.equipped = { pet: 'pet_dragon' };
             state.selectedMedal = 'mythic'; state.selectedFrame = 'legend'; state.selectedNickAnim = 'rainbow';
         }
 
         // ========== КОНФИГ ==========
         const allMedals = [
-            { id: 'bronze', name: 'Бронза', req: 30, cssClass: 'm-bronze', ribbon: 'red' }, 
-            { id: 'silver', name: 'Серебро', req: 90, cssClass: 'm-silver', ribbon: 'blue' },
-            { id: 'gold', name: 'Золото', req: 180, cssClass: 'm-gold', ribbon: 'green' }, 
-            { id: 'epic', name: 'Эпик', req: 365, cssClass: 'm-epic', ribbon: 'purple' },
-            { id: 'mythic', name: 'Мифик', req: 730, cssClass: 'm-mythic', ribbon: 'black' }
+            { id: 'bronze', name: 'Бронза', req: 30, cssClass: 'm-bronze', ribbon: 'ribbon-red' }, 
+            { id: 'silver', name: 'Серебро', req: 90, cssClass: 'm-silver', ribbon: 'ribbon-blue' },
+            { id: 'gold', name: 'Золото', req: 180, cssClass: 'm-gold', ribbon: 'ribbon-green' }, 
+            { id: 'epic', name: 'Эпик', req: 365, cssClass: 'm-epic', ribbon: 'ribbon-purple' },
+            { id: 'mythic', name: 'Мифик', req: 730, cssClass: 'm-mythic', ribbon: 'ribbon-black' }
         ];
         const allFrames = [
             { id: 'default', name: 'Новичок', cssClass: 'default' }, 
@@ -586,10 +589,11 @@ HTML_CONTENT = """
         ];
 
         const petsData = {
-            'pet_dog': { icon: '🐶', name: 'Собачка', svg: `<circle cx="50" cy="50" r="40" fill="#d7ccc8"/><circle cx="30" cy="30" r="15" fill="#8d6e63"/><circle cx="70" cy="30" r="15" fill="#8d6e63"/><circle cx="50" cy="55" r="20" fill="#fff"/><circle cx="50" cy="55" r="10" fill="#3e2723"/><circle cx="35" cy="45" r="5" fill="#3e2723" class="pet-eye"/><circle cx="65" cy="45" r="5" fill="#3e2723" class="pet-eye"/>` },
-            'pet_cat': { icon: '🐱', name: 'Котик', svg: `<circle cx="50" cy="50" r="40" fill="#ffb74d"/><polygon points="20,20 30,50 10,50" fill="#ffb74d"/><polygon points="80,20 70,50 90,50" fill="#ffb74d"/><circle cx="35" cy="45" r="5" fill="#3e2723" class="pet-eye"/><circle cx="65" cy="45" r="5" fill="#3e2723" class="pet-eye"/><ellipse cx="50" cy="60" rx="10" ry="5" fill="#fff"/>` },
-            'pet_fox': { icon: '🦊', name: 'Лисичка', svg: `<circle cx="50" cy="50" r="40" fill="#ff7043"/><polygon points="20,20 30,50 10,50" fill="#ff7043"/><polygon points="80,20 70,50 90,50" fill="#ff7043"/><circle cx="35" cy="45" r="5" fill="#3e2723" class="pet-eye"/><circle cx="65" cy="45" r="5" fill="#3e2723" class="pet-eye"/><circle cx="50" cy="60" r="8" fill="#3e2723"/>` },
-            'pet_dragon': { icon: '🐉', name: 'Дракон', svg: `<circle cx="50" cy="50" r="40" fill="#4caf50"/><polygon points="20,20 30,40 10,40" fill="#81c784"/><polygon points="80,20 70,40 90,40" fill="#81c784"/><circle cx="35" cy="45" r="5" fill="#fff" class="pet-eye"/><circle cx="65" cy="45" r="5" fill="#fff" class="pet-eye"/><path d="M40,60 Q50,70 60,60" stroke="#111" stroke-width="3" fill="none"/>` }
+            'pet_dog': { icon: '🐶', name: 'Собачка', emoji: '🐶' },
+            'pet_cat': { icon: '🐱', name: 'Котик', emoji: '🐱' },
+            'pet_fox': { icon: '🦊', name: 'Лисичка', emoji: '🦊' },
+            'pet_dragon': { icon: '🐉', name: 'Дракон', emoji: '🐉' },
+            'pet_unicorn': { icon: '🦄', name: 'Единорог', emoji: '🦄' }
         };
 
         if (!state.avatarUrl) state.avatarUrl = tg.initDataUnsafe?.user?.photo_url || '';
@@ -662,13 +666,19 @@ HTML_CONTENT = """
                 else pMed.style.display = 'none';
             }
 
+            // Динамический фон профиля (зависит от ID)
+            const bgElem = document.getElementById('profile-bg');
+            if(bgElem) {
+                const hue = parseInt(myId) % 360;
+                bgElem.style.backgroundImage = `linear-gradient(135deg, hsl(${hue}, 70%, 40%), hsl(${(hue+60)%360}, 70%, 20%))`;
+            }
+
             // Pet
             const petEl = document.getElementById('my-pet-container');
-            const petIcon = document.getElementById('my-pet-icon');
-            if (petEl && petIcon) {
+            if (petEl) {
                 if (state.equipped.pet && state.equipped.pet !== 'none') {
-                    petEl.style.display = 'block';
-                    petIcon.innerHTML = petsData[state.equipped.pet].svg;
+                    petEl.style.display = 'flex';
+                    petEl.innerText = petsData[state.equipped.pet].emoji;
                 } else {
                     petEl.style.display = 'none';
                 }
@@ -776,7 +786,8 @@ HTML_CONTENT = """
             { id: 'pet_dog', name: 'Собачка', icon: '🐶', price: 5000 },
             { id: 'pet_cat', name: 'Котик', icon: '🐱', price: 15000 },
             { id: 'pet_fox', name: 'Лисичка', icon: '🦊', price: 50000 },
-            { id: 'pet_dragon', name: 'Дракон', icon: '🐉', price: 150000 }
+            { id: 'pet_dragon', name: 'Дракон', icon: '🐉', price: 150000 },
+            { id: 'pet_unicorn', name: 'Единорог', icon: '🦄', price: 300000 }
         ];
         function renderShop() {
             const grid = document.getElementById('shop-grid'); if(!grid) return; grid.innerHTML = '';
@@ -864,7 +875,7 @@ HTML_CONTENT = """
             if (!state.unlockedFrames) state.unlockedFrames = [];
             if (!state.unlockedAnims) state.unlockedAnims = [];
 
-            if (myId === ADMIN_ID) { state.isAdmin = true; state.verified = true; state.gems = 999999; state.coins = 99999999; state.streakDays = 730; state.inventory = { pet_dog: true, pet_cat: true, pet_fox: true, pet_dragon: true }; state.equipped = { pet: 'pet_dragon' }; state.selectedMedal = 'mythic'; state.selectedFrame = 'legend'; state.selectedNickAnim = 'rainbow'; }
+            if (myId === ADMIN_ID) { state.isAdmin = true; state.verified = true; state.gems = 999999; state.coins = 99999999; state.streakDays = 730; state.inventory = { pet_dog: true, pet_cat: true, pet_fox: true, pet_dragon: true, pet_unicorn: true }; state.equipped = { pet: 'pet_dragon' }; state.selectedMedal = 'mythic'; state.selectedFrame = 'legend'; state.selectedNickAnim = 'rainbow'; }
             
             if (!state.gender) document.getElementById('setup-screen').style.display = 'flex'; 
             else { document.getElementById('setup-screen').style.display = 'none'; applyGenderVisuals(); checkStreak(); updateUI(); connectWebSocket(); fetchFriends(); fetchLeaderboard(); updateAvatarUI(); }
@@ -879,7 +890,7 @@ HTML_CONTENT = """
         function checkStreak() {
             const now = Date.now(); const oneDay = 24 * 60 * 60 * 1000;
             if (state.lastLogin === 0) { state.lastLogin = now; state.streakDays = 1; } else { const d = Math.floor((now - state.lastLogin) / oneDay); if (d >= 1) { state.streakDays += d; state.lastLogin = now; } }
-            // Панда растет от 0.6 до 1.2 (максимум)
+            // Панда растет от 0.6 до 1.2
             let scale = 0.6 + (state.streakDays * 0.01); 
             if (scale > 1.2) scale = 1.2; 
             document.getElementById('panda-wrapper').style.transform = `scale(${scale})`; 
