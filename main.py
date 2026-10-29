@@ -59,7 +59,6 @@ init_db()
 players_db: Dict[str, dict] = load_players()
 rooms: Dict[str, dict] = {}
 
-# --- ОБРАБОТКА HEAD И GET ЗАПРОСОВ ---
 @app.api_route("/", methods=["GET", "HEAD"])
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def serve_game():
@@ -69,13 +68,33 @@ async def serve_game():
     response.headers["Expires"] = "0"
     return response
 
+# --- ЭНДПОИНТ ДЛЯ ПОИСКА ИГРОКОВ ---
+@app.get("/api/search_players")
+async def search_players(q: str, my_id: str):
+    results = []
+    q = q.lower()
+    for uid, data in players_db.items():
+        if uid == my_id: continue # Не ищем самого себя
+        if q in data["name"].lower():
+            # Возвращаем ник, короткий ID (последние 4 цифры) и аватарку
+            short_id = uid[-4:] if len(uid) > 4 else uid
+            results.append({
+                "id": uid,
+                "name": data["name"],
+                "short_id": short_id,
+                "avatar": data.get("avatar", ""),
+                "online": (time.time() - data["last_active"]) < 120
+            })
+            if len(results) >= 15: break # Ограничиваем вывод 15 игроками
+    return results
+
 HTML_CONTENT = """
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 27.0</title>
+    <title>Panda Game 28.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -185,6 +204,10 @@ HTML_CONTENT = """
         .card-price.owned { background: rgba(76, 175, 80, 0.2); color: #4caf50; border-color: #4caf50; }
 
         /* ДРУЗЬЯ */
+        .search-container { display: flex; gap: 10px; margin-bottom: 15px; }
+        .search-input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #fff; font-size: 14px; outline: none; }
+        .search-btn { background: #2196f3; color: #fff; border: none; padding: 10px 15px; border-radius: 8px; font-weight: 900; cursor: pointer; }
+
         .friend-list { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
         .friend-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
         .friend-info { display: flex; align-items: center; gap: 10px; width: 100%; }
@@ -194,6 +217,7 @@ HTML_CONTENT = """
         .friend-name-box { display: flex; flex-direction: column; flex: 1; }
         .friend-name-row { display: flex; align-items: center; gap: 6px; font-weight: 900; font-size: 14px; }
         .friend-sub { font-size: 11px; color: #aaa; display: flex; align-items: center; gap: 5px; }
+        .add-friend-btn { background: #4caf50; color: #fff; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: 900; cursor: pointer; }
         
         .verified-badge { display: inline-flex; justify-content: center; align-items: center; width: 16px; height: 16px; background: #2196f3; border-radius: 50%; color: #fff; font-size: 10px; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
@@ -482,12 +506,19 @@ HTML_CONTENT = """
         <div class="screen" id="screen-friends">
             <div class="content">
                 <div class="section-title">Друзья 👥</div>
-                <div class="tabs-sub">
-                    <button class="tab-btn active" onclick="switchFriendsTab('list', this)">Друзья</button>
+                
+                <!-- НОВАЯ СТРОКА ПОИСКА -->
+                <div class="search-container">
+                    <input type="text" id="search-input" class="search-input" placeholder="Введи ник игрока...">
+                    <button class="search-btn" onclick="searchPlayers()">Найти</button>
+                </div>
+                <div id="search-results" class="friend-list"></div>
+
+                <div class="tabs-sub" style="margin-top:20px;">
+                    <button class="tab-btn active" onclick="switchFriendsTab('list', this)">Мои друзья</button>
                     <button class="tab-btn" onclick="switchFriendsTab('top', this)">Топ 50</button>
                 </div>
                 <div id="friends-list-container">
-                    <button class="card-price" onclick="inviteFriend()" style="margin-bottom:10px; background:#2196f3; color:#fff; border:none;">Пригласить друга</button>
                     <div class="friend-list" id="friends-list"><p style="text-align:center; color:#888;">Загрузка...</p></div>
                 </div>
                 <div id="leaderboard-container" style="display:none;"><div id="leaderboard-list"></div></div>
@@ -531,8 +562,8 @@ HTML_CONTENT = """
                 
                 <div class="duo-area" id="duo-area-solo">
                     <div class="sad-panda" style="font-size:80px; text-align:center; margin:20px 0;">🐼</div>
-                    <p style="color:#aaa; margin-bottom:20px;">Ты пока один. Пригласи друга, чтобы играть вместе!</p>
-                    <button class="card-price" onclick="inviteFriend()" style="background:#2196f3; color:#fff; padding:15px; width:80%; border:none; margin:0 auto;">Пригласить друга</button>
+                    <p style="color:#aaa; margin-bottom:20px;">Ты пока один. Найди друга во вкладке «Друзья», чтобы играть вместе!</p>
+                    <button class="card-price" onclick="switchTab('friends', document.querySelectorAll('.nav-btn')[1])" style="background:#2196f3; color:#fff; padding:15px; width:80%; border:none; margin:0 auto;">Найти друга</button>
                 </div>
 
                 <div class="duo-area" id="duo-area-active" style="display:none;">
@@ -570,7 +601,7 @@ HTML_CONTENT = """
     <div id="error-log"></div>
 
     <script>
-        let eyeTimeout = null; // ИСПРАВЛЕНИЕ: Переменная объявлена глобально!
+        let eyeTimeout = null; 
 
         setTimeout(() => { document.getElementById('loading-text').innerText = "Сервер просыпается..."; }, 4000);
         setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 500);
@@ -638,7 +669,7 @@ HTML_CONTENT = """
             { id: 'rainbow', name: 'Радуга', cssClass: 'nick-rainbow' }
         ];
 
-        // КРАСИВЫЕ ДЕТАЛИЗИРОВАННЫЕ SVG ПИТОМЦЫ (В ПОЛНЫЙ РОСТ)
+        // КРАСИВЫЕ ДЕТАЛИЗИРОВАННЫЕ SVG ПИТОМЦЫ
         const petsData = {
             'pet_dog': { 
                 name: 'Собачка', 
@@ -995,6 +1026,49 @@ HTML_CONTENT = """
             }
         }
 
+        // --- ЛОГИКА ПОИСКА ИГРОКОВ ---
+        async function searchPlayers() {
+            const query = document.getElementById('search-input').value.trim();
+            if (!query) return;
+            const resDiv = document.getElementById('search-results');
+            resDiv.innerHTML = '<p style="text-align:center; color:#888;">Поиск...</p>';
+            
+            try {
+                const res = await fetch(`${API_URL}/api/search_players?q=${encodeURIComponent(query)}&my_id=${myId}`);
+                const data = await res.json();
+                
+                if (data.length === 0) {
+                    resDiv.innerHTML = '<p style="text-align:center; color:#888;">Никого не найдено.</p>';
+                    return;
+                }
+
+                resDiv.innerHTML = data.map(p => `
+                    <div class="friend-item" style="background: rgba(33, 150, 243, 0.1); border-color: #2196f3;">
+                        <div class="friend-avatar">${p.avatar ? `<img src="${p.avatar}">` : '🐼'}</div>
+                        <div class="friend-name-box">
+                            <div class="friend-name-row">
+                                <span>${p.name}</span>
+                                <span style="font-size:10px; color:#aaa;">#${p.short_id}</span>
+                                ${p.online ? '<span class="status-dot status-online"></span>' : ''}
+                            </div>
+                        </div>
+                        <button class="add-friend-btn" onclick="addFriendById('${p.id}')">Добавить</button>
+                    </div>
+                `).join('');
+            } catch(e) {
+                resDiv.innerHTML = '<p style="text-align:center; color:#888;">Ошибка поиска.</p>';
+            }
+        }
+
+        function addFriendById(targetId) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "add_friend_by_id", target_id: targetId }));
+                tg.showAlert("Запрос отправлен!");
+                document.getElementById('search-results').innerHTML = ''; // Очищаем поиск
+                document.getElementById('search-input').value = '';
+            }
+        }
+
         function loadGame() {
             const saved = localStorage.getItem('pandaUltimate'); if (saved) { try { state = { ...state, ...JSON.parse(saved) }; } catch(e) {} }
             
@@ -1159,13 +1233,6 @@ HTML_CONTENT = """
         };
 
         function claimChest() { document.getElementById('chest-modal').classList.remove('active'); state.lastChest = Date.now(); state.coins += 1000; tg.showAlert("+1000 монет!"); updateUI(); }
-        
-        function inviteFriend() { 
-            const link = `https://t.me/nash_sad_69_bot/play?startapp=${myId}`; 
-            const text = `Присоединяйся ко мне в игре!`; 
-            if (tg.openTelegramLink) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`); 
-            else navigator.clipboard.writeText(link).then(() => tg.showAlert("Скопировано!")); 
-        }
 
         setInterval(() => {
             if (state.energy < state.maxEnergy) state.energy = Math.min(state.maxEnergy, state.energy + state.regen);
@@ -1250,6 +1317,22 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 save_player(user_id, players_db[user_id])
                 continue
 
+            # НОВЫЙ ОБРАБОТЧИК: ДОБАВЛЕНИЕ В ДРУЗЬЯ ПО ID (ИЗ ПОИСКА)
+            if message.get("type") == "add_friend_by_id":
+                target_id = message.get("target_id")
+                if target_id in players_db and target_id != user_id:
+                    if target_id not in players_db[user_id]["friends"]: players_db[user_id]["friends"].append(target_id)
+                    if user_id not in players_db[target_id]["friends"]: players_db[target_id]["friends"].append(user_id)
+                    
+                    save_player(user_id, players_db[user_id])
+                    save_player(target_id, players_db[target_id])
+                    
+                    await websocket.send_text(json.dumps({"type": "friend_added", "friend_name": players_db[target_id]["name"]}))
+                    if target_id in rooms.get(target_id, {}).get("players", {}):
+                        try: await rooms[target_id]["players"][target_id].send_text(json.dumps({"type": "friend_added", "friend_name": players_db[user_id]["name"]}))
+                        except: pass
+                continue
+                
             if message.get("type") == "add_friend":
                 inviter_id = message.get("inviter_id")
                 if inviter_id and "_" in inviter_id:
