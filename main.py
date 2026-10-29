@@ -25,7 +25,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 16.0</title>
+    <title>Panda Game 17.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -58,26 +58,33 @@ HTML_CONTENT = """
         .stalk::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(180deg, transparent 0 100px, #022c22 100px 106px); border-radius: 10px; }
         .stalk::after { content: ''; position: absolute; top: 20%; left: 22px; width: 60px; height: 14px; background: #10b981; border-radius: 5px 20px 5px 5px; transform: rotate(-15deg); box-shadow: 2px 2px 10px rgba(0,0,0,0.4); border-bottom: 2px solid #064e3b; }
         
-        .bg-ground { position: absolute; bottom: 0; left: 0; width: 100%; height: 25%; background: linear-gradient(to top, #022c22 0%, #064e3b 60%, #065f46 100%); z-index: 3; border-top-left-radius: 50% 30px; border-top-right-radius: 50% 30px; box-shadow: inset 0 10px 30px rgba(0,0,0,0.5); }
-        .bg-grass { position: absolute; bottom: 22%; left: 0; width: 100%; height: 10%; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,20 Q5,5 10,20 Q15,10 20,20 Q25,0 30,20 Q35,15 40,20 Q45,5 50,20 Q55,10 60,20 Q65,0 70,20 Q75,15 80,20 Q85,5 90,20 Q95,10 100,20 Z" fill="%23064e3b"/></svg>') repeat-x; background-size: 150px 30px; z-index: 4; }
+        .bg-ground { position: absolute; bottom: 0; left: 0; width: 100%; height: 25%; background: linear-gradient(to top, #022c22 0%, #064e3b 100%); z-index: 3; box-shadow: inset 0 10px 30px rgba(0,0,0,0.5); }
 
         /* ХЕДЕР */
         .header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: flex-start; z-index: 10; position: relative; }
-        .rank-box { display: flex; align-items: center; gap: 10px; }
         
-        .profile-avatar-mini { width: 45px; height: 45px; border-radius: 50%; background: #333; border: 2px solid #ffd700; display: flex; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; position: relative; overflow: hidden; }
+        .user-info-block { display: flex; align-items: center; gap: 10px; }
+        .avatar-wrap { position: relative; width: 50px; height: 50px; cursor: pointer; }
+        .profile-avatar-mini { width: 100%; height: 100%; border-radius: 50%; background: #333; display: flex; justify-content: center; align-items: center; font-size: 24px; overflow: hidden; border: 2px solid #fff; z-index: 2; position: relative; }
         .profile-avatar-mini img { width: 100%; height: 100%; object-fit: cover; }
-        .profile-avatar-mini.border-legend { border: 3px solid #00e5ff; box-shadow: 0 0 15px #00e5ff; }
+        .avatar-frame { position: absolute; inset: -4px; border-radius: 50%; z-index: 1; border: 3px solid transparent; }
+        .avatar-frame.default { border-color: #fff; }
+        .avatar-frame.millionaire { border-color: #ffd700; box-shadow: 0 0 10px #ffd700; }
+        .avatar-frame.legend { border-color: #00e5ff; box-shadow: 0 0 20px #00e5ff; animation: spin 4s linear infinite; }
         
-        .balance-container { display: flex; flex-direction: column; }
-        .streak-badge { font-size: 11px; color: #ff6b00; font-weight: 900; }
-        .balance-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
-        .balance { font-size: 20px; font-weight: 900; color: #fff; }
-        .gems { font-size: 16px; font-weight: 900; color: #00e5ff; }
+        .name-medal-block { display: flex; flex-direction: column; cursor: pointer; }
+        .name-row { display: flex; align-items: center; gap: 5px; }
+        .header-nick { font-size: 16px; font-weight: 900; text-shadow: 2px 2px 0 #000; }
+        .header-medal { font-size: 18px; }
+        .streak-badge { font-size: 10px; color: #ff6b00; font-weight: 900; margin-top: 2px; }
 
-        .energy-box { display: flex; flex-direction: column; align-items: flex-end; }
-        .energy-text { font-size: 11px; font-weight: 700; color: #fff; margin-bottom: 3px; }
-        .energy-bar { width: 80px; height: 8px; background: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; border: 1px solid rgba(255,255,255,0.4); }
+        .res-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+        .coins-box { font-size: 18px; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 3px; }
+        .gems-box { font-size: 14px; font-weight: 900; color: #00e5ff; display: flex; align-items: center; gap: 3px; cursor: pointer; }
+
+        .energy-box { display: flex; flex-direction: column; align-items: flex-end; cursor: pointer; }
+        .energy-text { font-size: 10px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+        .energy-bar { width: 70px; height: 8px; background: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; border: 1px solid rgba(255,255,255,0.4); }
         .energy-fill { height: 100%; background: linear-gradient(90deg, #00e5ff, #007bff); width: 100%; transition: width 0.3s; }
 
         /* ЭКРАНЫ */
@@ -85,13 +92,17 @@ HTML_CONTENT = """
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; }
         .screen.active { display: flex; }
 
-        .tap-area { flex: 1; display: flex; justify-content: center; align-items: center; gap: 20px; position: relative; padding-bottom: 20px; }
-        .panda-wrapper { position: relative; width: 190px; height: 210px; transform-origin: center bottom; cursor: pointer; transition: transform 1s ease-in-out; z-index: 5; }
-        .panda-wrapper.partner-panda { width: 140px; height: 160px; opacity: 0.9; pointer-events: none; }
+        /* ТАП */
+        .tap-area { flex: 1; display: flex; justify-content: center; align-items: flex-end; gap: 20px; position: relative; padding-bottom: 10px; }
+        .panda-wrapper { position: relative; width: 190px; height: 210px; transform-origin: center bottom; cursor: pointer; transition: transform 1s ease-in-out; z-index: 5; margin-bottom: -10px; }
+        .panda-wrapper.partner-panda { width: 140px; height: 160px; opacity: 0.9; pointer-events: none; margin-bottom: 0; }
         .panda-wrapper:active { transform: scale(0.95); }
         .panda-wrapper.hit { animation: jump 0.25s ease-out; }
         @keyframes jump { 0% { transform: translateY(0); } 30% { transform: translateY(-15px) scale(1.05); } 100% { transform: translateY(0); } }
         
+        .pet-wrapper { position: absolute; bottom: 0; right: -40px; font-size: 40px; z-index: 10; pointer-events: none; }
+        .pet-wrapper img { width: 50px; height: 50px; }
+
         .panda-name { text-align: center; font-size: 13px; font-weight: 900; color: #fff; margin-top: 8px; text-shadow: 2px 2px 0 #000; position: relative; z-index: 5; background: rgba(0,0,0,0.5); padding: 4px 12px; border-radius: 15px; display: inline-block; border: 1px solid rgba(255,255,255,0.2); }
         
         /* Анимации ников */
@@ -111,7 +122,7 @@ HTML_CONTENT = """
         @keyframes popCoin { 0% { transform: translateY(0) scale(0.4); opacity: 1; } 100% { transform: translateY(-100px) scale(1.2); opacity: 0; } }
 
         /* ОБЩАЯ ПОЛОСКА */
-        .joint-bar-container { width: 80%; margin: 10px auto; background: rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; display: none; position: relative; height: 20px; border: 1px solid rgba(255,255,255,0.2); z-index: 10; }
+        .joint-bar-container { width: 80%; margin: 5px auto; background: rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; display: none; position: relative; height: 20px; border: 1px solid rgba(255,255,255,0.2); z-index: 10; }
         .joint-bar-fill { height: 100%; background: linear-gradient(90deg, #ff416c, #ff4b2b); width: 0%; transition: width 0.3s; }
         .joint-bar-text { position: absolute; width: 100%; text-align: center; font-size: 11px; font-weight: 900; top: 2px; text-shadow: 1px 1px 2px #000; }
 
@@ -130,19 +141,29 @@ HTML_CONTENT = """
         /* ДРУЗЬЯ */
         .friend-list { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
         .friend-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
-        .friend-info { display: flex; align-items: center; gap: 10px; }
-        .friend-status { width: 10px; height: 10px; border-radius: 50%; }
+        .friend-info { display: flex; align-items: center; gap: 10px; width: 100%; }
+        .friend-avatar { width: 35px; height: 35px; border-radius: 50%; background: #333; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        .friend-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .friend-name-box { display: flex; flex-direction: column; flex: 1; }
+        .friend-name-row { display: flex; align-items: center; gap: 6px; font-weight: 900; font-size: 14px; }
+        .friend-sub { font-size: 11px; color: #aaa; display: flex; align-items: center; gap: 5px; }
+        
+        .verified-badge { display: inline-flex; justify-content: center; align-items: center; width: 16px; height: 16px; background: #2196f3; border-radius: 50%; color: #fff; font-size: 10px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
         .status-online { background: #4caf50; box-shadow: 0 0 5px #4caf50; }
         .status-offline { background: #555; }
-        .friend-name { font-weight: 900; font-size: 14px; display: flex; align-items: center; gap: 5px; }
-        .friend-coins { font-size: 12px; color: #ffd700; }
-        
+
         .tabs-sub { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
         .tab-btn { flex: 1; background: rgba(255,255,255,0.1); border: none; color: #aaa; padding: 8px; border-radius: 8px; font-weight: 900; cursor: pointer; }
         .tab-btn.active { background: #4caf50; color: #fff; }
 
-        .leaderboard-item { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 14px; cursor: pointer; align-items: center; }
-        .leaderboard-item span:first-child { font-weight: 900; color: #ffd700; width: 30px; }
+        .leaderboard-item { display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 14px; cursor: pointer; align-items: center; }
+        .lb-rank { font-weight: 900; color: #ffd700; width: 25px; }
+        .lb-avatar { width: 30px; height: 30px; border-radius: 50%; margin-right: 10px; overflow: hidden; }
+        .lb-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .lb-name { flex: 1; display: flex; align-items: center; gap: 5px; }
+        .lb-coins { color: #ffd700; font-weight: 900; }
 
         /* НАВИГАЦИЯ */
         .bottom-nav { background: rgba(10, 18, 14, 0.98); border-top: 1px solid rgba(46, 125, 50, 0.4); padding: 8px 5px 22px 5px; display: flex; justify-content: space-around; z-index: 30; position: relative; }
@@ -152,9 +173,9 @@ HTML_CONTENT = """
         .nav-btn.active span { filter: drop-shadow(0 0 6px #81c784) grayscale(0); }
 
         /* МИНИ-ИГРЫ */
-        .game-area-mini { height: 200px; width: 100%; background: #112217; position: relative; overflow: hidden; border-radius: 10px; border: 1px solid #4caf50; margin-bottom: 10px; }
-        .falling-item { position: absolute; font-size: 30px; cursor: pointer; animation: fall linear forwards; }
-        @keyframes fall { 0% { transform: translateY(-50px) rotate(0deg); } 100% { transform: translateY(250px) rotate(360deg); } }
+        .game-area-mini { height: 300px; width: 100%; background: #112217; position: relative; overflow: hidden; border-radius: 15px; border: 2px solid #4caf50; margin-bottom: 15px; box-shadow: inset 0 0 30px rgba(0,0,0,0.8); }
+        .falling-item { position: absolute; font-size: 35px; cursor: pointer; animation: fall linear forwards; }
+        @keyframes fall { 0% { transform: translateY(-50px) rotate(0deg); } 100% { transform: translateY(350px) rotate(360deg); } }
 
         /* МОДАЛКИ */
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; backdrop-filter: blur(5px); }
@@ -164,29 +185,40 @@ HTML_CONTENT = """
         .name-input { width: 100%; padding: 10px; border-radius: 8px; border: none; font-size: 16px; font-weight: 900; text-align: center; margin-bottom: 15px; background: #fff; color: #111; }
 
         /* ПРОФИЛЬ */
-        .profile-card { background: rgba(0,0,0,0.6); border-radius: 15px; padding: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; position: relative; overflow: hidden; }
-        .profile-avatar-large { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 10px; background: #333; display: flex; justify-content: center; align-items: center; font-size: 40px; border: 3px solid #ffd700; position: relative; overflow: hidden; cursor: pointer; }
+        .profile-card { background: rgba(0,0,0,0.6); border-radius: 15px; padding: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+        .profile-avatar-large { width: 80px; height: 80px; border-radius: 50%; background: #333; display: flex; justify-content: center; align-items: center; font-size: 40px; position: relative; overflow: hidden; border: 2px solid #fff; z-index: 2;}
         .profile-avatar-large img { width: 100%; height: 100%; object-fit: cover; }
-        .profile-avatar-large.border-legend { border: 3px solid #00e5ff; box-shadow: 0 0 20px #00e5ff; }
-        .profile-name { font-size: 20px; font-weight: 900; margin-bottom: 5px; }
-        .profile-stats { display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; }
+        .profile-frame-wrap { position: relative; width: 90px; height: 90px; display: flex; justify-content: center; align-items: center; margin-bottom: 10px; }
+        .profile-name { font-size: 22px; font-weight: 900; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+        .profile-medal { font-size: 24px; margin-bottom: 10px; }
+        .profile-stats { display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; width: 100%; }
         .profile-stats span { font-weight: 900; color: #fff; display: block; font-size: 16px; }
         
         .inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; margin-bottom: 20px; }
-        .inv-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; text-align: center; border: 2px solid transparent; cursor: pointer; }
-        .inv-item.selected { border-color: #4caf50; background: rgba(76, 175, 80, 0.2); }
+        .inv-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; text-align: center; border: 2px solid transparent; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .inv-item.selected { border-color: #4caf50; background: rgba(76, 175, 80, 0.2); box-shadow: 0 0 10px #4caf50; }
         .inv-icon { font-size: 24px; margin-bottom: 5px; filter: grayscale(1); }
         .inv-item.owned .inv-icon { filter: none; }
 
-        /* КВЕСТЫ */
-        .quest-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #ffd700; }
-        .quest-info { flex: 1; }
-        .quest-title { font-size: 14px; font-weight: 900; margin-bottom: 4px; }
-        .quest-reward { font-size: 12px; color: #4caf50; font-weight: 900; }
-        .quest-btn { background: #4caf50; color: #fff; border: none; padding: 8px 15px; border-radius: 8px; font-weight: 900; cursor: pointer; }
-        .quest-btn:disabled { background: #555; cursor: not-allowed; }
+        /* Красивые медали */
+        .medal-circle { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+        .m-bronze { background: linear-gradient(135deg, #cd7f32, #f4a460); border: 2px solid #8b4513; }
+        .m-silver { background: linear-gradient(135deg, #b0c4de, #e6e6fa); border: 2px solid #778899; }
+        .m-gold { background: linear-gradient(135deg, #ffd700, #ffec8b); border: 2px solid #daa520; }
+        .m-epic { background: linear-gradient(135deg, #8a2be2, #da70d6); border: 2px solid #4b0082; animation: pulseEpic 2s infinite; }
+        .m-mythic { background: linear-gradient(135deg, #ff4500, #ff0000); border: 2px solid #8b0000; animation: spin 3s linear infinite; }
+        @keyframes pulseEpic { 0%,100% { box-shadow: 0 0 10px #da70d6; } 50% { box-shadow: 0 0 25px #8a2be2; } }
 
-        .verified-badge { display: inline-block; width: 14px; height: 14px; background: #2196f3; border-radius: 50%; color: #fff; font-size: 10px; text-align: center; line-height: 14px; margin-left: 4px; }
+        /* КОЛЕСО */
+        .wheel-container { width: 200px; height: 200px; border-radius: 50%; border: 8px solid #ffd700; position: relative; margin: 20px auto; overflow: hidden; box-shadow: 0 0 20px rgba(255,215,0,0.5); transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1); }
+        .wheel-segment { position: absolute; width: 50%; height: 50%; top: 0; left: 50%; transform-origin: 0% 100%; clip-path: polygon(0 0, 100% 0, 0 100%); display: flex; justify-content: center; align-items: center; font-weight: 900; font-size: 12px; }
+        .w-1 { background: #ff4d4d; transform: rotate(0deg) skewY(-30deg); } 
+        .w-2 { background: #4d79ff; transform: rotate(60deg) skewY(-30deg); } 
+        .w-3 { background: #4dff88; transform: rotate(120deg) skewY(-30deg); } 
+        .w-4 { background: #ffff4d; transform: rotate(180deg) skewY(-30deg); } 
+        .w-5 { background: #ff4dff; transform: rotate(240deg) skewY(-30deg); } 
+        .w-6 { background: #ffa64d; transform: rotate(300deg) skewY(-30deg); }
+        .wheel-pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 30px; z-index: 10; }
 
         #error-log { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255,0,0,0.9); color: white; padding: 10px; font-size: 12px; z-index: 9999; display: none; word-break: break-all; }
         #loading { position: fixed; inset: 0; background: #0a120e; z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 20px; font-weight: 900; color: #4caf50; }
@@ -222,9 +254,12 @@ HTML_CONTENT = """
 
     <div class="modal" id="view-profile-modal">
         <div class="modal-box" style="text-align:center;">
-            <div class="profile-avatar-large" id="vp-avatar">🐼</div>
+            <div class="profile-frame-wrap" style="margin:0 auto 10px;">
+                <div class="avatar-frame" id="vp-frame" style="inset:0;"></div>
+                <div class="profile-avatar-large" id="vp-avatar">🐼</div>
+            </div>
             <div class="profile-name" id="vp-name">Ник</div>
-            <div style="color:#aaa; font-size:12px; margin-bottom:15px;" id="vp-medal">Медаль</div>
+            <div class="profile-medal" id="vp-medal"></div>
             <div class="profile-stats" style="justify-content:space-around;"><div>Монеты <span id="vp-coins">0</span></div><div>Подарки <span id="vp-gifts">0</span></div></div>
             <button class="card-price" style="background:#ff9800; color:#fff; margin-top:15px;" onclick="openGiftModal()">Подарить 🎁</button>
             <button class="card-price" style="background:#555; color:#fff; margin-top:10px;" onclick="closeModal('view-profile-modal')">Закрыть</button>
@@ -234,8 +269,18 @@ HTML_CONTENT = """
     <div class="modal" id="wheel-modal">
         <div class="modal-box" style="text-align:center;">
             <h2 style="color:#ffd700; margin-bottom:15px;">🎡 Колесо Фортуны</h2>
-            <div style="font-size:60px; margin:20px 0; transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1);" id="wheel-icon">🎡</div>
-            <button class="card-price" style="background:#4caf50; color:#fff; padding:15px;" onclick="spinWheel()">Крутить</button>
+            <div style="position:relative; width:200px; margin:0 auto;">
+                <div class="wheel-pointer">▼</div>
+                <div class="wheel-container" id="wheel-icon">
+                    <div class="wheel-segment w-1">100</div>
+                    <div class="wheel-segment w-2">500</div>
+                    <div class="wheel-segment w-3">1000</div>
+                    <div class="wheel-segment w-4">5000</div>
+                    <div class="wheel-segment w-5">10000</div>
+                    <div class="wheel-segment w-6">50000</div>
+                </div>
+            </div>
+            <button class="card-price" style="background:#4caf50; color:#fff; padding:15px; margin-top:20px;" onclick="spinWheel()">Крутить</button>
         </div>
     </div>
 
@@ -246,22 +291,31 @@ HTML_CONTENT = """
         <div class="bg-sky"><div class="bg-moon"></div><div class="bg-clouds"></div></div>
         <div class="bg-mountains"><svg viewBox="0 0 400 200" preserveAspectRatio="none"><path d="M0,200 L50,80 L120,120 L180,40 L260,90 L340,60 L400,150 L400,200 Z" fill="#1e293b"/><path d="M0,200 L70,110 L150,150 L240,80 L320,130 L400,200 Z" fill="#334155"/></svg></div>
         <div class="bg-bamboo"><div class="stalk" style="height: 70%; left: 5%;"></div><div class="stalk" style="height: 90%; left: 20%;"></div><div class="stalk" style="height: 60%; right: 15%;"></div><div class="stalk" style="height: 80%; right: 5%;"></div></div>
-        <div class="bg-ground"></div><div class="bg-grass"></div>
+        <div class="bg-ground"></div>
     </div>
 
     <!-- ХЕДЕР -->
     <div class="header">
-        <div class="rank-box">
-            <div class="profile-avatar-mini" id="mini-avatar" onclick="switchTab('profile', document.querySelectorAll('.nav-btn')[5])"><span>🐼</span></div>
+        <div class="user-info-block">
+            <div class="avatar-wrap" onclick="switchTab('profile', document.querySelectorAll('.nav-btn')[5])">
+                <div class="avatar-frame default" id="header-frame"></div>
+                <div class="profile-avatar-mini" id="mini-avatar"><span>🐼</span></div>
+            </div>
             <div>
-                <div class="streak-badge" id="streak-badge">🔥 Серия: 0</div>
-                <div class="balance-row">
-                    <div class="balance"><span id="coins">0</span> 🪙</div>
-                    <div class="gems"><span id="gems">0</span> 💎</div>
+                <div class="name-medal-block" onclick="switchTab('profile', document.querySelectorAll('.nav-btn')[5])">
+                    <div class="name-row">
+                        <span class="header-nick nick-default" id="my-name">Ник</span>
+                        <span class="header-medal" id="header-medal"></span>
+                    </div>
+                    <div class="streak-badge" id="streak-badge">🔥 Серия: 0</div>
+                </div>
+                <div class="res-row">
+                    <div class="coins-box"><span id="coins">0</span> 🪙</div>
+                    <div class="gems-box" onclick="openGemShop()"><span id="gems">0</span> 💎</div>
                 </div>
             </div>
         </div>
-        <div class="energy-box">
+        <div class="energy-box" onclick="tg.showAlert('Энергия восстанавливается со временем. Максимум можно увеличить в профиле.')">
             <div class="energy-text"><span id="energy">1000</span>/<span id="max-energy">1000</span> ⚡</div>
             <div class="energy-bar"><div class="energy-fill" id="energy-fill"></div></div>
             <div style="font-size:10px; color:#fff; margin-top:5px;" id="conn-status">Подключение...</div>
@@ -279,7 +333,7 @@ HTML_CONTENT = """
         <!-- ТАП -->
         <div class="screen active" id="screen-tap">
             <div class="tap-area">
-                <div style="text-align: center;">
+                <div style="text-align: center; position: relative;">
                     <div class="panda-wrapper" id="panda-wrapper">
                         <svg viewBox="0 0 200 220" style="width:100%; height:100%; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));">
                             <defs>
@@ -294,7 +348,6 @@ HTML_CONTENT = """
                                 <g class="body">
                                     <ellipse cx="100" cy="140" rx="62" ry="55" fill="url(#bodyGrad)" />
                                     <path class="belly-normal" d="M 55 160 Q 100 130 145 160 Q 135 195 100 198 Q 65 195 55 160 Z" fill="url(#bellyGrad)" />
-                                    <path class="belly-pregnant" d="M 40 160 Q 100 110 160 160 Q 150 205 100 208 Q 50 205 40 160 Z" fill="url(#bellyGrad)" style="display:none;" />
                                 </g>
                                 <g class="head" transform="translate(0, -5)">
                                     <g id="ear-left"><circle cx="45" cy="45" r="20" fill="#1a1a1a" /><circle cx="45" cy="45" r="10" fill="#333" /></g>
@@ -307,11 +360,6 @@ HTML_CONTENT = """
                                     <ellipse cx="100" cy="105" rx="8" ry="5" fill="#111" />
                                     <path id="mouth-path" d="M 92 112 Q 100 118 108 112" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" />
                                     <g id="gender-bow" style="display:none;"><path d="M 120 30 L 140 20 L 140 40 Z" fill="#ff69b4" /><path d="M 150 30 L 170 20 L 170 40 Z" fill="#ff69b4" /><circle cx="145" cy="30" r="6" fill="#ff1493" /></g>
-                                    <!-- ОДЕЖДА -->
-                                    <g id="acc-hat" style="display:none;"><path d="M 50 40 Q 100 10 150 40 L 155 50 Q 100 30 45 50 Z" fill="#2196f3" /></g>
-                                    <g id="acc-glasses" style="display:none;"><circle cx="70" cy="85" r="18" fill="rgba(0,0,0,0.8)" stroke="#333" stroke-width="4" /><circle cx="130" cy="85" r="18" fill="rgba(0,0,0,0.8)" stroke="#333" stroke-width="4" /><path d="M 88 85 L 112 85" stroke="#333" stroke-width="4" /></g>
-                                    <g id="acc-crown" style="display:none;"><path d="M 60 40 L 70 10 L 100 30 L 130 10 L 140 40 Z" fill="#ffd700" stroke="#ffb300" stroke-width="2"/></g>
-                                    <g id="acc-bowtie" style="display:none;"><path d="M 90 120 L 70 110 L 70 130 Z" fill="#e91e63" /><path d="M 110 120 L 130 110 L 130 130 Z" fill="#e91e63" /><circle cx="100" cy="120" r="6" fill="#ad1457" /></g>
                                 </g>
                                 <g class="front-legs">
                                     <g class="hand-left"><ellipse cx="45" cy="145" rx="18" ry="22" fill="#1a1a1a" /><ellipse cx="38" cy="160" rx="6" ry="5" fill="url(#padGrad)" /><ellipse cx="48" cy="162" rx="6" ry="5" fill="url(#padGrad)" /></g>
@@ -319,8 +367,9 @@ HTML_CONTENT = """
                                 </g>
                             </g>
                         </svg>
+                        <div class="pet-wrapper" id="my-pet" style="display:none;">🐶</div>
                     </div>
-                    <div class="panda-name nick-default" id="my-name">Загрузка...</div>
+                    <div class="panda-name nick-default" id="my-name-label">Ник</div>
                 </div>
                 <div style="text-align: center; display:none;" id="partner-container">
                     <div class="panda-wrapper partner-panda" id="partner-panda">
@@ -349,9 +398,12 @@ HTML_CONTENT = """
         <div class="screen" id="screen-profile">
             <div class="content">
                 <div class="profile-card">
-                    <div class="profile-avatar-large" id="my-avatar-large">🐼</div>
+                    <div class="profile-frame-wrap">
+                        <div class="avatar-frame default" id="profile-frame"></div>
+                        <div class="profile-avatar-large" id="my-avatar-large">🐼</div>
+                    </div>
                     <div class="profile-name" id="my-name-profile">Загрузка...</div>
-                    <div id="my-medal-display" style="color:#ffd700; font-weight:900; margin-bottom:5px;">Медаль: Нет</div>
+                    <div class="profile-medal" id="my-medal-display"></div>
                     <button class="card-price" style="width:auto; display:inline-block; margin-top:5px; background:#2196f3; padding:5px 15px;" onclick="openNameModal()">Изменить ник</button>
                     
                     <div class="profile-stats">
@@ -400,12 +452,11 @@ HTML_CONTENT = """
             <div class="content">
                 <div class="section-title">Магазин 🛍️</div>
                 <div class="tabs-sub" style="margin-bottom:15px;">
-                    <button class="tab-btn active" onclick="switchShopTab('items', this)">Одежда</button>
+                    <button class="tab-btn active" onclick="switchShopTab('items', this)">Питомцы</button>
                     <button class="tab-btn" onclick="switchShopTab('gems', this)">Гемы 💎</button>
                 </div>
                 <div class="grid" id="shop-grid"></div>
                 <div class="grid" id="gems-grid" style="display:none;">
-                    <!-- 5 СЛОТОВ ДЛЯ ГЕМОВ -->
                     <div class="card"><div class="card-icon">💎</div><div class="card-title">100 Гемов</div><button class="card-price" onclick="buyGems(50)">50 ⭐</button></div>
                     <div class="card"><div class="card-icon">💎</div><div class="card-title">500 Гемов</div><button class="card-price" onclick="buyGems(200)">200 ⭐</button></div>
                     <div class="card"><div class="card-icon">💎</div><div class="card-title">1000 Гемов</div><button class="card-price" onclick="buyGems(350)">350 ⭐</button></div>
@@ -451,7 +502,7 @@ HTML_CONTENT = """
     <div id="error-log"></div>
 
     <script>
-        let eyeTimeout = null; // Исправление ошибки eyeTimeout is not defined
+        let eyeTimeout = null; 
 
         setTimeout(() => { document.getElementById('loading-text').innerText = "Сервер просыпается..."; }, 4000);
         setTimeout(() => { document.getElementById('loading').style.display = 'none'; }, 500);
@@ -466,13 +517,12 @@ HTML_CONTENT = """
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Инициализация массивов, чтобы не было ошибки includes
         let state = {
             coins: 500, gems: 0, gender: null, streakDays: 1, lastLogin: 0, accountCreated: Date.now(),
             tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 5,
             isPregnant: false, pregnancyEnd: 0, hasBaby: false,
-            inventory: { hat: false, glasses: false, crown: false, bowtie: false },
-            equipped: { hat: false, glasses: false, crown: false, bowtie: false },
+            inventory: { pet_dog: false, pet_cat: false, pet_fox: false, pet_dragon: false },
+            equipped: { pet: 'none' },
             bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }],
             lastMiniGame: 0, lastChest: 0, lastWheel: 0,
             friends: [], giftsReceived: 0,
@@ -494,24 +544,36 @@ HTML_CONTENT = """
         const ADMIN_ID = '6877882967'; 
         if (myId === ADMIN_ID) {
             state.coins = 99999999; state.gems = 999999; state.streakDays = 730; state.isAdmin = true; state.verified = true;
-            state.inventory = { hat: true, glasses: true, crown: true, bowtie: true }; state.equipped = { hat: true, glasses: true, crown: true, bowtie: true };
+            state.inventory = { pet_dog: true, pet_cat: true, pet_fox: true, pet_dragon: true }; state.equipped = { pet: 'pet_dragon' };
             state.selectedMedal = 'mythic'; state.selectedFrame = 'legend'; state.selectedNickAnim = 'rainbow';
         }
 
         // ========== КОНФИГ ==========
         const allMedals = [
-            { id: 'bronze', name: 'Бронза', icon: '🥉', req: 30 }, { id: 'silver', name: 'Серебро', icon: '🥈', req: 90 },
-            { id: 'gold', name: 'Золото', icon: '🥇', req: 180 }, { id: 'epic', name: 'Эпик', icon: '🟣', req: 365, css: 'animation: pulse 2s infinite;' },
-            { id: 'mythic', name: 'Мифик', icon: '🔴', req: 730, css: 'animation: spin 3s linear infinite;' }
+            { id: 'bronze', name: 'Бронза', req: 30, cssClass: 'm-bronze', icon: '🥉' }, 
+            { id: 'silver', name: 'Серебро', req: 90, cssClass: 'm-silver', icon: '🥈' },
+            { id: 'gold', name: 'Золото', req: 180, cssClass: 'm-gold', icon: '🥇' }, 
+            { id: 'epic', name: 'Эпик', req: 365, cssClass: 'm-epic', icon: '🟣' },
+            { id: 'mythic', name: 'Мифик', req: 730, cssClass: 'm-mythic', icon: '🔴' }
         ];
         const allFrames = [
-            { id: 'default', name: 'Новичок', css: 'border-color: #fff;' }, { id: 'millionaire', name: 'Богач', css: 'border-color: #ffd700; box-shadow: 0 0 10px #ffd700;' },
-            { id: 'legend', name: 'Легенда', css: 'border-color: #00e5ff; box-shadow: 0 0 20px #00e5ff;' }
+            { id: 'default', name: 'Новичок', cssClass: 'default' }, 
+            { id: 'millionaire', name: 'Богач', cssClass: 'millionaire' },
+            { id: 'legend', name: 'Легенда', cssClass: 'legend' }
         ];
         const allAnims = [
-            { id: 'default', name: 'Обычный', css: 'nick-default' }, { id: 'gold', name: 'Золото', css: 'nick-gold' },
-            { id: 'fire', name: 'Огонь', css: 'nick-fire' }, { id: 'rainbow', name: 'Радуга', css: 'nick-rainbow' }
+            { id: 'default', name: 'Обычный', cssClass: 'nick-default' }, 
+            { id: 'gold', name: 'Золото', cssClass: 'nick-gold' },
+            { id: 'fire', name: 'Огонь', cssClass: 'nick-fire' }, 
+            { id: 'rainbow', name: 'Радуга', cssClass: 'nick-rainbow' }
         ];
+
+        const petsData = {
+            'pet_dog': { icon: '🐶', name: 'Собачка' },
+            'pet_cat': { icon: '🐱', name: 'Котик' },
+            'pet_fox': { icon: '🦊', name: 'Лисичка' },
+            'pet_dragon': { icon: '🐉', name: 'Дракон' }
+        };
 
         if (!state.avatarUrl) state.avatarUrl = tg.initDataUnsafe?.user?.photo_url || '';
         
@@ -526,7 +588,7 @@ HTML_CONTENT = """
         function saveName() {
             let n = document.getElementById('name-input').value.trim();
             if (n === '') n = `Panda_${myId.substring(0,4)}`; if (n.length > 15) n = n.substring(0, 15);
-            state.nickname = n; document.getElementById('my-name').innerText = n; document.getElementById('my-name-profile').innerText = n;
+            state.nickname = n;
             if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "set_name", name: n }));
             closeModal('name-modal'); updateUI();
         }
@@ -554,30 +616,46 @@ HTML_CONTENT = """
         }
 
         function renderProfile() {
-            const av = document.getElementById('my-avatar-large'); const frame = allFrames.find(f => f.id === state.selectedFrame);
-            if (frame) av.setAttribute('style', `border: 3px solid #ffd700; ${frame.css}`); if (state.streakDays >= 365 || state.isAdmin) av.classList.add('border-legend'); else av.classList.remove('border-legend');
+            const frame = allFrames.find(f => f.id === state.selectedFrame)?.cssClass || 'default';
+            const animCss = allAnims.find(a => a.id === state.selectedNickAnim)?.cssClass || 'nick-default';
+            const med = allMedals.find(m => m.id === state.selectedMedal);
 
+            // Header
+            document.getElementById('header-frame').className = `avatar-frame ${frame}`;
+            const nameEl = document.getElementById('my-name');
+            nameEl.className = `header-nick ${animCss}`; nameEl.innerText = state.nickname;
+            document.getElementById('header-medal').innerHTML = med ? `<div class="medal-circle ${med.cssClass}" style="width:24px; height:24px; font-size:14px;">${med.icon}</div>` : '';
+
+            // Profile Page
+            document.getElementById('profile-frame').className = `avatar-frame ${frame}`;
+            const profName = document.getElementById('my-name-profile');
+            profName.className = `profile-name ${animCss}`; profName.innerText = state.nickname;
+            document.getElementById('my-medal-display').innerHTML = med ? `<div class="medal-circle ${med.cssClass}" style="margin:0 auto 10px;">${med.icon}</div>` : 'Медаль: Нет';
+            
+            document.getElementById('my-name-label').innerText = state.nickname;
+            document.getElementById('my-name-label').className = `panda-name ${animCss}`;
+
+            // Pet on main screen
+            const petEl = document.getElementById('my-pet');
+            if (state.equipped.pet && state.equipped.pet !== 'none') {
+                petEl.style.display = 'block';
+                petEl.innerText = petsData[state.equipped.pet].icon;
+            } else {
+                petEl.style.display = 'none';
+            }
+
+            // Grids
             const mGrid = document.getElementById('medals-grid'); if(mGrid) { mGrid.innerHTML = '';
-                allMedals.forEach(m => { const o = state.unlockedMedals.includes(m.id); const s = state.selectedMedal === m.id; mGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Medal','${m.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon" style="${o&&m.css?m.css:''}">${m.icon}</div><div style="font-size:10px;">${m.name}</div></div>`; });
+                allMedals.forEach(m => { const o = state.unlockedMedals.includes(m.id); const s = state.selectedMedal === m.id; mGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Medal','${m.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon medal-circle ${m.cssClass}">${m.icon}</div><div style="font-size:10px; margin-top:5px;">${m.name}</div></div>`; });
             }
-            
             const fGrid = document.getElementById('frames-grid'); if(fGrid) { fGrid.innerHTML = '';
-                allFrames.forEach(f => { const o = state.unlockedFrames.includes(f.id); const s = state.selectedFrame === f.id; fGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Frame','${f.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon" style="border:2px solid #fff; border-radius:50%; width:30px; height:30px; margin:0 auto; ${f.css}"></div><div style="font-size:10px; margin-top:5px;">${f.name}</div></div>`; });
+                allFrames.forEach(f => { const o = state.unlockedFrames.includes(f.id); const s = state.selectedFrame === f.id; fGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Frame','${f.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon" style="border:4px solid #fff; border-radius:50%; width:30px; height:30px; margin:0 auto; ${f.id==='millionaire'?'border-color:#ffd700; box-shadow:0 0 10px #ffd700;':f.id==='legend'?'border-color:#00e5ff; box-shadow:0 0 15px #00e5ff;':''}"></div><div style="font-size:10px; margin-top:5px;">${f.name}</div></div>`; });
             }
-            
             const aGrid = document.getElementById('anims-grid'); if(aGrid) { aGrid.innerHTML = '';
-                allAnims.forEach(a => { const o = state.unlockedAnims.includes(a.id); const s = state.selectedNickAnim === a.id; aGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('NickAnim','${a.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon ${a.css}" style="font-weight:900;">Aa</div><div style="font-size:10px;">${a.name}</div></div>`; });
+                allAnims.forEach(a => { const o = state.unlockedAnims.includes(a.id); const s = state.selectedNickAnim === a.id; aGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('NickAnim','${a.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon ${a.cssClass}" style="font-weight:900; font-size:20px;">Aa</div><div style="font-size:10px;">${a.name}</div></div>`; });
             }
 
-            const medD = allMedals.find(m => m.id === state.selectedMedal);
-            if(document.getElementById('my-medal-display')) document.getElementById('my-medal-display').innerText = medD ? `Медаль: ${medD.name}` : 'Медаль: Нет';
             if(document.getElementById('gifts-list')) document.getElementById('gifts-list').innerText = state.giftsReceived > 0 ? `Подарков: ${state.giftsReceived} 🎁` : 'Подарков пока нет';
-            
-            // Установка анимации ника везде
-            const animCss = allAnims.find(a => a.id === state.selectedNickAnim)?.css || 'nick-default';
-            if(document.getElementById('my-name')) document.getElementById('my-name').className = `panda-name ${animCss}`;
-            if(document.getElementById('my-name-profile')) document.getElementById('my-name-profile').className = `profile-name ${animCss}`;
-            
             if(document.getElementById('stat-coins')) document.getElementById('stat-coins').innerText = state.coins.toLocaleString(); 
             if(document.getElementById('stat-gems')) document.getElementById('stat-gems').innerText = state.gems.toLocaleString(); 
             if(document.getElementById('stat-streak')) document.getElementById('stat-streak').innerText = state.streakDays;
@@ -587,8 +665,11 @@ HTML_CONTENT = """
             const grid = document.getElementById('farm-grid'); if(!grid) return; grid.innerHTML = '';
             state.bamboos.forEach(b => {
                 let s = "Пусто", btn = "Посадить", icon = "🟫", dis = false;
-                if (b.stage === 1) { const t = Math.ceil((60000 - (Date.now() - b.planted)) / 1000); s = `Растет... ${t}с`; btn = "Ждем"; icon = "🌱"; dis = true; } 
-                else if (b.stage === 2) { s = "Созрел!"; btn = "Собрать"; icon = "🎋"; } 
+                if (b.stage === 1) { 
+                    const t = Math.ceil((60000 - (Date.now() - b.planted)) / 1000); 
+                    s = t > 0 ? `Растет... ${t}с` : "Созрел!"; 
+                    btn = "Ждем"; icon = "🌱"; dis = t > 0; 
+                } else if (b.stage === 2) { s = "Созрел!"; btn = "Собрать"; icon = "🎋"; } 
                 else if (b.stage === 3) { s = "Сгнил!"; btn = "Убрать"; icon = "🥀"; }
                 grid.innerHTML += `<div class="card"><div class="card-icon">${icon}</div><div class="card-title">Участок ${b.id}</div><div class="card-desc">${s}</div><button class="card-price" ${dis ? 'disabled' : ''} onclick="handleFarmClick(${b.id})">${btn}</button></div>`;
             });
@@ -596,7 +677,9 @@ HTML_CONTENT = """
 
         function handleFarmClick(id) {
             const b = state.bamboos.find(x => x.id === id);
-            if (b.stage === 0) { b.planted = Date.now(); b.stage = 1; } else if (b.stage === 2) { state.coins += 500; b.stage = 0; tg.showAlert("+500 монет!"); } else if (b.stage === 3) { b.stage = 0; }
+            if (b.stage === 0) { b.planted = Date.now(); b.stage = 1; } 
+            else if (b.stage === 2) { state.coins += 500; b.stage = 0; tg.showAlert("+500 монет!"); } 
+            else if (b.stage === 3) { b.stage = 0; }
             saveGame(); updateUI();
         }
 
@@ -605,6 +688,7 @@ HTML_CONTENT = """
             document.getElementById('shop-grid').style.display = tab === 'items' ? 'grid' : 'none'; 
             document.getElementById('gems-grid').style.display = tab === 'gems' ? 'grid' : 'none'; 
         }
+        function openGemShop() { switchTab('shop', document.querySelectorAll('.nav-btn')[3]); switchShopTab('gems', document.querySelectorAll('#screen-shop .tab-btn')[1]); }
 
         function buyGems(amount) { tg.showAlert(`Для покупки ${amount} гемов за Telegram Stars нужно подключить платежную систему в BotFather. Скоро добавим!`); }
         
@@ -612,9 +696,10 @@ HTML_CONTENT = """
             const now = Date.now(); if (now - state.lastWheel < 24 * 60 * 60 * 1000 && !state.isAdmin) { tg.showAlert("Завтра!"); return; }
             state.lastWheel = now;
             const wheel = document.getElementById('wheel-icon');
-            wheel.style.transform = `rotate(${Math.floor(Math.random() * 360) + 1440}deg)`;
+            const deg = Math.floor(Math.random() * 360) + 1440;
+            wheel.style.transform = `rotate(${deg}deg)`;
             setTimeout(() => {
-                const win = [100, 500, 1000, 5000, 50000][Math.floor(Math.random() * 5)];
+                const win = [100, 500, 1000, 5000, 10000, 50000][Math.floor(Math.random() * 6)];
                 state.coins += win; tg.showAlert(`🎉 Выигрыш: ${win} монет!`);
                 closeModal('wheel-modal'); updateUI();
             }, 3000);
@@ -627,9 +712,9 @@ HTML_CONTENT = """
             const interval = setInterval(() => {
                 if (!miniActive) return;
                 const item = document.createElement('div'); item.className = 'falling-item'; item.innerText = ['🎋', '🍎', '🍔'][Math.floor(Math.random()*3)];
-                item.style.left = Math.random() * 80 + 10 + '%'; item.style.animationDuration = (Math.random() * 1 + 1) + 's';
+                item.style.left = Math.random() * 80 + 10 + '%'; item.style.animationDuration = (Math.random() * 1.5 + 1) + 's';
                 item.onclick = () => { if (miniActive) { score++; document.getElementById('mini-score').innerText = score; item.remove(); } };
-                area.appendChild(item); setTimeout(() => item.remove(), 2000);
+                area.appendChild(item); setTimeout(() => item.remove(), 2500);
             }, 300);
             setTimeout(() => { miniActive = false; clearInterval(interval); state.coins += score * 100; tg.showAlert(`Игра окончена! +${score * 100} монет.`); updateUI(); }, 10000);
         }
@@ -642,29 +727,39 @@ HTML_CONTENT = """
             if(document.getElementById('energy-fill')) document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%';
             if(document.getElementById('streak-badge')) document.getElementById('streak-badge').innerText = `🔥 Серия: ${state.streakDays}`;
             
-            // Отображение одежды
-            ['hat', 'glasses', 'crown', 'bowtie'].forEach(item => { const el = document.getElementById('acc-' + item); if (el) el.style.display = state.equipped[item] ? 'block' : 'none'; });
-            
             checkUnlocks(); renderProfile(); renderFarm(); renderShop(); renderFamily();
             
             if (state.isPregnant) { document.querySelector('.belly-normal').style.display = 'none'; document.querySelector('.belly-pregnant').style.display = 'block'; if (Date.now() >= state.pregnancyEnd) { state.isPregnant = false; state.hasBaby = true; document.querySelector('.belly-normal').style.display = 'block'; document.querySelector('.belly-pregnant').style.display = 'none'; tg.showAlert("🎉 Родился малыш!"); } } 
             else { document.querySelector('.belly-normal').style.display = 'block'; document.querySelector('.belly-pregnant').style.display = 'none'; }
-            
-            // Обновление имени (на случай если было "Загрузка...")
-            if(document.getElementById('my-name') && state.nickname) document.getElementById('my-name').innerText = state.nickname;
-            if(document.getElementById('my-name-profile') && state.nickname) document.getElementById('my-name-profile').innerText = state.nickname;
 
             saveGame();
         }
 
         function saveGame() { localStorage.setItem('pandaUltimate', JSON.stringify(state)); }
 
-        const shopData = [{ id: 'hat', name: 'Кепка', icon: '🧢', price: 1000 },{ id: 'glasses', name: 'Очки', icon: '🕶️', price: 5000 },{ id: 'bowtie', name: 'Бабочка', icon: '🎀', price: 15000 },{ id: 'crown', name: 'Корона', icon: '👑', price: 50000 }];
+        const shopData = [
+            { id: 'pet_dog', name: 'Собачка', icon: '🐶', price: 5000 },
+            { id: 'pet_cat', name: 'Котик', icon: '🐱', price: 15000 },
+            { id: 'pet_fox', name: 'Лисичка', icon: '🦊', price: 50000 },
+            { id: 'pet_dragon', name: 'Дракон', icon: '🐉', price: 150000 }
+        ];
         function renderShop() {
             const grid = document.getElementById('shop-grid'); if(!grid) return; grid.innerHTML = '';
-            shopData.forEach(item => { const isOwned = state.inventory[item.id]; const isEq = state.equipped[item.id]; grid.innerHTML += `<div class="card"><div class="card-icon">${item.icon}</div><div class="card-title">${item.name}</div><button class="card-price ${isOwned ? (isEq ? 'owned' : '') : ''}" onclick="buyItem('${item.id}', ${item.price})">${isOwned ? (isEq ? 'Снять' : 'Надеть') : `${item.price} 🪙`}</button></div>`; });
+            shopData.forEach(item => { 
+                const isOwned = state.inventory[item.id]; 
+                const isEq = state.equipped.pet === item.id; 
+                grid.innerHTML += `<div class="card"><div class="card-icon">${item.icon}</div><div class="card-title">${item.name}</div><button class="card-price ${isOwned ? (isEq ? 'owned' : '') : ''}" onclick="buyItem('${item.id}', ${item.price})">${isOwned ? (isEq ? 'Снять' : 'Надеть') : `${item.price} 🪙`}</button></div>`; 
+            });
         }
-        function buyItem(id, price) { if (state.inventory[id]) state.equipped[id] = !state.equipped[id]; else if (state.coins >= price) { state.coins -= price; state.inventory[id] = true; state.equipped[id] = true; } else { tg.showAlert("Мало монет!"); return; } updateUI(); }
+        function buyItem(id, price) { 
+            if (state.inventory[id]) { 
+                if (state.equipped.pet === id) state.equipped.pet = 'none';
+                else state.equipped.pet = id;
+            } else if (state.coins >= price) { 
+                state.coins -= price; state.inventory[id] = true; state.equipped.pet = id; 
+            } else { tg.showAlert("Мало монет!"); return; } 
+            updateUI(); 
+        }
 
         function renderFamily() {
             const status = document.getElementById('family-status'); const btnCont = document.getElementById('pregnancy-btn-container'); if(!status) return;
@@ -714,12 +809,11 @@ HTML_CONTENT = """
         function loadGame() {
             const saved = localStorage.getItem('pandaUltimate'); if (saved) { try { state = { ...state, ...JSON.parse(saved) }; } catch(e) {} }
             
-            // Принудительная инициализация массивов, если их нет в кэше
             if (!state.unlockedMedals) state.unlockedMedals = [];
             if (!state.unlockedFrames) state.unlockedFrames = [];
             if (!state.unlockedAnims) state.unlockedAnims = [];
 
-            if (myId === ADMIN_ID) { state.isAdmin = true; state.verified = true; state.gems = 999999; state.coins = 99999999; state.streakDays = 730; state.inventory = { hat: true, glasses: true, crown: true, bowtie: true }; state.equipped = { hat: true, glasses: true, crown: true, bowtie: true }; state.selectedMedal = 'mythic'; state.selectedFrame = 'legend'; state.selectedNickAnim = 'rainbow'; }
+            if (myId === ADMIN_ID) { state.isAdmin = true; state.verified = true; state.gems = 999999; state.coins = 99999999; state.streakDays = 730; state.inventory = { pet_dog: true, pet_cat: true, pet_fox: true, pet_dragon: true }; state.equipped = { pet: 'pet_dragon' }; state.selectedMedal = 'mythic'; state.selectedFrame = 'legend'; state.selectedNickAnim = 'rainbow'; }
             
             if (!state.gender) document.getElementById('setup-screen').style.display = 'flex'; 
             else { document.getElementById('setup-screen').style.display = 'none'; applyGenderVisuals(); checkStreak(); updateUI(); connectWebSocket(); fetchFriends(); fetchLeaderboard(); updateAvatarUI(); }
@@ -757,21 +851,62 @@ HTML_CONTENT = """
             try {
                 const res = await fetch(`${API_URL}/api/friends/${myId}`); const data = await res.json(); state.friends = data; const list = document.getElementById('friends-list'); if(!list) return;
                 if (state.friends.length === 0) { list.innerHTML = `<p style="text-align:center; color:#888;">Пока нет друзей.</p>`; return; }
-                list.innerHTML = state.friends.map(f => `<div class="friend-item" onclick="viewProfile('${f.id}', '${f.name}', ${f.coins}, ${f.gifts || 0})"><div class="friend-info"><div class="friend-status ${f.online ? 'status-online' : 'status-offline'}"></div><div><div class="friend-name">${f.name} ${f.verified ? '<span class="verified-badge">✔</span>' : ''}</div><div class="friend-coins">${f.coins.toLocaleString()} 🪙</div></div></div></div>`).join('');
+                list.innerHTML = state.friends.map(f => `
+                    <div class="friend-item" onclick="viewProfile('${f.id}', '${f.name}', ${f.coins}, ${f.gifts || 0}, '${f.frame}', '${f.medal}', '${f.nick_style}', '${f.avatar}', ${f.verified})">
+                        <div class="friend-avatar">${f.avatar ? `<img src="${f.avatar}">` : '🐼'}</div>
+                        <div class="friend-name-box">
+                            <div class="friend-name-row">
+                                <span class="${f.nick_style}">${f.name}</span>
+                                ${f.verified ? '<span class="verified-badge">✔</span>' : ''}
+                            </div>
+                            <div class="friend-sub">
+                                <span class="status-dot ${f.online ? 'status-online' : 'status-offline'}"></span> ${f.online ? 'В сети' : 'Не в сети'}
+                            </div>
+                        </div>
+                        <div class="friend-coins">${f.coins.toLocaleString()} 🪙</div>
+                    </div>
+                `).join('');
             } catch(e) { document.getElementById('friends-list').innerHTML = `<p style="text-align:center; color:#888;">Сервер просыпается...</p>`; }
         }
 
         async function fetchLeaderboard() {
             try {
                 const res = await fetch(`${API_URL}/api/leaderboard`); const data = await res.json(); const list = document.getElementById('leaderboard-list');
-                list.innerHTML = data.map((p, i) => `<div class="leaderboard-item" onclick="viewProfile('${p.id}', '${p.name}', ${p.coins}, ${p.gifts || 0})"><span>${i + 1}.</span><span style="flex:1; margin-left:10px;">${p.name} ${p.verified ? '<span class="verified-badge">✔</span>' : ''} ${p.online ? '🟢' : ''}</span><span style="color:#ffd700;">${p.coins.toLocaleString()} 🪙</span></div>`).join('');
+                list.innerHTML = data.map((p, i) => `
+                    <div class="leaderboard-item" onclick="viewProfile('${p.id}', '${p.name}', ${p.coins}, ${p.gifts || 0}, '${p.frame}', '${p.medal}', '${p.nick_style}', '${p.avatar}', ${p.verified})">
+                        <span class="lb-rank">${i + 1}.</span>
+                        <div class="lb-avatar">${p.avatar ? `<img src="${p.avatar}">` : '🐼'}</div>
+                        <span class="lb-name ${p.nick_style}">${p.name} ${p.verified ? '<span class="verified-badge">✔</span>' : ''} ${p.online ? '<span class="status-dot status-online"></span>' : ''}</span>
+                        <span class="lb-coins">${p.coins.toLocaleString()} 🪙</span>
+                    </div>
+                `).join('');
             } catch(e) { document.getElementById('leaderboard-list').innerHTML = `<p style="text-align:center; color:#888;">Сервер просыпается...</p>`; }
         }
         
-        function viewProfile(id, name, coins, gifts) {
-            document.getElementById('vp-name').innerText = name; document.getElementById('vp-coins').innerText = coins.toLocaleString(); document.getElementById('vp-gifts').innerText = gifts || 0;
+        function viewProfile(id, name, coins, gifts, frameId, medalId, nickStyle, avatarUrl, isVerified) {
+            document.getElementById('vp-name').innerText = name;
+            document.getElementById('vp-name').className = `profile-name ${nickStyle}`;
+            document.getElementById('vp-coins').innerText = coins.toLocaleString(); 
+            document.getElementById('vp-gifts').innerText = gifts || 0;
+            
+            const vpAv = document.getElementById('vp-avatar');
+            if (avatarUrl) vpAv.innerHTML = `<img src="${avatarUrl}">`; else vpAv.innerText = '🐼';
+            
+            const frameData = allFrames.find(f => f.id === frameId);
+            document.getElementById('vp-frame').className = `avatar-frame ${frameData ? frameData.cssClass : 'default'}`;
+            
+            const medData = allMedals.find(m => m.id === medalId);
+            document.getElementById('vp-medal').innerHTML = medData ? `<div class="medal-circle ${medData.cssClass}">${medData.icon}</div>` : '';
+
+            if (isVerified) {
+                document.getElementById('vp-name').innerHTML += ' <span class="verified-badge" style="font-size:16px; width:20px; height:20px;">✔</span>';
+            }
+
             document.getElementById('view-profile-modal').classList.add('active');
         }
+
+        window.openGiftModal = function() { document.getElementById('gift-modal').classList.add('active'); };
+        window.closeModal = function(id) { document.getElementById(id).classList.remove('active'); };
 
         function claimChest() { document.getElementById('chest-modal').classList.remove('active'); state.lastChest = Date.now(); state.coins += 1000; tg.showAlert("+1000 монет!"); updateUI(); }
         function inviteFriend() { const link = `https://t.me/nash_sad_69_bot?startapp=${roomId}`; const text = `Присоединяйся!`; if (tg.openTelegramLink) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`); else navigator.clipboard.writeText(link).then(() => tg.showAlert("Скопировано!")); }
@@ -783,7 +918,6 @@ HTML_CONTENT = """
             state.bamboos.forEach(b => { if (b.stage === 1 && now - b.planted > 60000) { b.stage = 2; changed = true; } if (b.stage === 2 && now - b.planted > 120000) { b.stage = 3; changed = true; } });
             if (changed) saveGame(); 
             
-            // Постоянное обновление UI для работы таймеров
             if(document.getElementById('coins')) document.getElementById('coins').innerText = Math.floor(state.coins).toLocaleString();
             if(document.getElementById('energy')) document.getElementById('energy').innerText = Math.floor(state.energy);
             if(document.getElementById('energy-fill')) document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%';
@@ -803,7 +937,7 @@ async def serve_game():
 async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     await websocket.accept()
     if user_id not in players_db:
-        players_db[user_id] = {"name": f"Panda_{user_id[:4]}", "coins": 0, "gems": 0, "gender": "male", "last_active": time.time(), "friends": [], "gifts": 0, "verified": True if user_id == '6877882967' else False}
+        players_db[user_id] = {"name": f"Panda_{user_id[:4]}", "coins": 0, "gems": 0, "gender": "male", "last_active": time.time(), "friends": [], "gifts": 0, "verified": True if user_id == '6877882967' else False, "avatar": "", "frame": "default", "medal": "none", "nick_style": "nick-default"}
     else:
         players_db[user_id]["last_active"] = time.time()
         
@@ -842,6 +976,11 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             if message.get("type") == "update_stats":
                 players_db[user_id]["coins"] = message.get("coins", 0)
                 players_db[user_id]["gems"] = message.get("gems", 0)
+                # Сохраняем кастомизацию
+                players_db[user_id]["avatar"] = message.get("avatar", "")
+                players_db[user_id]["frame"] = message.get("frame", "default")
+                players_db[user_id]["medal"] = message.get("medal", "none")
+                players_db[user_id]["nick_style"] = message.get("nick_style", "nick-default")
                 players_db[user_id]["last_active"] = time.time()
                 continue
                 
@@ -874,7 +1013,7 @@ async def get_leaderboard():
     result = []
     for uid, data in sorted_players:
         is_online = (time.time() - data["last_active"]) < 120
-        result.append({"id": uid, "name": data["name"], "coins": data["coins"], "online": is_online, "gifts": data.get("gifts", 0), "verified": data.get("verified", False)})
+        result.append({"id": uid, "name": data["name"], "coins": data["coins"], "online": is_online, "gifts": data.get("gifts", 0), "verified": data.get("verified", False), "avatar": data.get("avatar", ""), "frame": data.get("frame", "default"), "medal": data.get("medal", "none"), "nick_style": data.get("nick_style", "nick-default")})
     return result
 
 @app.get("/api/friends/{user_id}")
@@ -885,7 +1024,7 @@ async def get_friends(user_id: str):
         if f_id in players_db:
             f_data = players_db[f_id]
             is_online = (time.time() - f_data["last_active"]) < 120
-            friends_list.append({"id": f_id, "name": f_data["name"], "coins": f_data["coins"], "online": is_online, "gifts": f_data.get("gifts", 0), "verified": f_data.get("verified", False)})
+            friends_list.append({"id": f_id, "name": f_data["name"], "coins": f_data["coins"], "online": is_online, "gifts": f_data.get("gifts", 0), "verified": f_data.get("verified", False), "avatar": f_data.get("avatar", ""), "frame": f_data.get("frame", "default"), "medal": f_data.get("medal", "none"), "nick_style": f_data.get("nick_style", "nick-default")})
     return friends_list
 
 async def broadcast_room_state(room_id: str):
