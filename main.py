@@ -95,7 +95,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 30.0</title>
+    <title>Panda Game 30.1</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -766,7 +766,6 @@ HTML_CONTENT = """
             const idElement = document.getElementById('my-game-id');
             const originalText = state.gameId;
 
-            // Попытка 1: Современный API
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(idText).then(() => {
                     idElement.innerText = "✅ Скопировано!";
@@ -779,7 +778,6 @@ HTML_CONTENT = """
         }
 
         function fallbackCopy(text, element, original) {
-            // Попытка 2: Старый метод через textarea
             const textArea = document.createElement("textarea");
             textArea.value = text;
             textArea.style.position = "fixed";
@@ -797,7 +795,6 @@ HTML_CONTENT = """
                     throw new Error("ExecCommand failed");
                 }
             } catch (err) {
-                // Попытка 3: Окно для ручного копирования
                 element.innerText = original;
                 tg.showAlert("Telegram заблокировал копирование. Зажми и скопируй ID вручную: " + text);
             }
@@ -1448,12 +1445,16 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                             except: pass
                 continue
 
+            # ИСПРАВЛЕННАЯ ЛОГИКА ПРИНЯТИЯ ЗАЯВКИ
             if message.get("type") == "accept_friend_request":
                 sender_id = message.get("sender_id")
-                if sender_id in players_db and user_id in players_db[sender_id].get("friend_requests", []):
-                    players_db[sender_id]["friend_requests"].remove(user_id)
+                if sender_id in players_db:
+                    if "friend_requests" in players_db[user_id] and sender_id in players_db[user_id]["friend_requests"]:
+                        players_db[user_id]["friend_requests"].remove(sender_id)
+                        
                     if sender_id not in players_db[user_id]["friends"]: players_db[user_id]["friends"].append(sender_id)
                     if user_id not in players_db[sender_id]["friends"]: players_db[sender_id]["friends"].append(user_id)
+                    
                     save_player(user_id, players_db[user_id])
                     save_player(sender_id, players_db[sender_id])
                     
@@ -1469,9 +1470,10 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     await websocket.send_text(json.dumps({"type": "friend_requests_list", "requests": reqs}))
                 continue
 
+            # ИСПРАВЛЕННАЯ ЛОГИКА ОТКЛОНЕНИЯ ЗАЯВКИ
             if message.get("type") == "decline_friend_request":
                 sender_id = message.get("sender_id")
-                if sender_id in players_db and user_id in players_db[user_id].get("friend_requests", []):
+                if "friend_requests" in players_db[user_id] and sender_id in players_db[user_id]["friend_requests"]:
                     players_db[user_id]["friend_requests"].remove(sender_id)
                     save_player(user_id, players_db[user_id])
                     
