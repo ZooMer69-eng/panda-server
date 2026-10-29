@@ -24,7 +24,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 8.0</title>
+    <title>Panda Game 9.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -157,6 +157,14 @@ HTML_CONTENT = """
         #debug-info { position: absolute; bottom: 2px; width: 100%; text-align: center; font-size: 10px; color: #555; z-index: 50; }
         #loading { position: fixed; inset: 0; background: #0a120e; z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 20px; font-weight: 900; color: #4caf50; }
         #loading-text { margin-top: 20px; font-size: 14px; color: #aaa; text-align: center; }
+        
+        /* Квесты */
+        .quest-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #ffd700; }
+        .quest-info { flex: 1; }
+        .quest-title { font-size: 14px; font-weight: 900; margin-bottom: 4px; }
+        .quest-reward { font-size: 12px; color: #4caf50; font-weight: 900; }
+        .quest-btn { background: #4caf50; color: #fff; border: none; padding: 8px 15px; border-radius: 8px; font-weight: 900; cursor: pointer; }
+        .quest-btn:disabled { background: #555; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -377,14 +385,22 @@ HTML_CONTENT = """
                 <button class="card-price" id="mini-btn-food" onclick="startMiniGame('food')" style="background:#ff9800; color:#fff; font-size:16px; padding:15px;">Покорми панду 🍎</button>
             </div>
         </div>
+
+        <!-- НОВАЯ ВКЛАДКА: КВЕСТЫ -->
+        <div class="screen" id="screen-quests">
+            <div class="content">
+                <div class="section-title">Квесты 📜</div>
+                <div id="quests-list"></div>
+            </div>
+        </div>
     </div>
 
     <div class="bottom-nav">
         <button class="nav-btn active" onclick="switchTab('tap', this)"><span>👆</span>Панда</button>
+        <button class="nav-btn" onclick="switchTab('quests', this)"><span>📜</span>Квесты</button>
         <button class="nav-btn" onclick="switchTab('friends', this)"><span>👥</span>Друзья</button>
         <button class="nav-btn" onclick="switchTab('family', this)"><span>👨‍👩‍👧</span>Семья</button>
         <button class="nav-btn" onclick="switchTab('farm', this)"><span>🌱</span>Ферма</button>
-        <button class="nav-btn" onclick="switchTab('shop', this)"><span>🛍️</span>Магазин</button>
         <button class="nav-btn" onclick="switchTab('games', this)"><span>🎮</span>Игры</button>
     </div>
 
@@ -421,7 +437,8 @@ HTML_CONTENT = """
             bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }],
             lastMiniGame: 0, lastBandit: 0, lastPaw: 0, lastChest: 0,
             friends: [],
-            nickname: ''
+            nickname: '',
+            quests: { taps: 0, bought: false, invited: false, claimed: { q1: false, q2: false, q3: false } }
         };
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -563,7 +580,7 @@ HTML_CONTENT = """
                 if (el) el.style.display = state.equipped[item] ? 'block' : 'none';
             });
 
-            renderFarm(); renderShop(); renderFamily();
+            renderFarm(); renderShop(); renderFamily(); renderQuests();
             
             if (state.isPregnant) {
                 document.querySelector('.belly-normal').style.display = 'none';
@@ -620,6 +637,49 @@ HTML_CONTENT = """
             }
         }
 
+        // ================== КВЕСТЫ ==================
+        function renderQuests() {
+            const list = document.getElementById('quests-list');
+            if (!list) return;
+            
+            list.innerHTML = `
+                <div class="quest-item">
+                    <div class="quest-info">
+                        <div class="quest-title">Сделай 100 кликов</div>
+                        <div class="quest-reward">Награда: 1000 🪙</div>
+                        <div style="font-size:11px; color:#aaa;">Прогресс: ${Math.min(state.quests.taps, 100)}/100</div>
+                    </div>
+                    <button class="quest-btn" ${state.quests.taps >= 100 && !state.quests.claimed.q1 ? '' : 'disabled'} onclick="claimQuest('q1', 1000)">${state.quests.claimed.q1 ? 'Получено' : 'Забрать'}</button>
+                </div>
+                <div class="quest-item">
+                    <div class="quest-info">
+                        <div class="quest-title">Купи любую вещь в магазине</div>
+                        <div class="quest-reward">Награда: 2000 🪙</div>
+                        <div style="font-size:11px; color:#aaa;">Прогресс: ${state.quests.bought ? 'Выполнено' : '0/1'}</div>
+                    </div>
+                    <button class="quest-btn" ${state.quests.bought && !state.quests.claimed.q2 ? '' : 'disabled'} onclick="claimQuest('q2', 2000)">${state.quests.claimed.q2 ? 'Получено' : 'Забрать'}</button>
+                </div>
+                <div class="quest-item">
+                    <div class="quest-info">
+                        <div class="quest-title">Пригласи друга (поделись ссылкой)</div>
+                        <div class="quest-reward">Награда: 5000 🪙</div>
+                        <div style="font-size:11px; color:#aaa;">Прогресс: ${state.quests.invited ? 'Выполнено' : '0/1'}</div>
+                    </div>
+                    <button class="quest-btn" ${state.quests.invited && !state.quests.claimed.q3 ? '' : 'disabled'} onclick="claimQuest('q3', 5000)">${state.quests.claimed.q3 ? 'Получено' : 'Забрать'}</button>
+                </div>
+            `;
+        }
+
+        function claimQuest(id, reward) {
+            if (!state.quests.claimed[id]) {
+                state.quests.claimed[id] = true;
+                state.coins += reward;
+                tg.showAlert(`🎉 Ты получил ${reward} монет за квест!`);
+                updateUI();
+            }
+        }
+
+        // ================== API ==================
         async function fetchFriends() {
             try {
                 const controller = new AbortController();
@@ -791,7 +851,10 @@ HTML_CONTENT = """
         }
         function buyItem(id, price) {
             if (state.inventory[id]) state.equipped[id] = !state.equipped[id];
-            else if (state.coins >= price) { state.coins -= price; state.inventory[id] = true; state.equipped[id] = true; }
+            else if (state.coins >= price) { 
+                state.coins -= price; state.inventory[id] = true; state.equipped[id] = true; 
+                state.quests.bought = true; // Выполняем квест
+            }
             else { tg.showAlert("Мало монет!"); return; }
             updateUI();
         }
@@ -809,8 +872,10 @@ HTML_CONTENT = """
         function startPregnancy() { state.isPregnant = true; state.pregnancyEnd = Date.now() + (7 * 24 * 60 * 60 * 1000); updateUI(); }
         
         function inviteFriend() {
+            state.quests.invited = true; // Выполняем квест
             const link = `https://t.me/nash_sad_69_bot/play?startapp=${roomId}`;
             navigator.clipboard.writeText(link).then(() => tg.showAlert("Ссылка скопирована! Отправь другу."));
+            updateUI();
         }
 
         let currentMode = 'solo';
@@ -884,11 +949,12 @@ HTML_CONTENT = """
         document.getElementById('panda-wrapper').addEventListener('pointerdown', (e) => {
             if (state.energy <= 0) return;
             state.energy -= 1; state.coins += state.tapPower;
+            state.quests.taps++; // Считаем клики
             
             // Бонус братанов / сестер
             let earn = state.tapPower;
             if (currentMode === 'bros' || currentMode === 'sisters') earn = Math.floor(earn * 1.5);
-            state.coins += (earn - state.tapPower); // Добавляем бонус
+            state.coins += (earn - state.tapPower);
             
             const p = document.getElementById('panda-wrapper');
             p.classList.remove('hit'); void p.offsetWidth; p.classList.add('hit');
@@ -983,12 +1049,19 @@ async def serve_game():
 async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     await websocket.accept()
     if user_id not in players_db:
-        players_db[user_id] = {"name": f"Panda_{user_id[:4]}", "coins": 0, "gender": "male", "last_active": time.time()}
+        players_db[user_id] = {"name": f"Panda_{user_id[:4]}", "coins": 0, "gender": "male", "last_active": time.time(), "friends": []}
     else:
         players_db[user_id]["last_active"] = time.time()
         
     if room_id not in rooms:
         rooms[room_id] = {"players": {}, "joint_progress": 0}
+    
+    # Сохраняем друга при входе в комнату
+    for existing_uid in rooms[room_id]["players"].keys():
+        if existing_uid != user_id:
+            if existing_uid not in players_db[user_id]["friends"]: players_db[user_id]["friends"].append(existing_uid)
+            if user_id not in players_db[existing_uid]["friends"]: players_db[existing_uid]["friends"].append(user_id)
+
     rooms[room_id]["players"][user_id] = websocket
     
     await broadcast_room_state(room_id)
@@ -1021,7 +1094,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 continue
                 
             if message.get("type") == "tap":
-                # Обновляем общий прогресс (если в комнате > 1 игрока)
                 if len(rooms[room_id]["players"]) > 1:
                     rooms[room_id]["joint_progress"] += 0.5
                     if rooms[room_id]["joint_progress"] >= 100:
@@ -1052,12 +1124,16 @@ async def get_leaderboard():
 
 @app.get("/api/friends/{user_id}")
 async def get_friends(user_id: str):
-    fake_friends = [
-        {"id": "111", "name": "Милашка", "coins": 15000, "online": True},
-        {"id": "222", "name": "Братан", "coins": 5000, "online": False},
-        {"id": "333", "name": "Панда_Мастер", "coins": 120000, "online": True}
-    ]
-    return fake_friends
+    if user_id not in players_db:
+        return []
+    
+    friends_list = []
+    for f_id in players_db[user_id]["friends"]:
+        if f_id in players_db:
+            f_data = players_db[f_id]
+            is_online = (time.time() - f_data["last_active"]) < 120
+            friends_list.append({"id": f_id, "name": f_data["name"], "coins": f_data["coins"], "online": is_online})
+    return friends_list
 
 async def broadcast_room_state(room_id: str):
     if room_id in rooms:
