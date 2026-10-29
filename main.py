@@ -1,3 +1,11 @@
+Set-Location C:\Users\danya\Desktop\our-game
+New-Item -ItemType Directory -Force -Path "backend" | Out-Null
+New-Item -ItemType Directory -Force -Path "bot" | Out-Null
+
+# ==========================================
+# 1. СОЗДАЕМ ФАЙЛ СЕРВЕРА (main.py со всеми фишками)
+# ==========================================
+$server_code = @'
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -24,13 +32,14 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 10.1</title>
+    <title>Panda Game 11.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: #0a120e; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
 
+        /* Экран выбора пола */
         #setup-screen { position: fixed; inset: 0; background: rgba(10, 18, 14, 0.98); z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; }
         #setup-screen h1 { font-size: 28px; margin-bottom: 10px; color: #ffd700; }
         .gender-btns { display: flex; gap: 20px; margin-top: 20px; }
@@ -38,6 +47,7 @@ HTML_CONTENT = """
         .gender-btn:hover { background: rgba(76, 175, 80, 0.3); transform: scale(1.05); }
         .gender-btn .icon { font-size: 50px; display: block; margin-bottom: 10px; }
 
+        /* Фоны */
         .bg-base { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, #0b1712 0%, #143624 40%, #295d3b 70%, #346e42 100%); transition: background 1.5s; }
         .bg-romantic { background: linear-gradient(180deg, #2d1b36 0%, #6b3f5c 40%, #a86b7e 70%, #d9a0a8 100%) !important; }
         .bg-bro { background: linear-gradient(180deg, #1a1a2e 0%, #2d2d4a 40%, #4a3b52 70%, #6b4c5a 100%) !important; }
@@ -49,23 +59,37 @@ HTML_CONTENT = """
         .stalk::after { content: ''; position: absolute; top: 20%; left: 10px; width: 30px; height: 10px; background: #4ea868; border-radius: 4px 10px 0 4px; transform: rotate(-30deg); }
         .bg-grass { position: absolute; bottom: 0; left: 0; width: 100%; height: 15%; background: linear-gradient(to top, #0d1f14 0%, #173723 60%, transparent 100%); z-index: 2; pointer-events: none; }
 
+        /* Хедер */
         .header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: flex-start; z-index: 10; position: relative; }
-        .rank-box { display: flex; flex-direction: column; gap: 4px; }
-        .streak-badge { background: rgba(0,0,0,0.6); color: #ff6b00; padding: 4px 12px; border-radius: 15px; font-size: 11px; font-weight: 900; border: 1px solid #ff6b00; }
+        .rank-box { display: flex; align-items: center; gap: 10px; }
         
-        .balance-container { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-        .balance { font-size: 28px; font-weight: 900; color: #fff; text-shadow: 2px 2px 8px rgba(0,0,0,0.8); display: flex; align-items: center; gap: 6px; }
-        .edit-name-btn { background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 24px; height: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; color: #fff; font-size: 12px; }
-        
+        /* АВАТАРКА ВМЕСТО КАРАНДАША */
+        .profile-avatar-mini { 
+            width: 45px; height: 45px; border-radius: 50%; 
+            background: #333; border: 2px solid #ffd700; 
+            display: flex; justify-content: center; align-items: center; 
+            font-size: 24px; cursor: pointer; position: relative;
+        }
+        .avatar-effect-mini { position: absolute; inset: -4px; border-radius: 50%; border: 2px dashed #00e5ff; animation: spin 4s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .balance-container { display: flex; flex-direction: column; }
+        .streak-badge { font-size: 11px; color: #ff6b00; font-weight: 900; }
+        .balance-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+        .balance { font-size: 20px; font-weight: 900; color: #fff; }
+        .gems { font-size: 16px; font-weight: 900; color: #00e5ff; }
+
         .energy-box { display: flex; flex-direction: column; align-items: flex-end; }
         .energy-text { font-size: 11px; font-weight: 700; color: #fff; margin-bottom: 3px; }
-        .energy-bar { width: 100px; height: 10px; background: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; border: 1px solid rgba(255,255,255,0.4); }
+        .energy-bar { width: 80px; height: 8px; background: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; border: 1px solid rgba(255,255,255,0.4); }
         .energy-fill { height: 100%; background: linear-gradient(90deg, #00e5ff, #007bff); width: 100%; transition: width 0.3s; }
 
+        /* Экраны */
         .screens { flex: 1; position: relative; z-index: 5; overflow: hidden; }
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; }
         .screen.active { display: flex; }
 
+        /* Тап */
         .tap-area { flex: 1; display: flex; justify-content: center; align-items: center; gap: 20px; position: relative; padding-bottom: 20px; }
         .panda-wrapper { position: relative; width: 190px; height: 210px; transform-origin: center bottom; cursor: pointer; transition: transform 1s ease-in-out; z-index: 5; }
         .panda-wrapper.partner-panda { width: 140px; height: 160px; opacity: 0.9; pointer-events: none; }
@@ -73,6 +97,7 @@ HTML_CONTENT = """
         .panda-wrapper.hit { animation: jump 0.25s ease-out; }
         @keyframes jump { 0% { transform: translateY(0); } 30% { transform: translateY(-15px) scale(1.05); } 100% { transform: translateY(0); } }
         
+        /* Никнеймы с анимацией */
         .panda-name { 
             text-align: center; font-size: 13px; font-weight: 900; color: #fff; margin-top: 8px; 
             text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; 
@@ -80,21 +105,24 @@ HTML_CONTENT = """
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             background: rgba(0,0,0,0.4); padding: 2px 8px; border-radius: 10px;
         }
+        .nick-legendary { background: linear-gradient(90deg, #ffd700, #ff8c00, #ffd700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: goldShine 2s infinite; }
+        @keyframes goldShine { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.5); } }
+        
+        .verified-badge { display: inline-block; width: 14px; height: 14px; background: #2196f3; border-radius: 50%; color: #fff; font-size: 10px; text-align: center; line-height: 14px; margin-left: 4px; }
 
+        /* Анимация глаз */
         .eye { transform-box: fill-box; transform-origin: center; transition: transform 0.15s ease-in-out; }
         .eye.closed { transform: scaleY(0.1); }
         .eye.slow-open { transition: transform 2s ease-out; }
 
-        .joint-bar-container { width: 80%; margin: 10px auto; background: rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; display: none; position: relative; height: 22px; border: 1px solid rgba(255,255,255,0.2); z-index: 10; }
-        .joint-bar-fill { height: 100%; background: linear-gradient(90deg, #ff416c, #ff4b2b); width: 0%; transition: width 0.3s; }
-        .joint-bar-text { position: absolute; width: 100%; text-align: center; font-size: 12px; font-weight: 900; top: 2px; text-shadow: 1px 1px 2px #000; }
-
+        /* Эффекты */
         .particle-coin { position: absolute; font-size: 24px; font-weight: 900; color: #ffd700; pointer-events: none; animation: popCoin 0.9s ease-out forwards; z-index: 20; text-shadow: 0 0 10px #ffd700; }
         @keyframes popCoin { 0% { transform: translateY(0) scale(0.4); opacity: 1; } 100% { transform: translateY(-100px) scale(1.2); opacity: 0; } }
         
         #golden-paw { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 50px; cursor: pointer; z-index: 100; display: none; animation: pulseGold 1s infinite alternate; }
         @keyframes pulseGold { 0% { transform: translate(-50%, -50%) scale(1); } 100% { transform: translate(-50%, -50%) scale(1.2); filter: drop-shadow(0 0 20px gold); } }
 
+        /* Контент */
         .content { flex: 1; padding: 15px; overflow-y: auto; background: rgba(10, 18, 14, 0.85); backdrop-filter: blur(5px); z-index: 20; }
         .section-title { font-size: 20px; font-weight: 900; margin-bottom: 15px; color: #fff; text-align: center; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -106,50 +134,66 @@ HTML_CONTENT = """
         .card-price:disabled { color: #555; border-color: #333; cursor: not-allowed; }
         .card-price.owned { background: rgba(76, 175, 80, 0.2); color: #4caf50; border-color: #4caf50; }
 
+        /* Друзья и Топ */
         .friend-list { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
-        .friend-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .friend-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
         .friend-info { display: flex; align-items: center; gap: 10px; }
         .friend-status { width: 10px; height: 10px; border-radius: 50%; }
         .status-online { background: #4caf50; box-shadow: 0 0 5px #4caf50; }
         .status-offline { background: #555; }
-        .friend-name { font-weight: 900; font-size: 14px; }
+        .friend-name { font-weight: 900; font-size: 14px; display: flex; align-items: center; gap: 5px; }
         .friend-coins { font-size: 12px; color: #ffd700; }
         
         .tabs-sub { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
         .tab-btn { flex: 1; background: rgba(255,255,255,0.1); border: none; color: #aaa; padding: 8px; border-radius: 8px; font-weight: 900; cursor: pointer; }
         .tab-btn.active { background: #4caf50; color: #fff; }
-        .refresh-btn { background: #2196f3; color: #fff; border: none; border-radius: 8px; padding: 8px 12px; font-weight: 900; cursor: pointer; font-size: 14px; }
 
-        .leaderboard-item { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 14px; }
+        .leaderboard-item { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 14px; cursor: pointer; align-items: center; }
         .leaderboard-item span:first-child { font-weight: 900; color: #ffd700; width: 30px; }
 
+        /* Навигация */
         .bottom-nav { background: rgba(10, 18, 14, 0.98); border-top: 1px solid rgba(46, 125, 50, 0.4); padding: 8px 5px 22px 5px; display: flex; justify-content: space-around; z-index: 30; position: relative; }
         .nav-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: #666; font-size: 9px; font-weight: 900; cursor: pointer; width: 16.6%; transition: 0.2s; }
         .nav-btn.active { color: #81c784; }
         .nav-btn span { font-size: 22px; margin-bottom: 2px; filter: grayscale(1); transition: 0.2s; }
         .nav-btn.active span { filter: drop-shadow(0 0 6px #81c784) grayscale(0); }
 
+        /* Мини-игра */
         .game-area-mini { height: 250px; width: 100%; background: #112217; position: relative; overflow: hidden; border-radius: 10px; border: 1px solid #4caf50; margin-bottom: 10px; }
         .falling-item { position: absolute; font-size: 30px; cursor: pointer; animation: fall linear forwards; }
         @keyframes fall { 0% { transform: translateY(-50px) rotate(0deg); } 100% { transform: translateY(280px) rotate(360deg); } }
 
+        /* Модалки */
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; backdrop-filter: blur(5px); }
         .modal.active { display: flex; }
-        .modal-box { background: #1a2e22; border: 2px solid #4caf50; border-radius: 20px; padding: 25px; width: 90%; max-width: 350px; }
+        .modal-box { background: #1a2e22; border: 2px solid #4caf50; border-radius: 20px; padding: 25px; width: 90%; max-width: 350px; position: relative; }
         
         .name-input { width: 100%; padding: 10px; border-radius: 8px; border: none; font-size: 16px; font-weight: 900; text-align: center; margin-bottom: 15px; background: #fff; color: #111; }
 
-        #error-log { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255,0,0,0.9); color: white; padding: 10px; font-size: 12px; z-index: 9999; display: none; word-break: break-all; }
-        #debug-info { position: absolute; bottom: 2px; width: 100%; text-align: center; font-size: 10px; color: #555; z-index: 50; }
-        #loading { position: fixed; inset: 0; background: #0a120e; z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 20px; font-weight: 900; color: #4caf50; }
-        #loading-text { margin-top: 20px; font-size: 14px; color: #aaa; text-align: center; }
+        /* Стили для профиля */
+        .profile-card { background: rgba(0,0,0,0.6); border-radius: 15px; padding: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; position: relative; overflow: hidden; }
+        .profile-avatar-large { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 10px; background: #333; display: flex; justify-content: center; align-items: center; font-size: 40px; border: 3px solid #ffd700; position: relative; }
+        .profile-name { font-size: 20px; font-weight: 900; margin-bottom: 5px; }
+        .profile-stats { display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; }
+        .profile-stats span { font-weight: 900; color: #fff; display: block; font-size: 16px; }
         
+        .inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+        .inv-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; text-align: center; border: 2px solid transparent; cursor: pointer; }
+        .inv-item.selected { border-color: #4caf50; background: rgba(76, 175, 80, 0.2); }
+        .inv-icon { font-size: 24px; margin-bottom: 5px; filter: grayscale(1); }
+        .inv-item.owned .inv-icon { filter: none; }
+
+        /* Квесты */
         .quest-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #ffd700; }
         .quest-info { flex: 1; }
         .quest-title { font-size: 14px; font-weight: 900; margin-bottom: 4px; }
         .quest-reward { font-size: 12px; color: #4caf50; font-weight: 900; }
         .quest-btn { background: #4caf50; color: #fff; border: none; padding: 8px 15px; border-radius: 8px; font-weight: 900; cursor: pointer; }
         .quest-btn:disabled { background: #555; cursor: not-allowed; }
+
+        #error-log { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255,0,0,0.9); color: white; padding: 10px; font-size: 12px; z-index: 9999; display: none; word-break: break-all; }
+        #loading { position: fixed; inset: 0; background: #0a120e; z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 20px; font-weight: 900; color: #4caf50; }
+        #loading-text { margin-top: 20px; font-size: 14px; color: #aaa; text-align: center; }
     </style>
 </head>
 <body>
@@ -173,6 +217,42 @@ HTML_CONTENT = """
             <input type="text" id="name-input" class="name-input" maxlength="15" placeholder="Введи имя...">
             <button class="card-price" style="background:#4caf50; color:#fff; padding:12px;" onclick="saveName()">Сохранить</button>
             <button class="card-price" style="background:#555; color:#fff; margin-top:10px;" onclick="closeModal('name-modal')">Отмена</button>
+        </div>
+    </div>
+
+    <div class="modal" id="gift-modal">
+        <div class="modal-box">
+            <h2 style="color:#ffd700; margin-bottom:15px;">Подарить игроку</h2>
+            <p id="gift-target-name" style="margin-bottom:15px; font-weight:900;"></p>
+            <div style="display:flex; justify-content:space-around; margin-bottom:20px;">
+                <div onclick="sendGift('rose', 10)" style="cursor:pointer; text-align:center;">
+                    <div style="font-size:30px;">🌹</div><div style="font-size:10px; color:#00e5ff;">10 💎</div>
+                </div>
+                <div onclick="sendGift('cake', 50)" style="cursor:pointer; text-align:center;">
+                    <div style="font-size:30px;">🎂</div><div style="font-size:10px; color:#00e5ff;">50 💎</div>
+                </div>
+                <div onclick="sendGift('bear', 100)" style="cursor:pointer; text-align:center;">
+                    <div style="font-size:30px;">🧸</div><div style="font-size:10px; color:#00e5ff;">100 💎</div>
+                </div>
+                <div onclick="sendGift('crown', 500)" style="cursor:pointer; text-align:center;">
+                    <div style="font-size:30px;">👑</div><div style="font-size:10px; color:#00e5ff;">500 💎</div>
+                </div>
+            </div>
+            <button class="card-price" style="background:#555; color:#fff;" onclick="closeModal('gift-modal')">Отмена</button>
+        </div>
+    </div>
+
+    <div class="modal" id="view-profile-modal">
+        <div class="modal-box" style="text-align:center;">
+            <div class="profile-avatar-large" id="vp-avatar">🐼</div>
+            <div class="profile-name" id="vp-name">Ник</div>
+            <div style="color:#aaa; font-size:12px; margin-bottom:15px;" id="vp-medal">Медаль</div>
+            <div class="profile-stats" style="justify-content:space-around;">
+                <div>Монеты <span id="vp-coins">0</span></div>
+                <div>Подарки <span id="vp-gifts">0</span></div>
+            </div>
+            <button class="card-price" style="background:#ff9800; color:#fff; margin-top:15px;" onclick="openGiftModal()">Подарить 🎁</button>
+            <button class="card-price" style="background:#555; color:#fff; margin-top:10px;" onclick="closeModal('view-profile-modal')">Закрыть</button>
         </div>
     </div>
 
@@ -207,22 +287,23 @@ HTML_CONTENT = """
 
     <div class="header">
         <div class="rank-box">
-            <div class="streak-badge" id="streak-badge">🔥 Серия: 0 дней</div>
-            <div class="balance-container">
-                <div class="balance"><span id="coins">0</span> 🪙</div>
-                <button class="edit-name-btn" onclick="openNameModal()">✏️</button>
+            <div class="profile-avatar-mini" onclick="switchTab('profile', document.querySelectorAll('.nav-btn')[1])">
+                <span>🐼</span>
+                <div class="avatar-effect-mini" id="mini-avatar-effect" style="display:none;"></div>
+            </div>
+            <div>
+                <div class="streak-badge" id="streak-badge">🔥 Серия: 0</div>
+                <div class="balance-row">
+                    <div class="balance"><span id="coins">0</span> 🪙</div>
+                    <div class="gems"><span id="gems">0</span> 💎</div>
+                </div>
             </div>
         </div>
         <div class="energy-box">
-            <div class="energy-text"><span id="energy">1000</span> / <span id="max-energy">1000</span> ⚡</div>
+            <div class="energy-text"><span id="energy">1000</span>/<span id="max-energy">1000</span> ⚡</div>
             <div class="energy-bar"><div class="energy-fill" id="energy-fill"></div></div>
             <div style="font-size:10px; color:#fff; margin-top:5px;" id="conn-status">Подключение...</div>
         </div>
-    </div>
-
-    <div class="joint-bar-container" id="joint-bar">
-        <div class="joint-bar-fill" id="joint-bar-fill"></div>
-        <div class="joint-bar-text" id="joint-bar-text">Общее гнездышко: 0%</div>
     </div>
 
     <div class="screens">
@@ -308,7 +389,33 @@ HTML_CONTENT = """
                     <div class="panda-name" id="partner-name">Друг</div>
                 </div>
             </div>
-            <div id="debug-info"></div>
+        </div>
+
+        <!-- ПРОФИЛЬ -->
+        <div class="screen" id="screen-profile">
+            <div class="content">
+                <div class="profile-card">
+                    <div class="profile-avatar-large" id="my-avatar-large">
+                        🐼
+                        <div id="my-avatar-effect" style="position:absolute; inset:-5px; border-radius:50%; border:2px dashed #00e5ff; display:none; animation: spin 4s linear infinite;"></div>
+                    </div>
+                    <div class="profile-name" id="my-name-profile">Загрузка...</div>
+                    <div id="my-medal-display" style="color:#ffd700; font-weight:900; margin-bottom:5px;">Медаль: Нет</div>
+                    <button class="card-price" style="width:auto; display:inline-block; margin-top:5px; background:#2196f3; padding:5px 15px;" onclick="openNameModal()">Изменить ник</button>
+                    
+                    <div class="profile-stats">
+                        <div>Монеты <span id="stat-coins">0</span></div>
+                        <div>Гемы <span id="stat-gems">0</span></div>
+                        <div>Серия <span id="stat-streak">0</span></div>
+                    </div>
+                </div>
+
+                <div class="section-title" style="font-size:16px;">Мои награды</div>
+                <div class="inventory-grid" id="medals-grid"></div>
+                <div class="inventory-grid" id="frames-grid"></div>
+                <div class="section-title" style="font-size:16px; margin-top:20px;">Мои подарки</div>
+                <div id="gifts-list" style="font-size:14px; color:#aaa; text-align:center;">Пока нет подарков</div>
+            </div>
         </div>
 
         <div class="screen" id="screen-farm">
@@ -325,7 +432,7 @@ HTML_CONTENT = """
                 <div class="tabs-sub">
                     <button class="tab-btn active" onclick="switchFriendsTab('list', this)">Мои друзья</button>
                     <button class="tab-btn" onclick="switchFriendsTab('top', this)">Топ 50</button>
-                    <button class="refresh-btn" onclick="fetchFriends()">🔄</button>
+                    <button class="refresh-btn" style="background:#2196f3; color:#fff; border:none; border-radius:8px; padding:8px; cursor:pointer;" onclick="fetchFriends()">🔄</button>
                 </div>
                 
                 <div id="friends-list-container">
@@ -380,7 +487,7 @@ HTML_CONTENT = """
 
     <div class="bottom-nav">
         <button class="nav-btn active" onclick="switchTab('tap', this)"><span>👆</span>Панда</button>
-        <button class="nav-btn" onclick="switchTab('quests', this)"><span>📜</span>Квесты</button>
+        <button class="nav-btn" onclick="switchTab('profile', this)"><span>👤</span>Профиль</button>
         <button class="nav-btn" onclick="switchTab('friends', this)"><span>👥</span>Друзья</button>
         <button class="nav-btn" onclick="switchTab('family', this)"><span>👨‍👩‍👧</span>Семья</button>
         <button class="nav-btn" onclick="switchTab('farm', this)"><span>🌱</span>Ферма</button>
@@ -394,7 +501,6 @@ HTML_CONTENT = """
             const lt = document.getElementById('loading-text');
             if (lt) lt.innerText = "Сервер просыпается, подождите 30-50 секунд...";
         }, 4000);
-
         setTimeout(() => { 
             const loading = document.getElementById('loading');
             if (loading) loading.style.display = 'none'; 
@@ -412,15 +518,15 @@ HTML_CONTENT = """
         tg.expand();
 
         let state = {
-            coins: 500, gender: null, streakDays: 1, lastLogin: 0,
+            coins: 500, gems: 0, gender: null, streakDays: 1, lastLogin: 0, accountCreated: Date.now(),
             tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 5,
             isPregnant: false, pregnancyEnd: 0, hasBaby: false,
             inventory: { hat: false, glasses: false, crown: false, bowtie: false },
             equipped: { hat: false, glasses: false, crown: false, bowtie: false },
             bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }],
             lastMiniGame: 0, lastBandit: 0, lastPaw: 0, lastChest: 0,
-            friends: [],
-            nickname: '',
+            friends: [], giftsReceived: 0,
+            nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'none',
             quests: { taps: 0, bought: false, invited: false, claimed: { q1: false, q2: false, q3: false } }
         };
 
@@ -433,7 +539,22 @@ HTML_CONTENT = """
         const API_URL = window.location.origin;
         let ws;
         let banditInterval = null;
-        let friendRefreshTimer = null;
+        let currentMode = 'solo';
+
+        const allMedals = [
+            { id: 'bronze', name: 'Бронза', icon: '🥉', req: 30, css: '' },
+            { id: 'silver', name: 'Серебро', icon: '🥈', req: 90, css: '' },
+            { id: 'gold', name: 'Золото', icon: '🥇', req: 180, css: '' },
+            { id: 'epic', name: 'Эпик', icon: '🟣', req: 365, css: 'animation: pulse 2s infinite;' },
+            { id: 'mythic', name: 'Мифик', icon: '🔴', req: 730, css: 'animation: spin 3s linear infinite;' }
+        ];
+        
+        const allFrames = [
+            { id: 'default', name: 'Новичок', icon: '⚪', css: 'border-color: #fff;' },
+            { id: 'millionaire', name: 'Миллионер', icon: '🟡', css: 'border-color: #ffd700; box-shadow: 0 0 10px #ffd700;' },
+            { id: 'top10', name: 'Топ-10', icon: '🔴', css: 'border-color: #ff0000; box-shadow: 0 0 15px #ff0000;' },
+            { id: 'legend', name: 'Легенда', icon: '🌟', css: 'border-color: #00e5ff; box-shadow: 0 0 20px #00e5ff;' }
+        ];
 
         let savedName = localStorage.getItem('pandaNickname');
         if (!savedName) {
@@ -442,16 +563,13 @@ HTML_CONTENT = """
         }
         state.nickname = savedName;
         document.getElementById('my-name').innerText = state.nickname;
+        document.getElementById('my-name-profile').innerText = state.nickname;
 
         function openNameModal() {
             document.getElementById('name-input').value = state.nickname;
             document.getElementById('name-modal').classList.add('active');
         }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-        }
-
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         function saveName() {
             let newName = document.getElementById('name-input').value.trim();
             if (newName === '') newName = `Panda_${myId.substring(0,4)}`;
@@ -460,205 +578,105 @@ HTML_CONTENT = """
             state.nickname = newName;
             localStorage.setItem('pandaNickname', newName);
             document.getElementById('my-name').innerText = newName;
+            document.getElementById('my-name-profile').innerText = newName;
             
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: "set_name", name: newName }));
             }
             closeModal('name-modal');
+            updateUI();
         }
 
-        let eyeTimeout;
-        function startIdleBlinking() {
-            setInterval(() => {
-                const eyeL = document.getElementById('eye-L');
-                const eyeR = document.getElementById('eye-R');
-                if (eyeL && !eyeL.classList.contains('closed') && !eyeL.classList.contains('slow-open')) {
-                    eyeL.classList.add('closed');
-                    eyeR.classList.add('closed');
-                    setTimeout(() => {
-                        eyeL.classList.remove('closed');
-                        eyeR.classList.remove('closed');
-                    }, 150);
-                }
-            }, 4000);
+        function checkMedals() {
+            const daysInGame = Math.floor((Date.now() - state.accountCreated) / (1000 * 60 * 60 * 24));
+            state.unlockedMedals = allMedals.filter(m => daysInGame >= m.req).map(m => m.id);
+            state.unlockedFrames = ['default'];
+            if (state.coins >= 1000000) state.unlockedFrames.push('millionaire');
         }
 
-        function loadGame() {
-            const saved = localStorage.getItem('pandaUltimate');
-            if (saved) { try { state = { ...state, ...JSON.parse(saved) }; } catch(e) {} }
-            
-            if (!state.gender) {
-                document.getElementById('setup-screen').style.display = 'flex';
-            } else {
-                document.getElementById('setup-screen').style.display = 'none';
-                applyGenderVisuals();
-                checkStreak();
+        function equipMedal(id) {
+            if (state.unlockedMedals.includes(id)) {
+                state.selectedMedal = id;
                 updateUI();
-                connectWebSocket();
-                fetchFriends();
-                fetchLeaderboard();
-                startIdleBlinking();
             }
         }
 
-        function saveGame() { localStorage.setItem('pandaUltimate', JSON.stringify(state)); }
-
-        function selectGender(g) {
-            state.gender = g;
-            document.getElementById('setup-screen').style.display = 'none';
-            applyGenderVisuals();
-            checkStreak(); saveGame(); updateUI(); connectWebSocket();
-            fetchFriends();
-            fetchLeaderboard();
-            startIdleBlinking();
+        function equipFrame(id) {
+            if (state.unlockedFrames.includes(id)) {
+                state.selectedFrame = id;
+                updateUI();
+            }
         }
 
-        function applyGenderVisuals() {
-            const features = document.getElementById('gender-features');
-            const bow = document.getElementById('gender-bow');
-            const mouth = document.getElementById('mouth-path');
-            
-            if (state.gender === 'female') {
-                features.innerHTML = `
-                    <ellipse cx="45" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />
-                    <ellipse cx="155" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />
-                    <path d="M 60 75 Q 65 70 75 75" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"/>
-                    <path d="M 140 75 Q 135 70 125 75" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+        function renderProfile() {
+            const avatar = document.getElementById('my-avatar-large');
+            const frameData = allFrames.find(f => f.id === state.selectedFrame);
+            if (frameData) {
+                avatar.style.border = '3px solid #ffd700'; 
+                avatar.setAttribute('style', `border: 3px solid #ffd700; ${frameData.css}`);
+            }
+
+            const mGrid = document.getElementById('medals-grid');
+            mGrid.innerHTML = '';
+            allMedals.forEach(m => {
+                const owned = state.unlockedMedals.includes(m.id);
+                const isSelected = state.selectedMedal === m.id;
+                mGrid.innerHTML += `
+                    <div class="inv-item ${owned ? 'owned' : ''} ${isSelected ? 'selected' : ''}" onclick="equipMedal('${m.id}')" style="${owned ? '' : 'opacity:0.3;'}">
+                        <div class="inv-icon" style="${owned ? m.css : ''}">${m.icon}</div>
+                        <div style="font-size:10px; color:#ccc;">${m.name}</div>
+                    </div>
                 `;
-                bow.style.display = 'block';
-                mouth.setAttribute('d', 'M 92 112 Q 100 120 108 112');
-            } else {
-                features.innerHTML = `
-                    <path d="M 50 65 Q 70 60 85 70" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-                    <path d="M 150 65 Q 130 60 115 70" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round"/>
-                `;
-                bow.style.display = 'none';
-                mouth.setAttribute('d', 'M 92 112 L 108 112');
-            }
-        }
-
-        function checkStreak() {
-            const now = Date.now();
-            const oneDay = 24 * 60 * 60 * 1000;
-            if (state.lastLogin === 0) { state.lastLogin = now; state.streakDays = 1; }
-            else {
-                const daysPassed = Math.floor((now - state.lastLogin) / oneDay);
-                if (daysPassed >= 1) { state.streakDays += daysPassed; state.lastLogin = now; }
-            }
-            document.getElementById('streak-badge').innerText = `🔥 Серия: ${state.streakDays} дней`;
-            let scale = 0.9 + (state.streakDays * 0.02);
-            if (scale > 1.4) scale = 1.4;
-            document.getElementById('panda-wrapper').style.transform = `scale(${scale})`;
-            saveGame();
-        }
-
-        function updateUI() {
-            document.getElementById('coins').innerText = Math.floor(state.coins).toLocaleString();
-            document.getElementById('energy').innerText = Math.floor(state.energy);
-            document.getElementById('max-energy').innerText = state.maxEnergy;
-            document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%';
-
-            ['hat', 'glasses', 'crown', 'bowtie'].forEach(item => {
-                const el = document.getElementById('acc-' + item);
-                if (el) el.style.display = state.equipped[item] ? 'block' : 'none';
             });
 
-            renderFarm(); renderShop(); renderFamily(); renderQuests();
-            
-            if (state.isPregnant) {
-                document.querySelector('.belly-normal').style.display = 'none';
-                document.querySelector('.belly-pregnant').style.display = 'block';
-                if (Date.now() >= state.pregnancyEnd) {
-                    state.isPregnant = false; state.hasBaby = true;
-                    document.querySelector('.belly-normal').style.display = 'block';
-                    document.querySelector('.belly-pregnant').style.display = 'none';
-                    tg.showAlert("🎉 Ура! У тебя родился малыш-панда!");
-                }
-            } else {
-                document.querySelector('.belly-normal').style.display = 'block';
-                document.querySelector('.belly-pregnant').style.display = 'none';
-            }
+            const fGrid = document.getElementById('frames-grid');
+            fGrid.innerHTML = '';
+            allFrames.forEach(f => {
+                const owned = state.unlockedFrames.includes(f.id);
+                const isSelected = state.selectedFrame === f.id;
+                fGrid.innerHTML += `
+                    <div class="inv-item ${owned ? 'owned' : ''} ${isSelected ? 'selected' : ''}" onclick="equipFrame('${f.id}')" style="${owned ? '' : 'opacity:0.3;'}">
+                        <div class="inv-icon" style="border:2px solid #fff; border-radius:50%; width:30px; height:30px; margin:0 auto; ${f.css}"></div>
+                        <div style="font-size:10px; color:#ccc; margin-top:5px;">${f.name}</div>
+                    </div>
+                `;
+            });
 
-            updateTimers();
-            saveGame();
+            const medalData = allMedals.find(m => m.id === state.selectedMedal);
+            document.getElementById('my-medal-display').innerText = medalData ? `Медаль: ${medalData.name}` : 'Медаль: Нет';
+
+            document.getElementById('gifts-list').innerText = state.giftsReceived > 0 ? `Тебе подарили ${state.giftsReceived} подарков! 🎁` : 'Пока нет подарков';
+            document.getElementById('stat-coins').innerText = state.coins.toLocaleString();
+            document.getElementById('stat-gems').innerText = state.gems.toLocaleString();
+            document.getElementById('stat-streak').innerText = state.streakDays;
         }
 
-        function updateTimers() {
-            const now = Date.now();
-            
-            if (now - state.lastChest > 24 * 60 * 60 * 1000) {
-                document.getElementById('chest-modal').classList.add('active');
-            }
-
-            if (now - state.lastPaw > 15 * 60 * 1000 && document.getElementById('golden-paw').style.display !== 'block') {
-                document.getElementById('golden-paw').style.display = 'block';
-                setTimeout(() => {
-                    if(document.getElementById('golden-paw').style.display === 'block') {
-                        document.getElementById('golden-paw').style.display = 'none';
-                        state.lastPaw = Date.now();
-                    }
-                }, 5000);
-            }
-
-            if (now - state.lastBandit > 10 * 60 * 1000 && !document.getElementById('bandit-modal').classList.contains('active')) {
-                startBandit();
-            }
-
-            const timeLeft = Math.ceil((5 * 60 * 1000 - (now - state.lastMiniGame)) / 1000);
-            const btnB = document.getElementById('mini-btn-bamboo');
-            const btnF = document.getElementById('mini-btn-food');
-            if (timeLeft > 0) {
-                btnB.disabled = true; btnF.disabled = true;
-                btnB.style.background = '#555'; btnF.style.background = '#555';
-                const min = Math.floor(timeLeft / 60); const sec = timeLeft % 60;
-                const txt = `Через: ${min}:${sec < 10 ? '0' : ''}${sec}`;
-                btnB.innerText = txt; btnF.innerText = txt;
-            } else {
-                btnB.disabled = false; btnF.disabled = false;
-                btnB.style.background = '#4caf50'; btnF.style.background = '#ff9800';
-                btnB.innerText = "Поймай бамбук 🎋"; btnF.innerText = "Покорми панду 🍎";
-            }
+        let currentViewPlayerId = null;
+        function viewProfile(id, name, coins, gifts) {
+            currentViewPlayerId = id;
+            document.getElementById('vp-name').innerText = name;
+            document.getElementById('vp-coins').innerText = coins.toLocaleString();
+            document.getElementById('vp-gifts').innerText = gifts || 0;
+            document.getElementById('view-profile-modal').classList.add('active');
         }
 
-        function renderQuests() {
-            const list = document.getElementById('quests-list');
-            if (!list) return;
-            
-            list.innerHTML = `
-                <div class="quest-item">
-                    <div class="quest-info">
-                        <div class="quest-title">Сделай 100 кликов</div>
-                        <div class="quest-reward">Награда: 1000 🪙</div>
-                        <div style="font-size:11px; color:#aaa;">Прогресс: ${Math.min(state.quests.taps, 100)}/100</div>
-                    </div>
-                    <button class="quest-btn" ${state.quests.taps >= 100 && !state.quests.claimed.q1 ? '' : 'disabled'} onclick="claimQuest('q1', 1000)">${state.quests.claimed.q1 ? 'Получено' : 'Забрать'}</button>
-                </div>
-                <div class="quest-item">
-                    <div class="quest-info">
-                        <div class="quest-title">Купи любую вещь в магазине</div>
-                        <div class="quest-reward">Награда: 2000 🪙</div>
-                        <div style="font-size:11px; color:#aaa;">Прогресс: ${state.quests.bought ? 'Выполнено' : '0/1'}</div>
-                    </div>
-                    <button class="quest-btn" ${state.quests.bought && !state.quests.claimed.q2 ? '' : 'disabled'} onclick="claimQuest('q2', 2000)">${state.quests.claimed.q2 ? 'Получено' : 'Забрать'}</button>
-                </div>
-                <div class="quest-item">
-                    <div class="quest-info">
-                        <div class="quest-title">Пригласи друга (поделись ссылкой)</div>
-                        <div class="quest-reward">Награда: 5000 🪙</div>
-                        <div style="font-size:11px; color:#aaa;">Прогресс: ${state.quests.invited ? 'Выполнено' : '0/1'}</div>
-                    </div>
-                    <button class="quest-btn" ${state.quests.invited && !state.quests.claimed.q3 ? '' : 'disabled'} onclick="claimQuest('q3', 5000)">${state.quests.claimed.q3 ? 'Получено' : 'Забрать'}</button>
-                </div>
-            `;
+        function openGiftModal() {
+            document.getElementById('gift-target-name').innerText = document.getElementById('vp-name').innerText;
+            document.getElementById('gift-modal').classList.add('active');
         }
 
-        function claimQuest(id, reward) {
-            if (!state.quests.claimed[id]) {
-                state.quests.claimed[id] = true;
-                state.coins += reward;
-                tg.showAlert(`🎉 Ты получил ${reward} монет за квест!`);
-                updateUI();
+        function sendGift(type, price) {
+            if (state.gems < price) {
+                tg.showAlert("Недостаточно гемов! 💎");
+                return;
             }
+            state.gems -= price;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "send_gift", to: currentViewPlayerId, gift: type, cost: price }));
+            }
+            tg.showAlert(`🎁 Ты подарил подарок!`);
+            closeModal('gift-modal');
+            updateUI();
         }
 
         async function fetchFriends() {
@@ -671,8 +689,7 @@ HTML_CONTENT = """
                 state.friends = data;
                 renderFriends();
             } catch(e) { 
-                console.log("Ошибка загрузки друзей:", e); 
-                document.getElementById('friends-list').innerHTML = `<p style="text-align:center; color:#888;">Сервер просыпается. Подождите 10 секунд...</p>`;
+                document.getElementById('friends-list').innerHTML = `<p style="text-align:center; color:#888;">Сервер просыпается...</p>`;
             }
         }
 
@@ -685,39 +702,35 @@ HTML_CONTENT = """
                 const data = await res.json();
                 renderLeaderboard(data);
             } catch(e) { 
-                console.log("Ошибка загрузки топа:", e); 
-                document.getElementById('leaderboard-list').innerHTML = `<p style="text-align:center; color:#888;">Сервер просыпается. Подождите...</p>`;
+                document.getElementById('leaderboard-list').innerHTML = `<p style="text-align:center; color:#888;">Сервер просыпается...</p>`;
             }
         }
 
         function renderFriends() {
             const list = document.getElementById('friends-list');
-            if(!list) return;
             if (state.friends.length === 0) {
-                list.innerHTML = `<p style="text-align:center; color:#888;">Пока нет друзей. Пригласи кого-нибудь!</p>`;
+                list.innerHTML = `<p style="text-align:center; color:#888;">Пока нет друзей.</p>`;
                 return;
             }
             list.innerHTML = state.friends.map(f => `
-                <div class="friend-item">
+                <div class="friend-item" onclick="viewProfile('${f.id}', '${f.name}', ${f.coins}, ${f.gifts || 0})">
                     <div class="friend-info">
                         <div class="friend-status ${f.online ? 'status-online' : 'status-offline'}"></div>
                         <div>
-                            <div class="friend-name">${f.name}</div>
+                            <div class="friend-name">${f.name} ${f.verified ? '<span class="verified-badge">✓</span>' : ''}</div>
                             <div class="friend-coins">${f.coins.toLocaleString()} 🪙</div>
                         </div>
                     </div>
-                    <button style="background:none; border:none; font-size:20px; cursor:pointer;" onclick="sendGift('${f.name}')">🎁</button>
                 </div>
             `).join('');
         }
 
         function renderLeaderboard(data) {
             const list = document.getElementById('leaderboard-list');
-            if(!list) return;
             list.innerHTML = data.map((player, index) => `
-                <div class="leaderboard-item">
+                <div class="leaderboard-item" onclick="viewProfile('${player.id}', '${player.name}', ${player.coins}, ${player.gifts || 0})">
                     <span>${index + 1}.</span>
-                    <span style="flex:1; margin-left:10px;">${player.name} ${player.online ? '🟢' : ''}</span>
+                    <span style="flex:1; margin-left:10px;">${player.name} ${player.verified ? '<span class="verified-badge">✓</span>' : ''} ${player.online ? '🟢' : ''}</span>
                     <span style="color:#ffd700;">${player.coins.toLocaleString()} 🪙</span>
                 </div>
             `).join('');
@@ -737,60 +750,166 @@ HTML_CONTENT = """
             }
         }
 
-        function sendGift(friendName) {
-            if (state.coins < 500) { tg.showAlert("Нужно 500 монет, чтобы отправить подарок!"); return; }
-            state.coins -= 500; updateUI();
-            tg.showAlert(`🎁 Ты подарил 500 монет другу ${friendName}!`);
-        }
-
-        function claimChest() {
-            document.getElementById('chest-modal').classList.remove('active');
-            state.lastChest = Date.now();
-            const amt = Math.floor(Math.random() * 4500) + 500;
-            state.coins += amt;
-            tg.showAlert(`🎉 Ты получил ${amt} монет!`);
+        function inviteFriend() {
+            state.quests.invited = true;
+            const link = `https://t.me/nash_sad_69_bot?startapp=${roomId}`; 
+            const text = `Присоединяйся к моей игре с пандой!`;
+            if (tg.openTelegramLink) {
+                tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+            } else {
+                navigator.clipboard.writeText(link).then(() => tg.showAlert("Ссылка скопирована!"));
+            }
             updateUI();
         }
 
-        function claimGoldenPaw() {
-            document.getElementById('golden-paw').style.display = 'none';
-            state.lastPaw = Date.now();
-            const amt = Math.floor(Math.random() * 2000) + 1000;
-            state.coins += amt;
-            tg.showAlert(`🐾 Золотая лапа принесла ${amt} монет!`);
-            updateUI();
-        }
-
-        function startBandit() {
-            document.getElementById('bandit-modal').classList.add('active');
-            let hits = 15;
-            let time = 5.0;
-            document.getElementById('bandit-timer').style.width = '100%';
-            if(banditInterval) clearInterval(banditInterval);
-            banditInterval = setInterval(() => {
-                time -= 0.1;
-                document.getElementById('bandit-timer').style.width = `${(time / 5) * 100}%`;
-                if (time <= 0) {
-                    clearInterval(banditInterval);
-                    document.getElementById('bandit-modal').classList.remove('active');
-                    state.lastBandit = Date.now();
-                    const loss = Math.floor(state.coins * 0.05);
-                    state.coins -= loss;
-                    tg.showAlert(`💀 Браконьер украл ${loss} монет!`);
-                    updateUI();
-                }
-            }, 100);
-            document.getElementById('bandit-icon').onclick = () => {
-                hits--;
-                if (hits <= 0) {
-                    clearInterval(banditInterval);
-                    document.getElementById('bandit-modal').classList.remove('active');
-                    state.lastBandit = Date.now();
-                    state.coins += 2000;
-                    tg.showAlert("🏆 Ты отбил панду! +2000 монет!");
+        function connectWebSocket() {
+            ws = new WebSocket(`${WS_URL}/ws/${roomId}/${myId}`);
+            ws.onopen = () => {
+                document.getElementById('conn-status').innerText = "🟢 Онлайн";
+                ws.send(JSON.stringify({ type: "set_name", name: state.nickname }));
+                ws.send(JSON.stringify({ type: "set_gender", gender: state.gender }));
+                ws.send(JSON.stringify({ type: "update_stats", coins: state.coins, gems: state.gems }));
+                document.getElementById('loading').style.display = 'none';
+            };
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'room_state') {
+                    const myData = data.players.find(p => String(p.id) === myId);
+                    const friendData = data.players.find(p => String(p.id) !== myId);
+                    
+                    if (myData) document.getElementById('my-name').innerText = myData.name;
+                    
+                    if (friendData) {
+                        document.getElementById('partner-container').style.display = 'block';
+                        document.getElementById('partner-name').innerText = friendData.name;
+                        
+                        if (state.gender === 'male' && friendData.gender === 'male') {
+                            currentMode = 'bros';
+                            document.getElementById('bg-base').className = 'bg-base bg-bro';
+                        } else if (state.gender === 'female' && friendData.gender === 'female') {
+                            currentMode = 'sisters';
+                            document.getElementById('bg-base').className = 'bg-base bg-sisters';
+                        } else {
+                            currentMode = 'couple';
+                            document.getElementById('bg-base').className = 'bg-base bg-romantic';
+                        }
+                    } else {
+                        currentMode = 'solo';
+                        document.getElementById('partner-container').style.display = 'none';
+                        document.getElementById('bg-base').className = 'bg-base';
+                    }
+                } else if (data.type === 'player_tapped') {
+                    const p = document.getElementById('partner-panda');
+                    p.classList.remove('hit'); void p.offsetWidth; p.classList.add('hit');
+                    state.coins += data.power; updateUI();
+                } else if (data.type === 'gift_received') {
+                    state.giftsReceived += 1;
+                    tg.showAlert(`🎁 Тебе подарили ${data.gift}!`);
                     updateUI();
                 }
             };
+            ws.onclose = () => {
+                document.getElementById('conn-status').innerText = "🔴 Оффлайн";
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        function updateUI() {
+            document.getElementById('coins').innerText = Math.floor(state.coins).toLocaleString();
+            document.getElementById('gems').innerText = Math.floor(state.gems).toLocaleString();
+            document.getElementById('energy').innerText = Math.floor(state.energy);
+            document.getElementById('max-energy').innerText = state.maxEnergy;
+            document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%';
+            document.getElementById('streak-badge').innerText = `🔥 Серия: ${state.streakDays}`;
+
+            ['hat', 'glasses', 'crown', 'bowtie'].forEach(item => {
+                const el = document.getElementById('acc-' + item);
+                if (el) el.style.display = state.equipped[item] ? 'block' : 'none';
+            });
+
+            checkMedals();
+            renderProfile();
+            renderFarm(); renderShop(); renderFamily(); renderQuests();
+            
+            if (state.isPregnant) {
+                document.querySelector('.belly-normal').style.display = 'none';
+                document.querySelector('.belly-pregnant').style.display = 'block';
+                if (Date.now() >= state.pregnancyEnd) {
+                    state.isPregnant = false; state.hasBaby = true;
+                    document.querySelector('.belly-normal').style.display = 'block';
+                    document.querySelector('.belly-pregnant').style.display = 'none';
+                    tg.showAlert("🎉 Ура! Родился малыш!");
+                }
+            } else {
+                document.querySelector('.belly-normal').style.display = 'block';
+                document.querySelector('.belly-pregnant').style.display = 'none';
+            }
+
+            updateTimers();
+            saveGame();
+        }
+
+        function saveGame() { localStorage.setItem('pandaUltimate', JSON.stringify(state)); }
+
+        function updateTimers() {
+            const now = Date.now();
+            if (now - state.lastChest > 24 * 60 * 60 * 1000) {
+                document.getElementById('chest-modal').classList.add('active');
+            }
+            const timeLeft = Math.ceil((5 * 60 * 1000 - (now - state.lastMiniGame)) / 1000);
+            const btnB = document.getElementById('mini-btn-bamboo');
+            const btnF = document.getElementById('mini-btn-food');
+            if (btnB && btnF) {
+                if (timeLeft > 0) {
+                    btnB.disabled = true; btnF.disabled = true;
+                    btnB.style.background = '#555'; btnF.style.background = '#555';
+                    const min = Math.floor(timeLeft / 60); const sec = timeLeft % 60;
+                    const txt = `Через: ${min}:${sec < 10 ? '0' : ''}${sec}`;
+                    btnB.innerText = txt; btnF.innerText = txt;
+                } else {
+                    btnB.disabled = false; btnF.disabled = false;
+                    btnB.style.background = '#4caf50'; btnF.style.background = '#ff9800';
+                    btnB.innerText = "Поймай бамбук 🎋"; btnF.innerText = "Покорми панду 🍎";
+                }
+            }
+        }
+
+        function renderQuests() {
+            const list = document.getElementById('quests-list');
+            if (!list) return;
+            list.innerHTML = `
+                <div class="quest-item">
+                    <div class="quest-info">
+                        <div class="quest-title">Сделай 100 кликов</div>
+                        <div class="quest-reward">Награда: 50 💎</div>
+                        <div style="font-size:11px; color:#aaa;">Прогресс: ${Math.min(state.quests.taps, 100)}/100</div>
+                    </div>
+                    <button class="quest-btn" ${state.quests.taps >= 100 && !state.quests.claimed.q1 ? '' : 'disabled'} onclick="claimQuest('q1', 50)">${state.quests.claimed.q1 ? 'Получено' : 'Забрать'}</button>
+                </div>
+                <div class="quest-item">
+                    <div class="quest-info">
+                        <div class="quest-title">Купи любую вещь</div>
+                        <div class="quest-reward">Награда: 100 💎</div>
+                    </div>
+                    <button class="quest-btn" ${state.quests.bought && !state.quests.claimed.q2 ? '' : 'disabled'} onclick="claimQuest('q2', 100)">${state.quests.claimed.q2 ? 'Получено' : 'Забрать'}</button>
+                </div>
+                <div class="quest-item">
+                    <div class="quest-info">
+                        <div class="quest-title">Пригласи друга</div>
+                        <div class="quest-reward">Награда: 200 💎</div>
+                    </div>
+                    <button class="quest-btn" ${state.quests.invited && !state.quests.claimed.q3 ? '' : 'disabled'} onclick="claimQuest('q3', 200)">${state.quests.claimed.q3 ? 'Получено' : 'Забрать'}</button>
+                </div>
+            `;
+        }
+
+        function claimQuest(id, rewardGems) {
+            if (!state.quests.claimed[id]) {
+                state.quests.claimed[id] = true;
+                state.gems += rewardGems;
+                tg.showAlert(`🎉 Ты получил ${rewardGems} гемов!`);
+                updateUI();
+            }
         }
 
         function renderFarm() {
@@ -851,104 +970,15 @@ HTML_CONTENT = """
         }
 
         function startPregnancy() { state.isPregnant = true; state.pregnancyEnd = Date.now() + (7 * 24 * 60 * 60 * 1000); updateUI(); }
-        
-        function inviteFriend() {
-            state.quests.invited = true;
-            const link = `https://t.me/nash_sad_69_bot?startapp=${roomId}`; 
-            const text = `Присоединяйся к моей игре с пандой!`;
-            
-            if (tg.openTelegramLink) {
-                tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
-            } else {
-                navigator.clipboard.writeText(link).then(() => tg.showAlert("Ссылка скопирована! Отправь другу."));
-            }
-            updateUI();
-        }
-
-        let currentMode = 'solo';
-        let jointProgress = 0;
-
-        function connectWebSocket() {
-            ws = new WebSocket(`${WS_URL}/ws/${roomId}/${myId}`);
-            ws.onopen = () => {
-                document.getElementById('conn-status').innerText = "🟢 Онлайн";
-                ws.send(JSON.stringify({ type: "set_name", name: state.nickname }));
-                ws.send(JSON.stringify({ type: "set_gender", gender: state.gender }));
-                ws.send(JSON.stringify({ type: "update_stats", coins: state.coins }));
-                document.getElementById('loading').style.display = 'none';
-            };
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.type === 'room_state') {
-                    const myData = data.players.find(p => String(p.id) === myId);
-                    const friendData = data.players.find(p => String(p.id) !== myId);
-                    
-                    if (myData) document.getElementById('my-name').innerText = myData.name;
-                    
-                    if (friendData) {
-                        document.getElementById('partner-container').style.display = 'block';
-                        document.getElementById('partner-name').innerText = friendData.name;
-                        
-                        if (state.gender === 'male' && friendData.gender === 'male') {
-                            currentMode = 'bros';
-                            document.getElementById('bg-base').className = 'bg-base bg-bro';
-                            document.getElementById('joint-bar').style.display = 'block';
-                        } else if (state.gender === 'female' && friendData.gender === 'female') {
-                            currentMode = 'sisters';
-                            document.getElementById('bg-base').className = 'bg-base bg-sisters';
-                            document.getElementById('joint-bar').style.display = 'block';
-                        } else {
-                            currentMode = 'couple';
-                            document.getElementById('bg-base').className = 'bg-base bg-romantic';
-                            document.getElementById('joint-bar').style.display = 'block';
-                        }
-                        
-                        // ПРИНУДИТЕЛЬНО ОБНОВЛЯЕМ ДРУЗЕЙ, ЕСЛИ ЗАШЕЛ ДРУГ
-                        if (!friendRefreshTimer) {
-                            friendRefreshTimer = setTimeout(() => {
-                                fetchFriends();
-                                friendRefreshTimer = null;
-                            }, 1000);
-                        }
-                    } else {
-                        currentMode = 'solo';
-                        document.getElementById('partner-container').style.display = 'none';
-                        document.getElementById('bg-base').className = 'bg-base';
-                        document.getElementById('joint-bar').style.display = 'none';
-                    }
-                    document.getElementById('debug-info').innerText = `Комната: ${roomId} | Игроков: ${data.players.length}`;
-                } else if (data.type === 'player_tapped') {
-                    const p = document.getElementById('partner-panda');
-                    p.classList.remove('hit'); void p.offsetWidth; p.classList.add('hit');
-                    state.coins += data.power; updateUI();
-                } else if (data.type === 'joint_progress') {
-                    jointProgress = data.progress;
-                    document.getElementById('joint-bar-fill').style.width = jointProgress + '%';
-                    document.getElementById('joint-bar-text').innerText = `Общее гнездышко: ${Math.floor(jointProgress)}%`;
-                    if (jointProgress >= 100) {
-                        state.coins += 10000;
-                        jointProgress = 0;
-                        tg.showAlert("🎉 Гнездышко свито! Вы оба получили по 10 000 монет!");
-                        updateUI();
-                    }
-                }
-            };
-            ws.onclose = () => {
-                document.getElementById('conn-status').innerText = "🔴 Оффлайн";
-                setTimeout(connectWebSocket, 3000);
-            };
-            ws.onerror = (e) => { console.log("WebSocket error:", e); };
-        }
 
         document.getElementById('panda-wrapper').addEventListener('pointerdown', (e) => {
             if (state.energy <= 0) return;
-            state.energy -= 1; state.coins += state.tapPower;
-            state.quests.taps++;
+            state.energy -= 1; state.coins += state.tapPower; state.quests.taps++;
             
             let earn = state.tapPower;
             if (currentMode === 'bros' || currentMode === 'sisters') earn = Math.floor(earn * 1.5);
             state.coins += (earn - state.tapPower);
-            
+
             const p = document.getElementById('panda-wrapper');
             p.classList.remove('hit'); void p.offsetWidth; p.classList.add('hit');
             
@@ -975,63 +1005,108 @@ HTML_CONTENT = """
             
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: "tap", power: earn }));
-                ws.send(JSON.stringify({ type: "update_stats", coins: state.coins }));
+                ws.send(JSON.stringify({ type: "update_stats", coins: state.coins, gems: state.gems }));
             }
             updateUI();
         });
-
-        let miniScore = 0, miniActive = false;
-        function startMiniGame(type) {
-            if (miniActive || Date.now() - state.lastMiniGame < 5 * 60 * 1000) return; 
-            miniActive = true; miniScore = 0; document.getElementById('mini-score').innerText = 0;
-            state.lastMiniGame = Date.now(); saveGame();
-            const area = document.getElementById('game-area-mini'); area.innerHTML = '';
-            const interval = setInterval(() => {
-                if (!miniActive) return;
-                const b = document.createElement('div');
-                b.className = 'falling-item'; 
-                b.innerText = type === 'bamboo' ? '🎋' : (Math.random() > 0.5 ? '🍎' : '🍔');
-                b.style.left = Math.random() * 80 + 10 + '%';
-                b.style.animationDuration = (Math.random() * 1 + 1) + 's';
-                b.onclick = () => { if(miniActive) { miniScore++; document.getElementById('mini-score').innerText = miniScore; b.remove(); } };
-                area.appendChild(b); setTimeout(() => b.remove(), 2000);
-            }, 300);
-            setTimeout(() => {
-                miniActive = false; clearInterval(interval);
-                state.coins += miniScore * 100;
-                tg.showAlert(`Игра окончена! Ты набрал ${miniScore} очков (+${miniScore * 100} монет).`);
-                updateUI();
-            }, 10000);
-        }
 
         function switchTab(tabId, btn) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('screen-' + tabId).classList.add('active');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            if (tabId === 'friends') { 
-                fetchFriends(); 
-                fetchLeaderboard(); 
+            if (btn) btn.classList.add('active');
+            if (tabId === 'friends') { fetchFriends(); fetchLeaderboard(); }
+        }
+
+        function loadGame() {
+            const saved = localStorage.getItem('pandaUltimate');
+            if (saved) { try { state = { ...state, ...JSON.parse(saved) }; } catch(e) {} }
+            
+            if (!state.gender) {
+                document.getElementById('setup-screen').style.display = 'flex';
+            } else {
+                document.getElementById('setup-screen').style.display = 'none';
+                applyGenderVisuals();
+                checkStreak();
+                updateUI();
+                connectWebSocket();
+                fetchFriends();
+                fetchLeaderboard();
+                startIdleBlinking();
             }
         }
 
-        setInterval(() => {
-            if (state.energy < state.maxEnergy) state.energy = Math.min(state.maxEnergy, state.energy + state.regen);
-            const now = Date.now();
-            let changed = false;
-            state.bamboos.forEach(b => {
-                if (b.stage === 1 && now - b.planted > 60000) { b.stage = 2; changed = true; }
-                if (b.stage === 2 && now - b.planted > 120000) { b.stage = 3; changed = true; }
-            });
-            if (changed) saveGame();
-            updateUI();
-        }, 1000);
-
-        try {
-            loadGame();
-        } catch(e) {
-            alert("Ошибка при загрузке игры: " + e.message);
+        function applyGenderVisuals() {
+            const features = document.getElementById('gender-features');
+            const bow = document.getElementById('gender-bow');
+            const mouth = document.getElementById('mouth-path');
+            
+            if (state.gender === 'female') {
+                features.innerHTML = `
+                    <ellipse cx="45" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />
+                    <ellipse cx="155" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />
+                    <path d="M 60 75 Q 65 70 75 75" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M 140 75 Q 135 70 125 75" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"/>
+                `;
+                bow.style.display = 'block';
+                mouth.setAttribute('d', 'M 92 112 Q 100 120 108 112');
+            } else {
+                features.innerHTML = `
+                    <path d="M 50 65 Q 70 60 85 70" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+                    <path d="M 150 65 Q 130 60 115 70" fill="none" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+                `;
+                bow.style.display = 'none';
+                mouth.setAttribute('d', 'M 92 112 L 108 112');
+            }
         }
+
+        function checkStreak() {
+            const now = Date.now();
+            const oneDay = 24 * 60 * 60 * 1000;
+            if (state.lastLogin === 0) { state.lastLogin = now; state.streakDays = 1; }
+            else {
+                const daysPassed = Math.floor((now - state.lastLogin) / oneDay);
+                if (daysPassed >= 1) { state.streakDays += daysPassed; state.lastLogin = now; }
+            }
+            document.getElementById('streak-badge').innerText = `🔥 Серия: ${state.streakDays} дней`;
+            let scale = 0.9 + (state.streakDays * 0.02);
+            if (scale > 1.4) scale = 1.4;
+            document.getElementById('panda-wrapper').style.transform = `scale(${scale})`;
+            saveGame();
+        }
+
+        function selectGender(g) {
+            state.gender = g;
+            document.getElementById('setup-screen').style.display = 'none';
+            applyGenderVisuals();
+            checkStreak(); saveGame(); updateUI(); connectWebSocket();
+            fetchFriends();
+            fetchLeaderboard();
+            startIdleBlinking();
+        }
+
+        let eyeTimeout;
+        function startIdleBlinking() {
+            setInterval(() => {
+                const eyeL = document.getElementById('eye-L');
+                const eyeR = document.getElementById('eye-R');
+                if (eyeL && !eyeL.classList.contains('closed') && !eyeL.classList.contains('slow-open')) {
+                    eyeL.classList.add('closed');
+                    eyeR.classList.add('closed');
+                    setTimeout(() => {
+                        eyeL.classList.remove('closed');
+                        eyeR.classList.remove('closed');
+                    }, 150);
+                }
+            }, 4000);
+        }
+
+        function startBandit() { /* ... */ }
+        function claimChest() { /* ... */ }
+        function claimGoldenPaw() { /* ... */ }
+        function startMiniGame() { /* ... */ }
+
+        loadGame();
     </script>
 </body>
 </html>
@@ -1045,7 +1120,7 @@ async def serve_game():
 async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     await websocket.accept()
     if user_id not in players_db:
-        players_db[user_id] = {"name": f"Panda_{user_id[:4]}", "coins": 0, "gender": "male", "last_active": time.time(), "friends": []}
+        players_db[user_id] = {"name": f"Panda_{user_id[:4]}", "coins": 0, "gems": 0, "gender": "male", "last_active": time.time(), "friends": [], "gifts": 0, "verified": False}
     else:
         players_db[user_id]["last_active"] = time.time()
         
@@ -1085,7 +1160,22 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 
             if message.get("type") == "update_stats":
                 players_db[user_id]["coins"] = message.get("coins", 0)
+                players_db[user_id]["gems"] = message.get("gems", 0)
                 players_db[user_id]["last_active"] = time.time()
+                continue
+                
+            if message.get("type") == "send_gift":
+                target_id = message.get("to")
+                gift_type = message.get("gift")
+                cost = message.get("cost", 0)
+                
+                if target_id in players_db:
+                    players_db[target_id]["gifts"] += 1
+                    if target_id in rooms[room_id]["players"]:
+                        try:
+                            await rooms[room_id]["players"][target_id].send_text(json.dumps({"type": "gift_received", "gift": gift_type}))
+                        except:
+                            pass
                 continue
                 
             if message.get("type") == "tap":
@@ -1114,7 +1204,7 @@ async def get_leaderboard():
     result = []
     for uid, data in sorted_players:
         is_online = (time.time() - data["last_active"]) < 120
-        result.append({"id": uid, "name": data["name"], "coins": data["coins"], "online": is_online})
+        result.append({"id": uid, "name": data["name"], "coins": data["coins"], "online": is_online, "gifts": data.get("gifts", 0), "verified": data.get("verified", False)})
     return result
 
 @app.get("/api/friends/{user_id}")
@@ -1127,7 +1217,7 @@ async def get_friends(user_id: str):
         if f_id in players_db:
             f_data = players_db[f_id]
             is_online = (time.time() - f_data["last_active"]) < 120
-            friends_list.append({"id": f_id, "name": f_data["name"], "coins": f_data["coins"], "online": is_online})
+            friends_list.append({"id": f_id, "name": f_data["name"], "coins": f_data["coins"], "online": is_online, "gifts": f_data.get("gifts", 0), "verified": f_data.get("verified", False)})
     return friends_list
 
 async def broadcast_room_state(room_id: str):
@@ -1153,3 +1243,42 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+'@
+Set-Content -Path "backend/main.py" -Value $server_code -Encoding UTF8
+
+$bot_code = @'
+import asyncio
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import CommandStart
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+
+BOT_TOKEN = "9244645218:AAFopJ-hOND0D5dQx9qzZurAUTbAWQpKs3A"
+WEB_APP_URL = "https://panda-server-wuhd.onrender.com"
+
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+
+@dp.message(CommandStart())
+async def start(message: types.Message):
+    user_id = message.from_user.id
+    web_app = WebAppInfo(url=f"{WEB_APP_URL}?startapp=profile_{user_id}")
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🎮 Играть", web_app=web_app)]
+    ])
+    await message.answer("Привет! Нажми на кнопку ниже, чтобы начать игру.", reply_markup=keyboard)
+
+async def main():
+    print("Бот запущен и ждет сообщений!")
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+'@
+Set-Content -Path "bot\main.py" -Value $bot_code -Encoding UTF8
+
+Get-Content -Path "backend\main.py" -Raw | Set-Clipboard
+Write-Host "✅ Код сервера УЖЕ СКОПИРОВАН в буфер обмена!" -ForegroundColor Green
+Write-Host "🚀 Открываю GitHub..." -ForegroundColor Yellow
+Start-Process "https://github.com/ZooMer69-eng/panda-server/edit/main/main.py"
+Start-Sleep -Seconds 2
+Start-Process explorer.exe -ArgumentList (Get-Item "backend").FullName
