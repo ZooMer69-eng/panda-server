@@ -1724,4 +1724,40 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
 
 @app.get("/api/leaderboard")
 async def get_leaderboard():
-    sorted_players = sorted(players_db.items(), key
+    sorted_players = sorted(players_db.items(), key=lambda x: x[1]["coins"], reverse=True)[:50]
+    result = []
+    for uid, data in sorted_players:
+        is_online = (time.time() - data["last_active"]) < 120
+        result.append({"id": uid, "name": data["name"], "coins": data["coins"], "online": is_online, "gifts": data.get("gifts", 0), "gift_history": data.get("gift_history", []), "verified": data.get("verified", False), "avatar": data.get("avatar", ""), "frame": data.get("frame", "default"), "medal": data.get("medal", "none"), "nick_style": data.get("nick_style", "nick-default")})
+    return result
+
+@app.get("/api/friends/{user_id}")
+async def get_friends(user_id: str):
+    if user_id not in players_db: return []
+    friends_list = []
+    for f_id in players_db[user_id]["friends"]:
+        if f_id in players_db:
+            f_data = players_db[f_id]
+            is_online = (time.time() - f_data["last_active"]) < 120
+            friends_list.append({"id": f_id, "name": f_data["name"], "coins": f_data["coins"], "online": is_online, "gifts": f_data.get("gifts", 0), "gift_history": f_data.get("gift_history", []), "verified": f_data.get("verified", False), "avatar": f_data.get("avatar", ""), "frame": f_data.get("frame", "default"), "medal": f_data.get("medal", "none"), "nick_style": f_data.get("nick_style", "nick-default")})
+    return friends_list
+
+async def broadcast_room_state(room_id: str):
+    if room_id in rooms:
+        players_list = []
+        for uid in rooms[room_id]["players"].keys():
+            if uid in players_db: players_list.append({"id": uid, "name": players_db[uid]["name"], "gender": players_db[uid]["gender"]})
+            else: players_list.append({"id": uid, "name": f"Panda_{uid[:4]}", "gender": "male"})
+        await broadcast(room_id, {"type": "room_state", "players": players_list})
+
+async def broadcast(room_id: str, message: dict, exclude_user: str = None):
+    if room_id in rooms:
+        for uid, connection in list(rooms[room_id]["players"].items()):
+            if uid != exclude_user:
+                try: await connection.send_text(json.dumps(message))
+                except: pass
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
