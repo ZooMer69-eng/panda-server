@@ -24,14 +24,13 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 10.0</title>
+    <title>Panda Game 10.1</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: #0a120e; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
 
-        /* Экраны выбора пола */
         #setup-screen { position: fixed; inset: 0; background: rgba(10, 18, 14, 0.98); z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; }
         #setup-screen h1 { font-size: 28px; margin-bottom: 10px; color: #ffd700; }
         .gender-btns { display: flex; gap: 20px; margin-top: 20px; }
@@ -39,7 +38,6 @@ HTML_CONTENT = """
         .gender-btn:hover { background: rgba(76, 175, 80, 0.3); transform: scale(1.05); }
         .gender-btn .icon { font-size: 50px; display: block; margin-bottom: 10px; }
 
-        /* Фоны для разных режимов */
         .bg-base { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, #0b1712 0%, #143624 40%, #295d3b 70%, #346e42 100%); transition: background 1.5s; }
         .bg-romantic { background: linear-gradient(180deg, #2d1b36 0%, #6b3f5c 40%, #a86b7e 70%, #d9a0a8 100%) !important; }
         .bg-bro { background: linear-gradient(180deg, #1a1a2e 0%, #2d2d4a 40%, #4a3b52 70%, #6b4c5a 100%) !important; }
@@ -51,7 +49,6 @@ HTML_CONTENT = """
         .stalk::after { content: ''; position: absolute; top: 20%; left: 10px; width: 30px; height: 10px; background: #4ea868; border-radius: 4px 10px 0 4px; transform: rotate(-30deg); }
         .bg-grass { position: absolute; bottom: 0; left: 0; width: 100%; height: 15%; background: linear-gradient(to top, #0d1f14 0%, #173723 60%, transparent 100%); z-index: 2; pointer-events: none; }
 
-        /* Хедер */
         .header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: flex-start; z-index: 10; position: relative; }
         .rank-box { display: flex; flex-direction: column; gap: 4px; }
         .streak-badge { background: rgba(0,0,0,0.6); color: #ff6b00; padding: 4px 12px; border-radius: 15px; font-size: 11px; font-weight: 900; border: 1px solid #ff6b00; }
@@ -65,12 +62,10 @@ HTML_CONTENT = """
         .energy-bar { width: 100px; height: 10px; background: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; border: 1px solid rgba(255,255,255,0.4); }
         .energy-fill { height: 100%; background: linear-gradient(90deg, #00e5ff, #007bff); width: 100%; transition: width 0.3s; }
 
-        /* Экраны */
         .screens { flex: 1; position: relative; z-index: 5; overflow: hidden; }
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; }
         .screen.active { display: flex; }
 
-        /* Тап */
         .tap-area { flex: 1; display: flex; justify-content: center; align-items: center; gap: 20px; position: relative; padding-bottom: 20px; }
         .panda-wrapper { position: relative; width: 190px; height: 210px; transform-origin: center bottom; cursor: pointer; transition: transform 1s ease-in-out; z-index: 5; }
         .panda-wrapper.partner-panda { width: 140px; height: 160px; opacity: 0.9; pointer-events: none; }
@@ -78,7 +73,6 @@ HTML_CONTENT = """
         .panda-wrapper.hit { animation: jump 0.25s ease-out; }
         @keyframes jump { 0% { transform: translateY(0); } 30% { transform: translateY(-15px) scale(1.05); } 100% { transform: translateY(0); } }
         
-        /* Никнеймы */
         .panda-name { 
             text-align: center; font-size: 13px; font-weight: 900; color: #fff; margin-top: 8px; 
             text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; 
@@ -87,24 +81,20 @@ HTML_CONTENT = """
             background: rgba(0,0,0,0.4); padding: 2px 8px; border-radius: 10px;
         }
 
-        /* Анимация глаз */
         .eye { transform-box: fill-box; transform-origin: center; transition: transform 0.15s ease-in-out; }
         .eye.closed { transform: scaleY(0.1); }
         .eye.slow-open { transition: transform 2s ease-out; }
 
-        /* Общая полоска прогресса */
         .joint-bar-container { width: 80%; margin: 10px auto; background: rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; display: none; position: relative; height: 22px; border: 1px solid rgba(255,255,255,0.2); z-index: 10; }
         .joint-bar-fill { height: 100%; background: linear-gradient(90deg, #ff416c, #ff4b2b); width: 0%; transition: width 0.3s; }
         .joint-bar-text { position: absolute; width: 100%; text-align: center; font-size: 12px; font-weight: 900; top: 2px; text-shadow: 1px 1px 2px #000; }
 
-        /* Эффекты */
         .particle-coin { position: absolute; font-size: 24px; font-weight: 900; color: #ffd700; pointer-events: none; animation: popCoin 0.9s ease-out forwards; z-index: 20; text-shadow: 0 0 10px #ffd700; }
         @keyframes popCoin { 0% { transform: translateY(0) scale(0.4); opacity: 1; } 100% { transform: translateY(-100px) scale(1.2); opacity: 0; } }
         
         #golden-paw { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 50px; cursor: pointer; z-index: 100; display: none; animation: pulseGold 1s infinite alternate; }
         @keyframes pulseGold { 0% { transform: translate(-50%, -50%) scale(1); } 100% { transform: translate(-50%, -50%) scale(1.2); filter: drop-shadow(0 0 20px gold); } }
 
-        /* Контент */
         .content { flex: 1; padding: 15px; overflow-y: auto; background: rgba(10, 18, 14, 0.85); backdrop-filter: blur(5px); z-index: 20; }
         .section-title { font-size: 20px; font-weight: 900; margin-bottom: 15px; color: #fff; text-align: center; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -116,7 +106,6 @@ HTML_CONTENT = """
         .card-price:disabled { color: #555; border-color: #333; cursor: not-allowed; }
         .card-price.owned { background: rgba(76, 175, 80, 0.2); color: #4caf50; border-color: #4caf50; }
 
-        /* Друзья и Топ */
         .friend-list { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
         .friend-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
         .friend-info { display: flex; align-items: center; gap: 10px; }
@@ -126,31 +115,28 @@ HTML_CONTENT = """
         .friend-name { font-weight: 900; font-size: 14px; }
         .friend-coins { font-size: 12px; color: #ffd700; }
         
-        .tabs-sub { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tabs-sub { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
         .tab-btn { flex: 1; background: rgba(255,255,255,0.1); border: none; color: #aaa; padding: 8px; border-radius: 8px; font-weight: 900; cursor: pointer; }
         .tab-btn.active { background: #4caf50; color: #fff; }
+        .refresh-btn { background: #2196f3; color: #fff; border: none; border-radius: 8px; padding: 8px 12px; font-weight: 900; cursor: pointer; font-size: 14px; }
 
         .leaderboard-item { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 14px; }
         .leaderboard-item span:first-child { font-weight: 900; color: #ffd700; width: 30px; }
 
-        /* Навигация */
         .bottom-nav { background: rgba(10, 18, 14, 0.98); border-top: 1px solid rgba(46, 125, 50, 0.4); padding: 8px 5px 22px 5px; display: flex; justify-content: space-around; z-index: 30; position: relative; }
         .nav-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: #666; font-size: 9px; font-weight: 900; cursor: pointer; width: 16.6%; transition: 0.2s; }
         .nav-btn.active { color: #81c784; }
         .nav-btn span { font-size: 22px; margin-bottom: 2px; filter: grayscale(1); transition: 0.2s; }
         .nav-btn.active span { filter: drop-shadow(0 0 6px #81c784) grayscale(0); }
 
-        /* Мини-игра */
         .game-area-mini { height: 250px; width: 100%; background: #112217; position: relative; overflow: hidden; border-radius: 10px; border: 1px solid #4caf50; margin-bottom: 10px; }
         .falling-item { position: absolute; font-size: 30px; cursor: pointer; animation: fall linear forwards; }
         @keyframes fall { 0% { transform: translateY(-50px) rotate(0deg); } 100% { transform: translateY(280px) rotate(360deg); } }
 
-        /* Модалки */
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; backdrop-filter: blur(5px); }
         .modal.active { display: flex; }
         .modal-box { background: #1a2e22; border: 2px solid #4caf50; border-radius: 20px; padding: 25px; width: 90%; max-width: 350px; }
         
-        /* Поле ввода для ника */
         .name-input { width: 100%; padding: 10px; border-radius: 8px; border: none; font-size: 16px; font-weight: 900; text-align: center; margin-bottom: 15px; background: #fff; color: #111; }
 
         #error-log { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255,0,0,0.9); color: white; padding: 10px; font-size: 12px; z-index: 9999; display: none; word-break: break-all; }
@@ -158,7 +144,6 @@ HTML_CONTENT = """
         #loading { position: fixed; inset: 0; background: #0a120e; z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 20px; font-weight: 900; color: #4caf50; }
         #loading-text { margin-top: 20px; font-size: 14px; color: #aaa; text-align: center; }
         
-        /* Квесты */
         .quest-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #ffd700; }
         .quest-info { flex: 1; }
         .quest-title { font-size: 14px; font-weight: 900; margin-bottom: 4px; }
@@ -182,7 +167,6 @@ HTML_CONTENT = """
         </div>
     </div>
 
-    <!-- Модалка Смены Ника -->
     <div class="modal" id="name-modal">
         <div class="modal-box">
             <h2 style="color:#4caf50; margin-bottom:15px;">Твой Никнейм</h2>
@@ -236,7 +220,6 @@ HTML_CONTENT = """
         </div>
     </div>
 
-    <!-- Полоска совместного прогресса -->
     <div class="joint-bar-container" id="joint-bar">
         <div class="joint-bar-fill" id="joint-bar-fill"></div>
         <div class="joint-bar-text" id="joint-bar-text">Общее гнездышко: 0%</div>
@@ -342,6 +325,7 @@ HTML_CONTENT = """
                 <div class="tabs-sub">
                     <button class="tab-btn active" onclick="switchFriendsTab('list', this)">Мои друзья</button>
                     <button class="tab-btn" onclick="switchFriendsTab('top', this)">Топ 50</button>
+                    <button class="refresh-btn" onclick="fetchFriends()">🔄</button>
                 </div>
                 
                 <div id="friends-list-container">
@@ -386,7 +370,6 @@ HTML_CONTENT = """
             </div>
         </div>
 
-        <!-- НОВАЯ ВКЛАДКА: КВЕСТЫ -->
         <div class="screen" id="screen-quests">
             <div class="content">
                 <div class="section-title">Квесты 📜</div>
@@ -450,8 +433,8 @@ HTML_CONTENT = """
         const API_URL = window.location.origin;
         let ws;
         let banditInterval = null;
+        let friendRefreshTimer = null;
 
-        // Загрузка ника
         let savedName = localStorage.getItem('pandaNickname');
         if (!savedName) {
             savedName = tg.initDataUnsafe?.user?.first_name || `Panda_${myId.substring(0,4)}`;
@@ -637,7 +620,6 @@ HTML_CONTENT = """
             }
         }
 
-        // ================== КВЕСТЫ ==================
         function renderQuests() {
             const list = document.getElementById('quests-list');
             if (!list) return;
@@ -679,7 +661,6 @@ HTML_CONTENT = """
             }
         }
 
-        // ================== API ==================
         async function fetchFriends() {
             try {
                 const controller = new AbortController();
@@ -853,7 +834,7 @@ HTML_CONTENT = """
             if (state.inventory[id]) state.equipped[id] = !state.equipped[id];
             else if (state.coins >= price) { 
                 state.coins -= price; state.inventory[id] = true; state.equipped[id] = true; 
-                state.quests.bought = true; // Выполняем квест
+                state.quests.bought = true;
             }
             else { tg.showAlert("Мало монет!"); return; }
             updateUI();
@@ -872,9 +853,7 @@ HTML_CONTENT = """
         function startPregnancy() { state.isPregnant = true; state.pregnancyEnd = Date.now() + (7 * 24 * 60 * 60 * 1000); updateUI(); }
         
         function inviteFriend() {
-            state.quests.invited = true; // Выполняем квест
-            
-            // ИСПОЛЬЗУЕМ ВСТРОЕННЫЙ ШАРИНГ TELEGRAM (надежнее чем navigator.clipboard)
+            state.quests.invited = true;
             const link = `https://t.me/nash_sad_69_bot?startapp=${roomId}`; 
             const text = `Присоединяйся к моей игре с пандой!`;
             
@@ -910,7 +889,6 @@ HTML_CONTENT = """
                         document.getElementById('partner-container').style.display = 'block';
                         document.getElementById('partner-name').innerText = friendData.name;
                         
-                        // Определяем режим
                         if (state.gender === 'male' && friendData.gender === 'male') {
                             currentMode = 'bros';
                             document.getElementById('bg-base').className = 'bg-base bg-bro';
@@ -923,6 +901,14 @@ HTML_CONTENT = """
                             currentMode = 'couple';
                             document.getElementById('bg-base').className = 'bg-base bg-romantic';
                             document.getElementById('joint-bar').style.display = 'block';
+                        }
+                        
+                        // ПРИНУДИТЕЛЬНО ОБНОВЛЯЕМ ДРУЗЕЙ, ЕСЛИ ЗАШЕЛ ДРУГ
+                        if (!friendRefreshTimer) {
+                            friendRefreshTimer = setTimeout(() => {
+                                fetchFriends();
+                                friendRefreshTimer = null;
+                            }, 1000);
                         }
                     } else {
                         currentMode = 'solo';
@@ -957,9 +943,8 @@ HTML_CONTENT = """
         document.getElementById('panda-wrapper').addEventListener('pointerdown', (e) => {
             if (state.energy <= 0) return;
             state.energy -= 1; state.coins += state.tapPower;
-            state.quests.taps++; // Считаем клики
+            state.quests.taps++;
             
-            // Бонус братанов / сестер
             let earn = state.tapPower;
             if (currentMode === 'bros' || currentMode === 'sisters') earn = Math.floor(earn * 1.5);
             state.coins += (earn - state.tapPower);
@@ -1024,11 +1009,14 @@ HTML_CONTENT = """
             document.getElementById('screen-' + tabId).classList.add('active');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            if (tabId === 'friends') { fetchFriends(); fetchLeaderboard(); }
+            if (tabId === 'friends') { 
+                fetchFriends(); 
+                fetchLeaderboard(); 
+            }
         }
 
         setInterval(() => {
-            if (state.energy < state.maxEnergy) state.energy = Math.min(state.maxEnergy, state.energy + state.regenerate);
+            if (state.energy < state.maxEnergy) state.energy = Math.min(state.maxEnergy, state.energy + state.regen);
             const now = Date.now();
             let changed = false;
             state.bamboos.forEach(b => {
@@ -1064,7 +1052,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     if room_id not in rooms:
         rooms[room_id] = {"players": {}, "joint_progress": 0}
     
-    # Сохраняем друга при входе в комнату
     for existing_uid in rooms[room_id]["players"].keys():
         if existing_uid != user_id:
             if existing_uid not in players_db[user_id]["friends"]: players_db[user_id]["friends"].append(existing_uid)
@@ -1166,4 +1153,3 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
-
