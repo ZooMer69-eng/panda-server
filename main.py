@@ -25,7 +25,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 17.0</title>
+    <title>Panda Game 18.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -74,7 +74,7 @@ HTML_CONTENT = """
         
         .name-medal-block { display: flex; flex-direction: column; cursor: pointer; }
         .name-row { display: flex; align-items: center; gap: 5px; }
-        .header-nick { font-size: 16px; font-weight: 900; text-shadow: 2px 2px 0 #000; }
+        .header-nick { font-size: 16px; font-weight: 900; text-shadow: 2px 2px 0 #000; -webkit-text-fill-color: currentColor; }
         .header-medal { font-size: 18px; }
         .streak-badge { font-size: 10px; color: #ff6b00; font-weight: 900; margin-top: 2px; }
 
@@ -94,25 +94,26 @@ HTML_CONTENT = """
 
         /* ТАП */
         .tap-area { flex: 1; display: flex; justify-content: center; align-items: flex-end; gap: 20px; position: relative; padding-bottom: 10px; }
-        .panda-wrapper { position: relative; width: 190px; height: 210px; transform-origin: center bottom; cursor: pointer; transition: transform 1s ease-in-out; z-index: 5; margin-bottom: -10px; }
-        .panda-wrapper.partner-panda { width: 140px; height: 160px; opacity: 0.9; pointer-events: none; margin-bottom: 0; }
+        .panda-wrapper { position: relative; width: 190px; height: 210px; transform-origin: center bottom; cursor: pointer; transition: transform 1s ease-in-out; z-index: 5; margin-bottom: 0; }
         .panda-wrapper:active { transform: scale(0.95); }
         .panda-wrapper.hit { animation: jump 0.25s ease-out; }
         @keyframes jump { 0% { transform: translateY(0); } 30% { transform: translateY(-15px) scale(1.05); } 100% { transform: translateY(0); } }
         
-        .pet-wrapper { position: absolute; bottom: 0; right: -40px; font-size: 40px; z-index: 10; pointer-events: none; }
-        .pet-wrapper img { width: 50px; height: 50px; }
-
-        .panda-name { text-align: center; font-size: 13px; font-weight: 900; color: #fff; margin-top: 8px; text-shadow: 2px 2px 0 #000; position: relative; z-index: 5; background: rgba(0,0,0,0.5); padding: 4px 12px; border-radius: 15px; display: inline-block; border: 1px solid rgba(255,255,255,0.2); }
+        /* ПИТОМЦЫ (Отдельно от прыжка) */
+        .pet-container { position: absolute; bottom: 10px; right: 10px; width: 80px; height: 80px; z-index: 10; pointer-events: none; transition: all 0.5s; }
+        .pet-svg { width: 100%; height: 100%; animation: petIdle 3s infinite alternate ease-in-out; }
+        @keyframes petIdle { 0% { transform: translateY(0) scale(1); } 100% { transform: translateY(-5px) scale(1.02); } }
+        .pet-eye { animation: blinkPet 4s infinite; transform-origin: center; }
+        @keyframes blinkPet { 0%, 96%, 100% { transform: scaleY(1); } 98% { transform: scaleY(0.1); } }
         
-        /* Анимации ников */
+        /* Анимации ников (Исправленные) */
         .nick-default { color: #fff; }
-        .nick-gold { background: linear-gradient(90deg, #ffd700, #ff8c00, #ffd700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: goldShine 2s infinite; }
-        .nick-fire { color: #ff4500; text-shadow: 0 0 10px #ff4500, 0 0 20px #ff0000; animation: fireFlicker 1s infinite alternate; }
-        .nick-rainbow { background: linear-gradient(90deg, #ff0000, #ff8c00, #ffff00, #00ff00, #00e5ff, #0000ff, #ff00ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: rainbowMove 3s linear infinite; background-size: 200%; }
-        @keyframes goldShine { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.5); } }
-        @keyframes fireFlicker { 0% { transform: scale(1); } 100% { transform: scale(1.05); } }
-        @keyframes rainbowMove { 0% { background-position: 0%; } 100% { background-position: 200%; } }
+        .nick-gold { background: linear-gradient(90deg, #ffd700, #ff8c00, #ffd700); background-size: 200% auto; color: transparent; -webkit-background-clip: text; background-clip: text; animation: goldShine 3s linear infinite; filter: drop-shadow(0 0 2px rgba(255,215,0,0.5)); }
+        .nick-fire { color: #ff4500; text-shadow: 0 0 5px #ff4500, 0 0 15px #ff0000; animation: fireFlicker 1.5s infinite alternate; }
+        .nick-rainbow { background: linear-gradient(90deg, #ff0000, #ff8c00, #ffff00, #00ff00, #00e5ff, #0000ff, #ff00ff); background-size: 200% auto; color: transparent; -webkit-background-clip: text; background-clip: text; animation: rainbowMove 3s linear infinite; filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)); }
+        @keyframes goldShine { to { background-position: 200% center; } }
+        @keyframes fireFlicker { 0% { transform: scale(1); opacity: 0.9; } 100% { transform: scale(1.02); opacity: 1; } }
+        @keyframes rainbowMove { to { background-position: 200% center; } }
 
         .eye { transform-box: fill-box; transform-origin: center; transition: transform 0.15s ease-in-out; }
         .eye.closed { transform: scaleY(0.1); }
@@ -120,11 +121,6 @@ HTML_CONTENT = """
 
         .particle-coin { position: absolute; font-size: 24px; font-weight: 900; color: #ffd700; pointer-events: none; animation: popCoin 0.9s ease-out forwards; z-index: 20; text-shadow: 0 0 10px #ffd700; }
         @keyframes popCoin { 0% { transform: translateY(0) scale(0.4); opacity: 1; } 100% { transform: translateY(-100px) scale(1.2); opacity: 0; } }
-
-        /* ОБЩАЯ ПОЛОСКА */
-        .joint-bar-container { width: 80%; margin: 5px auto; background: rgba(0,0,0,0.5); border-radius: 10px; overflow: hidden; display: none; position: relative; height: 20px; border: 1px solid rgba(255,255,255,0.2); z-index: 10; }
-        .joint-bar-fill { height: 100%; background: linear-gradient(90deg, #ff416c, #ff4b2b); width: 0%; transition: width 0.3s; }
-        .joint-bar-text { position: absolute; width: 100%; text-align: center; font-size: 11px; font-weight: 900; top: 2px; text-shadow: 1px 1px 2px #000; }
 
         /* КОНТЕНТ */
         .content { flex: 1; padding: 15px; overflow-y: auto; background: rgba(10, 18, 14, 0.85); backdrop-filter: blur(5px); z-index: 20; }
@@ -190,7 +186,6 @@ HTML_CONTENT = """
         .profile-avatar-large img { width: 100%; height: 100%; object-fit: cover; }
         .profile-frame-wrap { position: relative; width: 90px; height: 90px; display: flex; justify-content: center; align-items: center; margin-bottom: 10px; }
         .profile-name { font-size: 22px; font-weight: 900; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
-        .profile-medal { font-size: 24px; margin-bottom: 10px; }
         .profile-stats { display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; width: 100%; }
         .profile-stats span { font-weight: 900; color: #fff; display: block; font-size: 16px; }
         
@@ -200,25 +195,47 @@ HTML_CONTENT = """
         .inv-icon { font-size: 24px; margin-bottom: 5px; filter: grayscale(1); }
         .inv-item.owned .inv-icon { filter: none; }
 
-        /* Красивые медали */
-        .medal-circle { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
-        .m-bronze { background: linear-gradient(135deg, #cd7f32, #f4a460); border: 2px solid #8b4513; }
-        .m-silver { background: linear-gradient(135deg, #b0c4de, #e6e6fa); border: 2px solid #778899; }
-        .m-gold { background: linear-gradient(135deg, #ffd700, #ffec8b); border: 2px solid #daa520; }
-        .m-epic { background: linear-gradient(135deg, #8a2be2, #da70d6); border: 2px solid #4b0082; animation: pulseEpic 2s infinite; }
-        .m-mythic { background: linear-gradient(135deg, #ff4500, #ff0000); border: 2px solid #8b0000; animation: spin 3s linear infinite; }
-        @keyframes pulseEpic { 0%,100% { box-shadow: 0 0 10px #da70d6; } 50% { box-shadow: 0 0 25px #8a2be2; } }
+        /* КРАСИВЫЕ МЕДАЛИ (БЕЗ КРУЖОЧКОВ) */
+        .medal-wrapper { width: 50px; height: 60px; position: relative; display: flex; justify-content: center; align-items: flex-start; }
+        .medal-ribbon { width: 30px; height: 30px; background: #d32f2f; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%); position: absolute; top: 0; z-index: 1; }
+        .medal-ribbon.blue { background: #1976d2; }
+        .medal-ribbon.green { background: #388e3c; }
+        .medal-ribbon.purple { background: #7b1fa2; }
+        .medal-ribbon.black { background: #111; }
+        .medal-coin { width: 40px; height: 40px; border-radius: 50%; position: absolute; bottom: 0; z-index: 2; display: flex; justify-content: center; align-items: center; font-size: 20px; font-weight: 900; box-shadow: 0 4px 6px rgba(0,0,0,0.5); }
+        
+        .m-bronze .medal-coin { background: radial-gradient(circle at 30% 30%, #ffdab9, #cd7f32, #8b4513); border: 2px solid #a0522d; }
+        .m-silver .medal-coin { background: radial-gradient(circle at 30% 30%, #f0f8ff, #b0c4de, #778899); border: 2px solid #888; }
+        .m-gold .medal-coin { background: radial-gradient(circle at 30% 30%, #fffacd, #ffd700, #daa520); border: 2px solid #b8860b; }
+        
+        .m-epic { animation: epicGlow 2s infinite alternate; }
+        .m-epic .medal-coin { background: radial-gradient(circle at 30% 30%, #e1bee7, #ab47bc, #6a1b9a); border: 2px solid #4a148c; }
+        @keyframes epicGlow { 0% { filter: drop-shadow(0 0 5px #ab47bc); } 100% { filter: drop-shadow(0 0 20px #ce93d8); } }
+
+        .m-mythic { animation: mythicSpin 4s infinite linear; }
+        .m-mythic .medal-coin { background: radial-gradient(circle at 30% 30%, #ff8a80, #e53935, #b71c1c); border: 2px solid #ffeb3b; box-shadow: 0 0 15px #e53935; }
+        @keyframes mythicSpin { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(5deg) scale(1.05); } 100% { transform: rotate(0deg) scale(1); } }
 
         /* КОЛЕСО */
-        .wheel-container { width: 200px; height: 200px; border-radius: 50%; border: 8px solid #ffd700; position: relative; margin: 20px auto; overflow: hidden; box-shadow: 0 0 20px rgba(255,215,0,0.5); transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1); }
-        .wheel-segment { position: absolute; width: 50%; height: 50%; top: 0; left: 50%; transform-origin: 0% 100%; clip-path: polygon(0 0, 100% 0, 0 100%); display: flex; justify-content: center; align-items: center; font-weight: 900; font-size: 12px; }
-        .w-1 { background: #ff4d4d; transform: rotate(0deg) skewY(-30deg); } 
-        .w-2 { background: #4d79ff; transform: rotate(60deg) skewY(-30deg); } 
-        .w-3 { background: #4dff88; transform: rotate(120deg) skewY(-30deg); } 
-        .w-4 { background: #ffff4d; transform: rotate(180deg) skewY(-30deg); } 
-        .w-5 { background: #ff4dff; transform: rotate(240deg) skewY(-30deg); } 
-        .w-6 { background: #ffa64d; transform: rotate(300deg) skewY(-30deg); }
-        .wheel-pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 30px; z-index: 10; }
+        .wheel-container { width: 240px; height: 240px; position: relative; margin: 20px auto; }
+        .wheel-pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 40px; z-index: 10; text-shadow: 0 2px 5px #000; }
+        .wheel { width: 100%; height: 100%; border-radius: 50%; border: 6px solid #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.4); transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); overflow: hidden; position: relative; }
+        .wheel-segment { position: absolute; top: 0; left: 50%; width: 50%; height: 50%; transform-origin: 0% 100%; clip-path: polygon(0 0, 100% 0, 0 100%); display: flex; align-items: flex-start; justify-content: flex-end; padding: 20px 10px; font-weight: 900; color: #fff; text-shadow: 1px 1px 2px #000; font-size: 14px; }
+        .seg-1 { background: #e53935; transform: rotate(0deg) skewY(-30deg); }
+        .seg-2 { background: #1e88e5; transform: rotate(60deg) skewY(-30deg); }
+        .seg-3 { background: #43a047; transform: rotate(120deg) skewY(-30deg); }
+        .seg-4 { background: #fdd835; transform: rotate(180deg) skewY(-30deg); color: #333; text-shadow: none; }
+        .seg-5 { background: #8e24aa; transform: rotate(240deg) skewY(-30deg); }
+        .seg-6 { background: #fb8c00; transform: rotate(300deg) skewY(-30deg); }
+
+        /* ДУЭТ */
+        .duo-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+        .duo-pandas { display: flex; gap: 30px; align-items: flex-end; justify-content: center; width: 100%; }
+        .duo-panda-item { text-align: center; position: relative; }
+        .duo-name { font-size: 14px; font-weight: 900; margin-top: 10px; }
+        .duo-medal { position: absolute; top: -25px; left: 50%; transform: translateX(-50%); }
+        .sad-panda { animation: sadFloat 3s infinite ease-in-out; }
+        @keyframes sadFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 
         #error-log { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255,0,0,0.9); color: white; padding: 10px; font-size: 12px; z-index: 9999; display: none; word-break: break-all; }
         #loading { position: fixed; inset: 0; background: #0a120e; z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 20px; font-weight: 900; color: #4caf50; }
@@ -259,7 +276,7 @@ HTML_CONTENT = """
                 <div class="profile-avatar-large" id="vp-avatar">🐼</div>
             </div>
             <div class="profile-name" id="vp-name">Ник</div>
-            <div class="profile-medal" id="vp-medal"></div>
+            <div class="medal-wrapper" id="vp-medal" style="margin:0 auto 10px; display:none;"></div>
             <div class="profile-stats" style="justify-content:space-around;"><div>Монеты <span id="vp-coins">0</span></div><div>Подарки <span id="vp-gifts">0</span></div></div>
             <button class="card-price" style="background:#ff9800; color:#fff; margin-top:15px;" onclick="openGiftModal()">Подарить 🎁</button>
             <button class="card-price" style="background:#555; color:#fff; margin-top:10px;" onclick="closeModal('view-profile-modal')">Закрыть</button>
@@ -269,15 +286,15 @@ HTML_CONTENT = """
     <div class="modal" id="wheel-modal">
         <div class="modal-box" style="text-align:center;">
             <h2 style="color:#ffd700; margin-bottom:15px;">🎡 Колесо Фортуны</h2>
-            <div style="position:relative; width:200px; margin:0 auto;">
+            <div class="wheel-container">
                 <div class="wheel-pointer">▼</div>
-                <div class="wheel-container" id="wheel-icon">
-                    <div class="wheel-segment w-1">100</div>
-                    <div class="wheel-segment w-2">500</div>
-                    <div class="wheel-segment w-3">1000</div>
-                    <div class="wheel-segment w-4">5000</div>
-                    <div class="wheel-segment w-5">10000</div>
-                    <div class="wheel-segment w-6">50000</div>
+                <div class="wheel" id="wheel-icon">
+                    <div class="wheel-segment seg-1">100</div>
+                    <div class="wheel-segment seg-2">500</div>
+                    <div class="wheel-segment seg-3">1000</div>
+                    <div class="wheel-segment seg-4">5000</div>
+                    <div class="wheel-segment seg-5">10000</div>
+                    <div class="wheel-segment seg-6">50000</div>
                 </div>
             </div>
             <button class="card-price" style="background:#4caf50; color:#fff; padding:15px; margin-top:20px;" onclick="spinWheel()">Крутить</button>
@@ -297,35 +314,29 @@ HTML_CONTENT = """
     <!-- ХЕДЕР -->
     <div class="header">
         <div class="user-info-block">
-            <div class="avatar-wrap" onclick="switchTab('profile', document.querySelectorAll('.nav-btn')[5])">
+            <div class="avatar-wrap" onclick="goToProfile()">
                 <div class="avatar-frame default" id="header-frame"></div>
                 <div class="profile-avatar-mini" id="mini-avatar"><span>🐼</span></div>
             </div>
             <div>
-                <div class="name-medal-block" onclick="switchTab('profile', document.querySelectorAll('.nav-btn')[5])">
+                <div class="name-medal-block" onclick="goToProfile()">
                     <div class="name-row">
                         <span class="header-nick nick-default" id="my-name">Ник</span>
-                        <span class="header-medal" id="header-medal"></span>
+                        <div class="medal-wrapper" id="header-medal" style="width:20px; height:25px; display:none;"></div>
                     </div>
                     <div class="streak-badge" id="streak-badge">🔥 Серия: 0</div>
                 </div>
                 <div class="res-row">
                     <div class="coins-box"><span id="coins">0</span> 🪙</div>
-                    <div class="gems-box" onclick="openGemShop()"><span id="gems">0</span> 💎</div>
+                    <div class="gems-box" onclick="goToGemShop()"><span id="gems">0</span> 💎</div>
                 </div>
             </div>
         </div>
-        <div class="energy-box" onclick="tg.showAlert('Энергия восстанавливается со временем. Максимум можно увеличить в профиле.')">
+        <div class="energy-box" onclick="tg.showAlert('Энергия восстанавливается со временем.')">
             <div class="energy-text"><span id="energy">1000</span>/<span id="max-energy">1000</span> ⚡</div>
             <div class="energy-bar"><div class="energy-fill" id="energy-fill"></div></div>
             <div style="font-size:10px; color:#fff; margin-top:5px;" id="conn-status">Подключение...</div>
         </div>
-    </div>
-
-    <!-- ПОЛОСКА ГНЕЗДЫШКА -->
-    <div class="joint-bar-container" id="joint-bar">
-        <div class="joint-bar-fill" id="joint-bar-fill"></div>
-        <div class="joint-bar-text" id="joint-bar-text">Гнездышко: 0%</div>
     </div>
 
     <!-- ЭКРАНЫ -->
@@ -348,6 +359,7 @@ HTML_CONTENT = """
                                 <g class="body">
                                     <ellipse cx="100" cy="140" rx="62" ry="55" fill="url(#bodyGrad)" />
                                     <path class="belly-normal" d="M 55 160 Q 100 130 145 160 Q 135 195 100 198 Q 65 195 55 160 Z" fill="url(#bellyGrad)" />
+                                    <path class="belly-pregnant" d="M 40 160 Q 100 110 160 160 Q 150 205 100 208 Q 50 205 40 160 Z" fill="url(#bellyGrad)" style="display:none;" />
                                 </g>
                                 <g class="head" transform="translate(0, -5)">
                                     <g id="ear-left"><circle cx="45" cy="45" r="20" fill="#1a1a1a" /><circle cx="45" cy="45" r="10" fill="#333" /></g>
@@ -367,29 +379,13 @@ HTML_CONTENT = """
                                 </g>
                             </g>
                         </svg>
-                        <div class="pet-wrapper" id="my-pet" style="display:none;">🐶</div>
                     </div>
-                    <div class="panda-name nick-default" id="my-name-label">Ник</div>
-                </div>
-                <div style="text-align: center; display:none;" id="partner-container">
-                    <div class="panda-wrapper partner-panda" id="partner-panda">
-                         <svg viewBox="0 0 200 220" style="width:100%; height:100%; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));">
-                            <defs><radialGradient id="bodyGrad2" cx="40%" cy="30%" r="80%"><stop offset="0%" stop-color="#ffffff" /><stop offset="60%" stop-color="#f5f5f5" /><stop offset="100%" stop-color="#d0d0d0" /></radialGradient></defs>
-                            <ellipse cx="100" cy="205" rx="75" ry="15" fill="url(#shadowGrad)" />
-                            <g><ellipse cx="55" cy="175" rx="24" ry="18" fill="#1a1a1a" /><ellipse cx="145" cy="175" rx="24" ry="18" fill="#1a1a1a" /></g>
-                            <g><ellipse cx="100" cy="140" rx="62" ry="55" fill="url(#bodyGrad2)" /><path d="M 55 160 Q 100 130 145 160 Q 135 195 100 198 Q 65 195 55 160 Z" fill="#ececec" /></g>
-                            <g transform="translate(0, -5)">
-                                <circle cx="45" cy="45" r="20" fill="#1a1a1a" /><circle cx="155" cy="45" r="20" fill="#1a1a1a" />
-                                <ellipse cx="100" cy="90" rx="65" ry="58" fill="url(#bodyGrad2)" />
-                                <ellipse cx="70" cy="85" rx="18" ry="23" fill="#111" /><ellipse cx="130" cy="85" rx="18" ry="23" fill="#111" />
-                                <g class="eye"><circle cx="70" cy="85" r="9" fill="#fff" /><circle cx="70" cy="85" r="6" fill="#111" /></g>
-                                <g class="eye"><circle cx="130" cy="85" r="9" fill="#fff" /><circle cx="130" cy="85" r="6" fill="#111" /></g>
-                                <ellipse cx="100" cy="105" rx="8" ry="5" fill="#111" />
-                                <path d="M 92 112 Q 100 118 108 112" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" />
-                            </g>
+                    <!-- ПИТОМЕЦ НА ГЛАВНОМ ЭКРАНЕ -->
+                    <div class="pet-container" id="my-pet-container" style="display:none;">
+                        <svg class="pet-svg" viewBox="0 0 100 100">
+                            <g id="my-pet-icon"></g>
                         </svg>
                     </div>
-                    <div class="panda-name nick-default" id="partner-name">Друг</div>
                 </div>
             </div>
         </div>
@@ -403,7 +399,7 @@ HTML_CONTENT = """
                         <div class="profile-avatar-large" id="my-avatar-large">🐼</div>
                     </div>
                     <div class="profile-name" id="my-name-profile">Загрузка...</div>
-                    <div class="profile-medal" id="my-medal-display"></div>
+                    <div class="medal-wrapper" id="my-medal-display" style="margin:0 auto 10px; display:none;"></div>
                     <button class="card-price" style="width:auto; display:inline-block; margin-top:5px; background:#2196f3; padding:5px 15px;" onclick="openNameModal()">Изменить ник</button>
                     
                     <div class="profile-stats">
@@ -472,18 +468,39 @@ HTML_CONTENT = """
                 <div class="section-title">Мини-игры 🏆</div>
                 <div class="game-area-mini" id="game-area-mini"></div>
                 <div style="text-align:center; font-size:24px; font-weight:900; margin-bottom:10px;">Счет: <span id="mini-score">0</span></div>
-                <button class="card-price" id="mini-btn-bamboo" onclick="startMiniGame('bamboo')" style="background:#4caf50; color:#fff; padding:15px; margin-bottom:10px;">Поймай бамбук 🎋</button>
+                <button class="card-price" id="mini-btn-bamboo" onclick="startMiniGame()" style="background:#4caf50; color:#fff; padding:15px; margin-bottom:10px;">Поймай бамбук 🎋</button>
                 <button class="card-price" onclick="document.getElementById('wheel-modal').classList.add('active')" style="background:#9c27b0; color:#fff; padding:15px;">Колесо Фортуны 🎡</button>
             </div>
         </div>
 
-        <!-- СЕМЬЯ -->
+        <!-- ДУЭТ -->
         <div class="screen" id="screen-family">
-            <div class="content">
-                <div class="section-title">Семья 👨‍👩‍👧‍👦</div>
-                <div class="card" style="padding:20px;">
-                    <div id="family-status" style="font-size:16px; font-weight:900; color:#ffd700; margin-bottom:10px;">Ты пока один</div>
-                    <div id="pregnancy-btn-container"></div>
+            <div class="content" style="display:flex; flex-direction:column;">
+                <div class="section-title">Дуэт 👨‍👩‍👧‍👦</div>
+                
+                <div class="duo-area" id="duo-area-solo">
+                    <div class="sad-panda" style="font-size:80px; text-align:center; margin:20px 0;">🐼</div>
+                    <p style="color:#aaa; margin-bottom:20px;">Ты пока один. Пригласи друга, чтобы играть вместе!</p>
+                    <button class="card-price" onclick="inviteFriend()" style="background:#2196f3; color:#fff; padding:15px; width:80%; border:none; margin:0 auto;">Пригласить друга</button>
+                </div>
+
+                <div class="duo-area" id="duo-area-active" style="display:none;">
+                    <div class="duo-pandas">
+                        <div class="duo-panda-item">
+                            <div class="duo-medal" id="duo-my-medal"></div>
+                            <div style="font-size:60px;">🐼</div>
+                            <div class="duo-name" id="duo-my-name">Ты</div>
+                        </div>
+                        <div class="duo-panda-item">
+                            <div class="duo-medal" id="duo-partner-medal"></div>
+                            <div style="font-size:60px;">🐼</div>
+                            <div class="duo-name" id="duo-partner-name">Друг</div>
+                        </div>
+                    </div>
+                    <div class="card" style="margin-top:20px; width:80%;">
+                        <div id="family-status" style="font-size:16px; font-weight:900; color:#ffd700; margin-bottom:10px;">Вы вместе!</div>
+                        <div id="pregnancy-btn-container"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -550,11 +567,11 @@ HTML_CONTENT = """
 
         // ========== КОНФИГ ==========
         const allMedals = [
-            { id: 'bronze', name: 'Бронза', req: 30, cssClass: 'm-bronze', icon: '🥉' }, 
-            { id: 'silver', name: 'Серебро', req: 90, cssClass: 'm-silver', icon: '🥈' },
-            { id: 'gold', name: 'Золото', req: 180, cssClass: 'm-gold', icon: '🥇' }, 
-            { id: 'epic', name: 'Эпик', req: 365, cssClass: 'm-epic', icon: '🟣' },
-            { id: 'mythic', name: 'Мифик', req: 730, cssClass: 'm-mythic', icon: '🔴' }
+            { id: 'bronze', name: 'Бронза', req: 30, cssClass: 'm-bronze', ribbon: 'red' }, 
+            { id: 'silver', name: 'Серебро', req: 90, cssClass: 'm-silver', ribbon: 'blue' },
+            { id: 'gold', name: 'Золото', req: 180, cssClass: 'm-gold', ribbon: 'green' }, 
+            { id: 'epic', name: 'Эпик', req: 365, cssClass: 'm-epic', ribbon: 'purple' },
+            { id: 'mythic', name: 'Мифик', req: 730, cssClass: 'm-mythic', ribbon: 'black' }
         ];
         const allFrames = [
             { id: 'default', name: 'Новичок', cssClass: 'default' }, 
@@ -569,10 +586,10 @@ HTML_CONTENT = """
         ];
 
         const petsData = {
-            'pet_dog': { icon: '🐶', name: 'Собачка' },
-            'pet_cat': { icon: '🐱', name: 'Котик' },
-            'pet_fox': { icon: '🦊', name: 'Лисичка' },
-            'pet_dragon': { icon: '🐉', name: 'Дракон' }
+            'pet_dog': { icon: '🐶', name: 'Собачка', svg: `<circle cx="50" cy="50" r="40" fill="#d7ccc8"/><circle cx="30" cy="30" r="15" fill="#8d6e63"/><circle cx="70" cy="30" r="15" fill="#8d6e63"/><circle cx="50" cy="55" r="20" fill="#fff"/><circle cx="50" cy="55" r="10" fill="#3e2723"/><circle cx="35" cy="45" r="5" fill="#3e2723" class="pet-eye"/><circle cx="65" cy="45" r="5" fill="#3e2723" class="pet-eye"/>` },
+            'pet_cat': { icon: '🐱', name: 'Котик', svg: `<circle cx="50" cy="50" r="40" fill="#ffb74d"/><polygon points="20,20 30,50 10,50" fill="#ffb74d"/><polygon points="80,20 70,50 90,50" fill="#ffb74d"/><circle cx="35" cy="45" r="5" fill="#3e2723" class="pet-eye"/><circle cx="65" cy="45" r="5" fill="#3e2723" class="pet-eye"/><ellipse cx="50" cy="60" rx="10" ry="5" fill="#fff"/>` },
+            'pet_fox': { icon: '🦊', name: 'Лисичка', svg: `<circle cx="50" cy="50" r="40" fill="#ff7043"/><polygon points="20,20 30,50 10,50" fill="#ff7043"/><polygon points="80,20 70,50 90,50" fill="#ff7043"/><circle cx="35" cy="45" r="5" fill="#3e2723" class="pet-eye"/><circle cx="65" cy="45" r="5" fill="#3e2723" class="pet-eye"/><circle cx="50" cy="60" r="8" fill="#3e2723"/>` },
+            'pet_dragon': { icon: '🐉', name: 'Дракон', svg: `<circle cx="50" cy="50" r="40" fill="#4caf50"/><polygon points="20,20 30,40 10,40" fill="#81c784"/><polygon points="80,20 70,40 90,40" fill="#81c784"/><circle cx="35" cy="45" r="5" fill="#fff" class="pet-eye"/><circle cx="65" cy="45" r="5" fill="#fff" class="pet-eye"/><path d="M40,60 Q50,70 60,60" stroke="#111" stroke-width="3" fill="none"/>` }
         };
 
         if (!state.avatarUrl) state.avatarUrl = tg.initDataUnsafe?.user?.photo_url || '';
@@ -582,6 +599,9 @@ HTML_CONTENT = """
             if (state.avatarUrl) { miniAv.innerHTML = `<img src="${state.avatarUrl}">`; largeAv.innerHTML = `<img src="${state.avatarUrl}">`; } 
             else { miniAv.innerHTML = '🐼'; largeAv.innerHTML = '🐼'; }
         }
+
+        function goToProfile() { switchTab('profile', document.querySelectorAll('.nav-btn')[5]); }
+        function goToGemShop() { switchTab('shop', document.querySelectorAll('.nav-btn')[3]); switchShopTab('gems', document.querySelectorAll('#screen-shop .tab-btn')[1]); }
 
         function openNameModal() { document.getElementById('name-input').value = state.nickname; document.getElementById('name-modal').classList.add('active'); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -621,32 +641,42 @@ HTML_CONTENT = """
             const med = allMedals.find(m => m.id === state.selectedMedal);
 
             // Header
-            document.getElementById('header-frame').className = `avatar-frame ${frame}`;
+            const hFrame = document.getElementById('header-frame'); if(hFrame) hFrame.className = `avatar-frame ${frame}`;
             const nameEl = document.getElementById('my-name');
-            nameEl.className = `header-nick ${animCss}`; nameEl.innerText = state.nickname;
-            document.getElementById('header-medal').innerHTML = med ? `<div class="medal-circle ${med.cssClass}" style="width:24px; height:24px; font-size:14px;">${med.icon}</div>` : '';
+            if(nameEl) { nameEl.className = `header-nick ${animCss}`; nameEl.innerText = state.nickname; }
+            
+            const hMed = document.getElementById('header-medal');
+            if(hMed) {
+                if (med) { hMed.style.display = 'flex'; hMed.innerHTML = `<div class="medal-ribbon ${med.ribbon}"></div><div class="medal-coin"></div>`; }
+                else hMed.style.display = 'none';
+            }
 
             // Profile Page
-            document.getElementById('profile-frame').className = `avatar-frame ${frame}`;
+            const pFrame = document.getElementById('profile-frame'); if(pFrame) pFrame.className = `avatar-frame ${frame}`;
             const profName = document.getElementById('my-name-profile');
-            profName.className = `profile-name ${animCss}`; profName.innerText = state.nickname;
-            document.getElementById('my-medal-display').innerHTML = med ? `<div class="medal-circle ${med.cssClass}" style="margin:0 auto 10px;">${med.icon}</div>` : 'Медаль: Нет';
+            if(profName) { profName.className = `profile-name ${animCss}`; profName.innerText = state.nickname; }
             
-            document.getElementById('my-name-label').innerText = state.nickname;
-            document.getElementById('my-name-label').className = `panda-name ${animCss}`;
+            const pMed = document.getElementById('my-medal-display');
+            if(pMed) {
+                if (med) { pMed.style.display = 'flex'; pMed.innerHTML = `<div class="medal-ribbon ${med.ribbon}"></div><div class="medal-coin"></div>`; }
+                else pMed.style.display = 'none';
+            }
 
-            // Pet on main screen
-            const petEl = document.getElementById('my-pet');
-            if (state.equipped.pet && state.equipped.pet !== 'none') {
-                petEl.style.display = 'block';
-                petEl.innerText = petsData[state.equipped.pet].icon;
-            } else {
-                petEl.style.display = 'none';
+            // Pet
+            const petEl = document.getElementById('my-pet-container');
+            const petIcon = document.getElementById('my-pet-icon');
+            if (petEl && petIcon) {
+                if (state.equipped.pet && state.equipped.pet !== 'none') {
+                    petEl.style.display = 'block';
+                    petIcon.innerHTML = petsData[state.equipped.pet].svg;
+                } else {
+                    petEl.style.display = 'none';
+                }
             }
 
             // Grids
             const mGrid = document.getElementById('medals-grid'); if(mGrid) { mGrid.innerHTML = '';
-                allMedals.forEach(m => { const o = state.unlockedMedals.includes(m.id); const s = state.selectedMedal === m.id; mGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Medal','${m.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon medal-circle ${m.cssClass}">${m.icon}</div><div style="font-size:10px; margin-top:5px;">${m.name}</div></div>`; });
+                allMedals.forEach(m => { const o = state.unlockedMedals.includes(m.id); const s = state.selectedMedal === m.id; mGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Medal','${m.id}')" style="${o?'':'opacity:0.3;'}"><div class="medal-wrapper"><div class="medal-ribbon ${m.ribbon}"></div><div class="medal-coin"></div></div><div style="font-size:10px; margin-top:5px;">${m.name}</div></div>`; });
             }
             const fGrid = document.getElementById('frames-grid'); if(fGrid) { fGrid.innerHTML = '';
                 allFrames.forEach(f => { const o = state.unlockedFrames.includes(f.id); const s = state.selectedFrame === f.id; fGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Frame','${f.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon" style="border:4px solid #fff; border-radius:50%; width:30px; height:30px; margin:0 auto; ${f.id==='millionaire'?'border-color:#ffd700; box-shadow:0 0 10px #ffd700;':f.id==='legend'?'border-color:#00e5ff; box-shadow:0 0 15px #00e5ff;':''}"></div><div style="font-size:10px; margin-top:5px;">${f.name}</div></div>`; });
@@ -688,7 +718,6 @@ HTML_CONTENT = """
             document.getElementById('shop-grid').style.display = tab === 'items' ? 'grid' : 'none'; 
             document.getElementById('gems-grid').style.display = tab === 'gems' ? 'grid' : 'none'; 
         }
-        function openGemShop() { switchTab('shop', document.querySelectorAll('.nav-btn')[3]); switchShopTab('gems', document.querySelectorAll('#screen-shop .tab-btn')[1]); }
 
         function buyGems(amount) { tg.showAlert(`Для покупки ${amount} гемов за Telegram Stars нужно подключить платежную систему в BotFather. Скоро добавим!`); }
         
@@ -702,7 +731,7 @@ HTML_CONTENT = """
                 const win = [100, 500, 1000, 5000, 10000, 50000][Math.floor(Math.random() * 6)];
                 state.coins += win; tg.showAlert(`🎉 Выигрыш: ${win} монет!`);
                 closeModal('wheel-modal'); updateUI();
-            }, 3000);
+            }, 4000);
         }
 
         let miniActive = false;
@@ -727,10 +756,16 @@ HTML_CONTENT = """
             if(document.getElementById('energy-fill')) document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%';
             if(document.getElementById('streak-badge')) document.getElementById('streak-badge').innerText = `🔥 Серия: ${state.streakDays}`;
             
-            checkUnlocks(); renderProfile(); renderFarm(); renderShop(); renderFamily();
+            checkUnlocks(); renderProfile(); renderFarm(); renderShop(); renderDuo();
             
-            if (state.isPregnant) { document.querySelector('.belly-normal').style.display = 'none'; document.querySelector('.belly-pregnant').style.display = 'block'; if (Date.now() >= state.pregnancyEnd) { state.isPregnant = false; state.hasBaby = true; document.querySelector('.belly-normal').style.display = 'block'; document.querySelector('.belly-pregnant').style.display = 'none'; tg.showAlert("🎉 Родился малыш!"); } } 
-            else { document.querySelector('.belly-normal').style.display = 'block'; document.querySelector('.belly-pregnant').style.display = 'none'; }
+            const bellyNormal = document.querySelector('.belly-normal'); const bellyPregnant = document.querySelector('.belly-pregnant');
+            if (bellyNormal && bellyPregnant) {
+                if (state.isPregnant) { 
+                    bellyNormal.style.display = 'none'; bellyPregnant.style.display = 'block'; 
+                    if (Date.now() >= state.pregnancyEnd) { state.isPregnant = false; state.hasBaby = true; bellyNormal.style.display = 'block'; bellyPregnant.style.display = 'none'; tg.showAlert("🎉 Родился малыш!"); } 
+                } 
+                else { bellyNormal.style.display = 'block'; bellyPregnant.style.display = 'none'; }
+            }
 
             saveGame();
         }
@@ -761,12 +796,28 @@ HTML_CONTENT = """
             updateUI(); 
         }
 
-        function renderFamily() {
-            const status = document.getElementById('family-status'); const btnCont = document.getElementById('pregnancy-btn-container'); if(!status) return;
-            if (state.hasBaby) { status.innerText = "👶 У тебя есть малыш!"; btnCont.innerHTML = ""; } 
-            else if (state.isPregnant) { status.innerText = `🤰 Беременна!`; btnCont.innerHTML = ""; } 
-            else if (state.gender === 'female') { status.innerText = "Готова к материнству"; if (state.streakDays >= 7 || state.isAdmin) btnCont.innerHTML = `<button class="card-price" onclick="startPregnancy()">Забеременеть</button>`; else btnCont.innerHTML = `<div style="font-size:12px;color:#aaa;">Нужна серия 7 дней</div>`; } 
-            else { status.innerText = "Самец"; btnCont.innerHTML = ""; }
+        function renderDuo() {
+            const solo = document.getElementById('duo-area-solo'); const active = document.getElementById('duo-area-active');
+            if(!solo || !active) return;
+
+            if (currentMode === 'solo') {
+                solo.style.display = 'block'; active.style.display = 'none';
+            } else {
+                solo.style.display = 'none'; active.style.display = 'block';
+                document.getElementById('duo-my-name').innerText = state.nickname;
+                document.getElementById('duo-partner-name').innerText = document.getElementById('partner-name').innerText;
+                
+                const med = allMedals.find(m => m.id === state.selectedMedal);
+                const dMed = document.getElementById('duo-my-medal');
+                if (med) dMed.innerHTML = `<div class="medal-wrapper" style="width:30px; height:40px;"><div class="medal-ribbon ${med.ribbon}"></div><div class="medal-coin"></div></div>`;
+                else dMed.innerHTML = '';
+
+                const status = document.getElementById('family-status'); const btnCont = document.getElementById('pregnancy-btn-container');
+                if (state.hasBaby) { status.innerText = "👶 У вас есть малыш!"; btnCont.innerHTML = ""; } 
+                else if (state.isPregnant) { status.innerText = `🤰 Беременна!`; btnCont.innerHTML = ""; } 
+                else if (state.gender === 'female') { status.innerText = "Готова к материнству"; if (state.streakDays >= 7 || state.isAdmin) btnCont.innerHTML = `<button class="card-price" onclick="startPregnancy()">Забеременеть</button>`; else btnCont.innerHTML = `<div style="font-size:12px;color:#aaa;">Нужна серия 7 дней</div>`; } 
+                else { status.innerText = "Самец"; btnCont.innerHTML = ""; }
+            }
         }
         function startPregnancy() { state.isPregnant = true; state.pregnancyEnd = Date.now() + (7 * 24 * 60 * 60 * 1000); updateUI(); }
 
@@ -828,7 +879,11 @@ HTML_CONTENT = """
         function checkStreak() {
             const now = Date.now(); const oneDay = 24 * 60 * 60 * 1000;
             if (state.lastLogin === 0) { state.lastLogin = now; state.streakDays = 1; } else { const d = Math.floor((now - state.lastLogin) / oneDay); if (d >= 1) { state.streakDays += d; state.lastLogin = now; } }
-            let scale = 0.9 + (state.streakDays * 0.02); if (scale > 1.4) scale = 1.4; document.getElementById('panda-wrapper').style.transform = `scale(${scale})`; saveGame();
+            // Панда растет от 0.6 до 1.2 (максимум)
+            let scale = 0.6 + (state.streakDays * 0.01); 
+            if (scale > 1.2) scale = 1.2; 
+            document.getElementById('panda-wrapper').style.transform = `scale(${scale})`; 
+            saveGame();
         }
 
         function selectGender(g) { state.gender = g; document.getElementById('setup-screen').style.display = 'none'; applyGenderVisuals(); checkStreak(); saveGame(); updateUI(); connectWebSocket(); fetchFriends(); fetchLeaderboard(); }
@@ -840,9 +895,22 @@ HTML_CONTENT = """
                 const data = JSON.parse(event.data);
                 if (data.type === 'room_state') {
                     const friend = data.players.find(p => String(p.id) !== myId);
-                    if (friend) { document.getElementById('partner-container').style.display = 'block'; document.getElementById('partner-name').innerText = friend.name; const bg = document.getElementById('bg-container'); if (state.gender === 'male' && friend.gender === 'male') bg.className = 'bg-container bg-bro'; else if (state.gender === 'female' && friend.gender === 'female') bg.className = 'bg-container bg-sisters'; else bg.className = 'bg-container bg-romantic'; } else { document.getElementById('partner-container').style.display = 'none'; document.getElementById('bg-container').className = 'bg-container'; }
-                } else if (data.type === 'player_tapped') { const p = document.getElementById('partner-panda'); p.classList.remove('hit'); void p.offsetWidth; p.classList.add('hit'); state.coins += data.power; updateUI(); }
-                else if (data.type === 'joint_progress') { document.getElementById('joint-bar').style.display = 'block'; document.getElementById('joint-bar-fill').style.width = data.progress + '%'; document.getElementById('joint-bar-text').innerText = `Гнездышко: ${Math.floor(data.progress)}%`; if (data.progress >= 100) { state.coins += 10000; tg.showAlert("🎉 Гнездышко свито! +10000 монет!"); updateUI(); } }
+                    if (friend) { 
+                        currentMode = 'duo'; 
+                        document.getElementById('partner-name').innerText = friend.name; 
+                        const bg = document.getElementById('bg-container'); 
+                        if (state.gender === 'male' && friend.gender === 'male') bg.className = 'bg-container bg-bro'; 
+                        else if (state.gender === 'female' && friend.gender === 'female') bg.className = 'bg-container bg-sisters'; 
+                        else bg.className = 'bg-container bg-romantic'; 
+                        renderDuo();
+                    } else { 
+                        currentMode = 'solo'; 
+                        document.getElementById('bg-container').className = 'bg-container'; 
+                        renderDuo();
+                    }
+                } else if (data.type === 'player_tapped') { 
+                    state.coins += data.power; updateUI(); 
+                }
             };
             ws.onclose = () => { document.getElementById('conn-status').innerText = "🔴 Оффлайн"; setTimeout(connectWebSocket, 3000); };
         }
@@ -896,7 +964,9 @@ HTML_CONTENT = """
             document.getElementById('vp-frame').className = `avatar-frame ${frameData ? frameData.cssClass : 'default'}`;
             
             const medData = allMedals.find(m => m.id === medalId);
-            document.getElementById('vp-medal').innerHTML = medData ? `<div class="medal-circle ${medData.cssClass}">${medData.icon}</div>` : '';
+            const vpMed = document.getElementById('vp-medal');
+            if (medData) { vpMed.style.display = 'flex'; vpMed.innerHTML = `<div class="medal-ribbon ${medData.ribbon}"></div><div class="medal-coin"></div>`; }
+            else vpMed.style.display = 'none';
 
             if (isVerified) {
                 document.getElementById('vp-name').innerHTML += ' <span class="verified-badge" style="font-size:16px; width:20px; height:20px;">✔</span>';
@@ -976,7 +1046,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             if message.get("type") == "update_stats":
                 players_db[user_id]["coins"] = message.get("coins", 0)
                 players_db[user_id]["gems"] = message.get("gems", 0)
-                # Сохраняем кастомизацию
                 players_db[user_id]["avatar"] = message.get("avatar", "")
                 players_db[user_id]["frame"] = message.get("frame", "default")
                 players_db[user_id]["medal"] = message.get("medal", "none")
