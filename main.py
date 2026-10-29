@@ -2,6 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from typing import Dict, List
+from pydantic import BaseModel
 import json
 import os
 import time
@@ -75,6 +76,27 @@ players_db: Dict[str, dict] = load_players()
 rooms: Dict[str, dict] = {}
 active_connections: Dict[str, WebSocket] = {} 
 
+# --- API ДЛЯ БОТА (НАЧИСЛЕНИЕ ГЕМОВ) ---
+class GemPurchase(BaseModel):
+    user_id: str
+    amount: int
+
+@app.post("/api/add_gems")
+async def add_gems(data: GemPurchase):
+    if data.user_id in players_db:
+        players_db[data.user_id]["gems"] += data.amount
+        save_player(data.user_id, players_db[data.user_id])
+        if data.user_id in active_connections:
+            try:
+                await active_connections[data.user_id].send_text(json.dumps({
+                    "type": "update_stats",
+                    "gems": players_db[data.user_id]["gems"],
+                    "coins": players_db[data.user_id]["coins"]
+                }))
+            except: pass
+        return {"status": "ok"}
+    return {"status": "error", "message": "Player not found"}
+
 @app.api_route("/", methods=["GET", "HEAD"])
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def serve_game():
@@ -109,7 +131,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 33.0</title>
+    <title>Panda Game 34.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -122,7 +144,7 @@ HTML_CONTENT = """
         .gender-btn:hover { background: rgba(76, 175, 80, 0.3); transform: scale(1.05); }
         .gender-btn .icon { font-size: 50px; display: block; margin-bottom: 10px; }
 
-        /* ФОН И ЭФФЕКТЫ */
+        /* ФОН */
         .bg-container { position: absolute; inset: 0; z-index: 1; overflow: hidden; transition: background 1.5s; }
         .bg-base { background: linear-gradient(180deg, #0f172a 0%, #1e293b 40%, #334155 70%, #475569 100%); }
         .bg-romantic { background: linear-gradient(180deg, #2d1b36 0%, #6b3f5c 40%, #a86b7e 70%, #d9a0a8 100%) !important; }
@@ -134,7 +156,7 @@ HTML_CONTENT = """
         .bg-clouds { position: absolute; top: 15%; left: 0; width: 200%; height: 30%; opacity: 0.3; background: radial-gradient(ellipse at 20% 50%, #fff 10%, transparent 40%), radial-gradient(ellipse at 70% 30%, #fff 15%, transparent 50%); animation: floatClouds 60s linear infinite; }
         @keyframes floatClouds { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         
-        /* ЖИВЫЕ ЭФФЕКТЫ (Светлячки и Бабочки) */
+        /* ЖИВЫЕ ЭФФЕКТЫ */
         .bg-effects { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
         .firefly { position: absolute; width: 4px; height: 4px; background: #ffd700; border-radius: 50%; box-shadow: 0 0 10px #ffd700, 0 0 20px #ffd700; opacity: 0; animation: fly linear infinite; }
         @keyframes fly {
@@ -566,13 +588,11 @@ HTML_CONTENT = """
             <div class="content">
                 <div class="section-title">Друзья 👥</div>
                 
-                <!-- ЗАЯВКИ -->
                 <div id="incoming-requests" style="display: none; margin-bottom: 15px; background: rgba(255,215,0,0.1); border: 2px solid #ffd700; padding: 10px; border-radius: 12px;">
                     <div style="font-size: 14px; color: #ffd700; font-weight: 900; margin-bottom: 10px;">🔔 У тебя есть заявки в друзья!</div>
                     <div class="friend-list" id="requests-list"></div>
                 </div>
 
-                <!-- ПОИСК -->
                 <div class="search-container">
                     <input type="text" id="search-input" class="search-input" placeholder="Ник или ID игрока...">
                     <button class="search-btn" onclick="searchPlayers()">Найти</button>
@@ -889,7 +909,6 @@ HTML_CONTENT = """
                 if (state.coins >= 1000000) state.unlockedFrames.push('millionaire'); 
                 if (state.streakDays >= 365) state.unlockedFrames.push('legend');
                 
-                // Рамки за покупку
                 allFrames.forEach(f => { if (f.price > 0 && state.coins >= f.price && !state.unlockedFrames.includes(f.id)) { state.unlockedFrames.push(f.id); } });
                 
                 state.unlockedAnims = ['default']; if (state.streakDays >= 30) state.unlockedAnims.push('gold'); if (state.streakDays >= 180) state.unlockedAnims.push('fire'); if (state.streakDays >= 365) state.unlockedAnims.push('rainbow');
@@ -1006,9 +1025,15 @@ HTML_CONTENT = """
             document.getElementById('gems-grid').style.display = tab === 'gems' ? 'grid' : 'none'; 
         }
 
-        function buyGems(amount) { 
-            // ЗДЕСЬ БУДЕТ ИНТЕГРАЦИЯ С БОТОМ ДЛЯ ОПЛАТЫ
-            tg.showAlert(`Покупка ${amount} гемов через Telegram Stars. В данный момент функция в разработке. Следите за обновлениями!`);
+        function buyGems(starsPrice) { 
+            // Отправляем данные боту
+            const gemsAmount = starsPrice * 2; // Например, за 50 звезд даем 100 гемов
+            tg.sendData(JSON.stringify({ 
+                action: 'buy_gems', 
+                stars: starsPrice, 
+                gems: gemsAmount 
+            }));
+            tg.close(); // Закрываем WebApp, чтобы бот показал счет
         }
         
         function spinWheel() {
@@ -1145,7 +1170,6 @@ HTML_CONTENT = """
 
         function hugPartner() {
             if (!ws || ws.readyState !== WebSocket.OPEN) return;
-            // Отправляем запрос на обнимашки
             ws.send(JSON.stringify({ type: "hug_partner" }));
             tg.showAlert("🤗 Ты обнял друга! Вы оба получили бонус!");
         }
@@ -1700,40 +1724,4 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
 
 @app.get("/api/leaderboard")
 async def get_leaderboard():
-    sorted_players = sorted(players_db.items(), key=lambda x: x[1]["coins"], reverse=True)[:50]
-    result = []
-    for uid, data in sorted_players:
-        is_online = (time.time() - data["last_active"]) < 120
-        result.append({"id": uid, "name": data["name"], "coins": data["coins"], "online": is_online, "gifts": data.get("gifts", 0), "gift_history": data.get("gift_history", []), "verified": data.get("verified", False), "avatar": data.get("avatar", ""), "frame": data.get("frame", "default"), "medal": data.get("medal", "none"), "nick_style": data.get("nick_style", "nick-default")})
-    return result
-
-@app.get("/api/friends/{user_id}")
-async def get_friends(user_id: str):
-    if user_id not in players_db: return []
-    friends_list = []
-    for f_id in players_db[user_id]["friends"]:
-        if f_id in players_db:
-            f_data = players_db[f_id]
-            is_online = (time.time() - f_data["last_active"]) < 120
-            friends_list.append({"id": f_id, "name": f_data["name"], "coins": f_data["coins"], "online": is_online, "gifts": f_data.get("gifts", 0), "gift_history": f_data.get("gift_history", []), "verified": f_data.get("verified", False), "avatar": f_data.get("avatar", ""), "frame": f_data.get("frame", "default"), "medal": f_data.get("medal", "none"), "nick_style": f_data.get("nick_style", "nick-default")})
-    return friends_list
-
-async def broadcast_room_state(room_id: str):
-    if room_id in rooms:
-        players_list = []
-        for uid in rooms[room_id]["players"].keys():
-            if uid in players_db: players_list.append({"id": uid, "name": players_db[uid]["name"], "gender": players_db[uid]["gender"]})
-            else: players_list.append({"id": uid, "name": f"Panda_{uid[:4]}", "gender": "male"})
-        await broadcast(room_id, {"type": "room_state", "players": players_list})
-
-async def broadcast(room_id: str, message: dict, exclude_user: str = None):
-    if room_id in rooms:
-        for uid, connection in list(rooms[room_id]["players"].items()):
-            if uid != exclude_user:
-                try: await connection.send_text(json.dumps(message))
-                except: pass
-
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    sorted_players = sorted(players_db.items(), key
