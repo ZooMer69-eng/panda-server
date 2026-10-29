@@ -25,7 +25,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 20.0</title>
+    <title>Panda Game 21.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -75,14 +75,13 @@ HTML_CONTENT = """
         .name-medal-block { display: flex; flex-direction: column; cursor: pointer; }
         .name-row { display: flex; align-items: center; gap: 5px; }
         .header-nick { font-size: 16px; font-weight: 900; text-shadow: 2px 2px 0 #000; -webkit-text-fill-color: currentColor; }
-        .header-medal { font-size: 18px; display: inline-flex; align-items: center; justify-content: center; filter: drop-shadow(0 0 5px rgba(255,255,255,0.4)); }
+        .header-medal { font-size: 14px; display: inline-flex; align-items: center; justify-content: center; filter: drop-shadow(0 0 5px rgba(255,255,255,0.4)); }
         .streak-badge { font-size: 10px; color: #ff6b00; font-weight: 900; margin-top: 2px; }
 
         .res-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
         .coins-box { font-size: 18px; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 3px; }
         .gems-box { font-size: 14px; font-weight: 900; color: #00e5ff; display: flex; align-items: center; gap: 3px; cursor: pointer; }
         
-        /* КРАСИВАЯ МОНЕТКА И АЛМАЗ */
         .icon-coin { display: inline-block; width: 16px; height: 16px; background: radial-gradient(circle at 30% 30%, #fff000, #ffb300, #b26a00); border-radius: 50%; border: 1px solid #e6a800; box-shadow: 0 1px 3px rgba(0,0,0,0.5); text-align: center; line-height: 14px; font-size: 10px; font-weight: 900; color: #8a5100; vertical-align: middle; margin-left: 2px; }
         .icon-gem { display: inline-block; font-size: 16px; filter: drop-shadow(0 0 3px #00e5ff); margin-left: 2px; }
 
@@ -103,8 +102,8 @@ HTML_CONTENT = """
         .panda-wrapper.hit { animation: jump 0.25s ease-out; }
         @keyframes jump { 0% { transform: translateY(0); } 30% { transform: translateY(-15px) scale(1.05); } 100% { transform: translateY(0); } }
         
-        /* ПИТОМЦЫ (На заднем плане, отдельно от панды) */
-        .pet-container { position: absolute; bottom: 5px; right: -60px; width: 80px; height: 80px; z-index: 4; pointer-events: none; display: flex; justify-content: center; align-items: center; font-size: 55px; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); animation: petIdle 3s infinite alternate ease-in-out; }
+        /* ПИТОМЦЫ (Полноценные 3D-модели на заднем плане) */
+        .pet-container { position: absolute; bottom: 0px; right: -70px; width: 90px; height: 90px; z-index: 4; pointer-events: none; display: flex; justify-content: center; align-items: center; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); animation: petIdle 3s infinite alternate ease-in-out; }
         @keyframes petIdle { 0% { transform: translateY(0) scale(1) rotate(-2deg); } 100% { transform: translateY(-8px) scale(1.05) rotate(2deg); } }
         
         /* Анимации ников */
@@ -183,7 +182,6 @@ HTML_CONTENT = """
 
         /* ПРОФИЛЬ */
         .profile-card { background: rgba(0,0,0,0.6); border-radius: 15px; padding: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-        /* ДИНАМИЧЕСКИЙ ФОН ПРОФИЛЯ */
         .profile-bg { position: absolute; inset: 0; z-index: 0; opacity: 0.3; background-size: cover; background-position: center; }
         
         .profile-avatar-large { width: 80px; height: 80px; border-radius: 50%; background: #333; display: flex; justify-content: center; align-items: center; font-size: 40px; position: relative; overflow: hidden; border: 2px solid #fff; z-index: 2;}
@@ -200,9 +198,9 @@ HTML_CONTENT = """
         .inv-item.owned .inv-icon { filter: none; }
 
         /* КРАСИВЫЕ ЭМОДЗИ-МЕДАЛИ */
-        .medal-emoji { font-size: 24px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
-        .medal-emoji.small { font-size: 16px; }
-        .medal-emoji.large { font-size: 36px; }
+        .medal-emoji { font-size: 18px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+        .medal-emoji.small { font-size: 12px; }
+        .medal-emoji.large { font-size: 28px; }
 
         /* КОЛЕСО */
         .wheel-container { width: 240px; height: 240px; position: relative; margin: 20px auto; }
@@ -224,6 +222,10 @@ HTML_CONTENT = """
         .duo-medal { position: absolute; top: -25px; left: 50%; transform: translateX(-50%); }
         .sad-panda { animation: sadFloat 3s infinite ease-in-out; }
         @keyframes sadFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+        /* ИСТОРИЯ ПОДАРКОВ */
+        .gift-history-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; margin-bottom: 5px; font-size: 12px; text-align: left; }
+        .gift-history-icon { font-size: 20px; }
 
         #error-log { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255,0,0,0.9); color: white; padding: 10px; font-size: 12px; z-index: 9999; display: none; word-break: break-all; }
         #loading { position: fixed; inset: 0; background: #0a120e; z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 20px; font-weight: 900; color: #4caf50; }
@@ -248,10 +250,10 @@ HTML_CONTENT = """
         <div class="modal-box">
             <h2 style="color:#ffd700; margin-bottom:15px;">Подарить игроку</h2>
             <div style="display:flex; justify-content:space-around; margin-bottom:20px;">
-                <div onclick="sendGift('rose', 10)" style="cursor:pointer; text-align:center;"><div style="font-size:30px;">🌹</div><div style="font-size:10px; color:#00e5ff;">10 💎</div></div>
-                <div onclick="sendGift('cake', 50)" style="cursor:pointer; text-align:center;"><div style="font-size:30px;">🎂</div><div style="font-size:10px; color:#00e5ff;">50 💎</div></div>
-                <div onclick="sendGift('bear', 100)" style="cursor:pointer; text-align:center;"><div style="font-size:30px;">🧸</div><div style="font-size:10px; color:#00e5ff;">100 💎</div></div>
-                <div onclick="sendGift('crown', 500)" style="cursor:pointer; text-align:center;"><div style="font-size:30px;">👑</div><div style="font-size:10px; color:#00e5ff;">500 💎</div></div>
+                <div onclick="sendGift('🌹', 10)" style="cursor:pointer; text-align:center;"><div style="font-size:30px;">🌹</div><div style="font-size:10px; color:#00e5ff;">10 💎</div></div>
+                <div onclick="sendGift('🎂', 50)" style="cursor:pointer; text-align:center;"><div style="font-size:30px;">🎂</div><div style="font-size:10px; color:#00e5ff;">50 💎</div></div>
+                <div onclick="sendGift('🧸', 100)" style="cursor:pointer; text-align:center;"><div style="font-size:30px;">🧸</div><div style="font-size:10px; color:#00e5ff;">100 💎</div></div>
+                <div onclick="sendGift('👑', 500)" style="cursor:pointer; text-align:center;"><div style="font-size:30px;">👑</div><div style="font-size:10px; color:#00e5ff;">500 💎</div></div>
             </div>
             <button class="card-price" style="background:#555; color:#fff;" onclick="closeModal('gift-modal')">Отмена</button>
         </div>
@@ -265,7 +267,17 @@ HTML_CONTENT = """
             </div>
             <div class="profile-name" id="vp-name">Ник</div>
             <div class="medal-emoji large" id="vp-medal" style="display:none; margin:0 auto 10px;"></div>
-            <div class="profile-stats" style="justify-content:space-around;"><div>Монеты <span id="vp-coins">0</span></div><div>Подарки <span id="vp-gifts">0</span></div></div>
+            
+            <div class="profile-stats" style="justify-content:space-around; margin-bottom:15px;">
+                <div>Монеты <span id="vp-coins">0</span></div>
+                <div>Подарки <span id="vp-gifts">0</span></div>
+            </div>
+
+            <div style="text-align:left; margin-bottom:15px;">
+                <div style="font-weight:900; margin-bottom:5px; color:#ffd700;">История подарков:</div>
+                <div id="vp-gift-history" style="max-height:100px; overflow-y:auto;"></div>
+            </div>
+
             <button class="card-price" style="background:#ff9800; color:#fff; margin-top:15px;" onclick="openGiftModal()">Подарить 🎁</button>
             <button class="card-price" style="background:#555; color:#fff; margin-top:10px;" onclick="closeModal('view-profile-modal')">Закрыть</button>
         </div>
@@ -368,8 +380,12 @@ HTML_CONTENT = """
                             </g>
                         </svg>
                     </div>
-                    <!-- ПИТОМЕЦ (На заднем плане, отдельно) -->
-                    <div class="pet-container" id="my-pet-container" style="display:none;">🐶</div>
+                    <!-- ПИТОМЕЦ (Полноценный SVG) -->
+                    <div class="pet-container" id="my-pet-container" style="display:none;">
+                        <svg class="pet-svg" viewBox="0 0 100 100" style="width:100%; height:100%;">
+                            <g id="my-pet-icon"></g>
+                        </svg>
+                    </div>
                 </div>
             </div>
         </div>
@@ -527,7 +543,7 @@ HTML_CONTENT = """
             equipped: { pet: 'none' },
             bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }],
             lastMiniGame: 0, lastChest: 0, lastWheel: 0,
-            friends: [], giftsReceived: 0,
+            friends: [], giftsReceived: 0, giftHistory: [],
             nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: '',
             unlockedMedals: [], unlockedFrames: [], unlockedAnims: []
         };
@@ -551,7 +567,6 @@ HTML_CONTENT = """
         }
 
         // ========== КОНФИГ ==========
-        // ИСПОЛЬЗУЕМ ЧИСТЫЕ ЭМОДЗИ ДЛЯ МЕДАЛЕЙ
         const allMedals = [
             { id: 'bronze', name: 'Бронза', req: 30, emoji: '🥉' }, 
             { id: 'silver', name: 'Серебро', req: 90, emoji: '🥈' },
@@ -571,13 +586,12 @@ HTML_CONTENT = """
             { id: 'rainbow', name: 'Радуга', cssClass: 'nick-rainbow' }
         ];
 
-        // КРАСИВЫЕ 3D ПИТОМЦЫ (Имитация через стилизованные эмодзи)
+        // КРАСИВЫЕ ПОЛНОЦЕННЫЕ SVG ПИТОМЦЫ
         const petsData = {
-            'pet_dog': { icon: '🐶', name: 'Собачка' },
-            'pet_cat': { icon: '🐱', name: 'Котик' },
-            'pet_fox': { icon: '🦊', name: 'Лисичка' },
-            'pet_dragon': { icon: '🐉', name: 'Дракон' },
-            'pet_unicorn': { icon: '🦄', name: 'Единорог' }
+            'pet_dog': { name: 'Собачка', svg: '<path d="M20,80 Q10,60 20,40 L30,40 Q30,20 40,20 Q50,20 50,40 L70,40 Q70,20 80,20 Q90,20 90,40 L100,40 Q110,60 100,80 Z" fill="#e6a869"/><circle cx="40" cy="50" r="5" fill="#fff"/><circle cx="60" cy="50" r="5" fill="#fff"/><circle cx="40" cy="50" r="2" fill="#000"/><circle cx="60" cy="50" r="2" fill="#000"/><ellipse cx="50" cy="60" rx="8" ry="5" fill="#000"/><path d="M50,65 Q50,70 55,70 Q60,70 60,65" fill="none" stroke="#000" stroke-width="2"/>' },
+            'pet_cat': { name: 'Котик', svg: '<circle cx="50" cy="50" r="30" fill="#ffb74d"/><polygon points="20,20 30,45 15,45" fill="#ffb74d"/><polygon points="80,20 70,45 85,45" fill="#ffb74d"/><circle cx="35" cy="45" r="5" fill="#fff"/><circle cx="65" cy="45" r="5" fill="#fff"/><circle cx="35" cy="45" r="2" fill="#000"/><circle cx="65" cy="45" r="2" fill="#000"/><ellipse cx="50" cy="55" rx="6" ry="4" fill="#ff9999"/><path d="M40,60 Q50,70 60,60" fill="none" stroke="#000" stroke-width="2"/>' },
+            'pet_fox': { name: 'Лисичка', svg: '<path d="M20,80 L10,40 L35,45 L50,20 L65,45 L90,40 L80,80 Z" fill="#ff7043"/><circle cx="35" cy="55" r="5" fill="#fff"/><circle cx="65" cy="55" r="5" fill="#fff"/><circle cx="35" cy="55" r="2" fill="#000"/><circle cx="65" cy="55" r="2" fill="#000"/><ellipse cx="50" cy="65" rx="6" ry="4" fill="#000"/>' },
+            'pet_dragon': { name: 'Дракон', svg: '<circle cx="50" cy="50" r="30" fill="#4caf50"/><path d="M20,40 Q30,20 40,40 Q50,20 60,40 Q70,20 80,40" fill="none" stroke="#81c784" stroke-width="5"/><circle cx="35" cy="45" r="5" fill="#fff"/><circle cx="65" cy="45" r="5" fill="#fff"/><circle cx="35" cy="45" r="2" fill="#000"/><circle cx="65" cy="45" r="2" fill="#000"/><path d="M40,60 Q50,70 60,60" fill="none" stroke="#000" stroke-width="2"/>' }
         };
 
         if (!state.avatarUrl) state.avatarUrl = tg.initDataUnsafe?.user?.photo_url || '';
@@ -650,7 +664,7 @@ HTML_CONTENT = """
                 else pMed.style.display = 'none';
             }
 
-            // Динамический фон профиля (зависит от ID)
+            // Динамический фон профиля
             const bgElem = document.getElementById('profile-bg');
             if(bgElem) {
                 const hue = parseInt(myId) % 360;
@@ -659,10 +673,11 @@ HTML_CONTENT = """
 
             // Pet
             const petEl = document.getElementById('my-pet-container');
-            if (petEl) {
+            const petIcon = document.getElementById('my-pet-icon');
+            if (petEl && petIcon) {
                 if (state.equipped.pet && state.equipped.pet !== 'none') {
                     petEl.style.display = 'flex';
-                    petEl.innerText = petsData[state.equipped.pet].icon;
+                    petIcon.innerHTML = petsData[state.equipped.pet].svg;
                 } else {
                     petEl.style.display = 'none';
                 }
@@ -767,18 +782,17 @@ HTML_CONTENT = """
         function saveGame() { localStorage.setItem('pandaUltimate', JSON.stringify(state)); }
 
         const shopData = [
-            { id: 'pet_dog', name: 'Собачка', icon: '🐶', price: 5000 },
-            { id: 'pet_cat', name: 'Котик', icon: '🐱', price: 15000 },
-            { id: 'pet_fox', name: 'Лисичка', icon: '🦊', price: 50000 },
-            { id: 'pet_dragon', name: 'Дракон', icon: '🐉', price: 150000 },
-            { id: 'pet_unicorn', name: 'Единорог', icon: '🦄', price: 300000 }
+            { id: 'pet_dog', name: 'Собачка', price: 5000 },
+            { id: 'pet_cat', name: 'Котик', price: 15000 },
+            { id: 'pet_fox', name: 'Лисичка', price: 50000 },
+            { id: 'pet_dragon', name: 'Дракон', price: 150000 }
         ];
         function renderShop() {
             const grid = document.getElementById('shop-grid'); if(!grid) return; grid.innerHTML = '';
             shopData.forEach(item => { 
                 const isOwned = state.inventory[item.id]; 
                 const isEq = state.equipped.pet === item.id; 
-                grid.innerHTML += `<div class="card"><div class="card-icon" style="font-size:48px; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));">${item.icon}</div><div class="card-title" style="margin-top:10px;">${item.name}</div><button class="card-price ${isOwned ? (isEq ? 'owned' : '') : ''}" onclick="buyItem('${item.id}', ${item.price})">${isOwned ? (isEq ? 'Снять' : 'Надеть') : `${item.price} 🪙`}</button></div>`; 
+                grid.innerHTML += `<div class="card"><div class="card-icon" style="width:60px; height:60px;"><svg viewBox="0 0 100 100">${petsData[item.id].svg}</svg></div><div class="card-title" style="margin-top:10px;">${item.name}</div><button class="card-price ${isOwned ? (isEq ? 'owned' : '') : ''}" onclick="buyItem('${item.id}', ${item.price})">${isOwned ? (isEq ? 'Снять' : 'Надеть') : `${item.price} 🪙`}</button></div>`; 
             });
         }
         function buyItem(id, price) { 
@@ -858,8 +872,9 @@ HTML_CONTENT = """
             if (!state.unlockedMedals) state.unlockedMedals = [];
             if (!state.unlockedFrames) state.unlockedFrames = [];
             if (!state.unlockedAnims) state.unlockedAnims = [];
+            if (!state.giftHistory) state.giftHistory = [];
 
-            if (myId === ADMIN_ID) { state.isAdmin = true; state.verified = true; state.gems = 999999; state.coins = 99999999; state.streakDays = 730; state.inventory = { pet_dog: true, pet_cat: true, pet_fox: true, pet_dragon: true, pet_unicorn: true }; state.equipped = { pet: 'pet_dragon' }; state.selectedMedal = 'mythic'; state.selectedFrame = 'legend'; state.selectedNickAnim = 'rainbow'; }
+            if (myId === ADMIN_ID) { state.isAdmin = true; state.verified = true; state.gems = 999999; state.coins = 99999999; state.streakDays = 730; state.inventory = { pet_dog: true, pet_cat: true, pet_fox: true, pet_dragon: true }; state.equipped = { pet: 'pet_dragon' }; state.selectedMedal = 'mythic'; state.selectedFrame = 'legend'; state.selectedNickAnim = 'rainbow'; }
             
             if (!state.gender) document.getElementById('setup-screen').style.display = 'flex'; 
             else { document.getElementById('setup-screen').style.display = 'none'; applyGenderVisuals(); checkStreak(); updateUI(); connectWebSocket(); fetchFriends(); fetchLeaderboard(); updateAvatarUI(); }
@@ -874,7 +889,6 @@ HTML_CONTENT = """
         function checkStreak() {
             const now = Date.now(); const oneDay = 24 * 60 * 60 * 1000;
             if (state.lastLogin === 0) { state.lastLogin = now; state.streakDays = 1; } else { const d = Math.floor((now - state.lastLogin) / oneDay); if (d >= 1) { state.streakDays += d; state.lastLogin = now; } }
-            // Панда растет от 0.6 до 1.2
             let scale = 0.6 + (state.streakDays * 0.01); 
             if (scale > 1.2) scale = 1.2; 
             document.getElementById('panda-wrapper').style.transform = `scale(${scale})`; 
@@ -905,6 +919,11 @@ HTML_CONTENT = """
                     }
                 } else if (data.type === 'player_tapped') { 
                     state.coins += data.power; updateUI(); 
+                } else if (data.type === 'gift_received') {
+                    state.giftsReceived += 1;
+                    state.giftHistory.unshift({ from: data.from_name, gift: data.gift, time: Date.now() });
+                    tg.showAlert(`🎁 Тебе подарили ${data.gift} от ${data.from_name}!`);
+                    updateUI();
                 }
             };
             ws.onclose = () => { document.getElementById('conn-status').innerText = "🔴 Оффлайн"; setTimeout(connectWebSocket, 3000); };
@@ -915,7 +934,7 @@ HTML_CONTENT = """
                 const res = await fetch(`${API_URL}/api/friends/${myId}`); const data = await res.json(); state.friends = data; const list = document.getElementById('friends-list'); if(!list) return;
                 if (state.friends.length === 0) { list.innerHTML = `<p style="text-align:center; color:#888;">Пока нет друзей.</p>`; return; }
                 list.innerHTML = state.friends.map(f => `
-                    <div class="friend-item" onclick="viewProfile('${f.id}', '${f.name}', ${f.coins}, ${f.gifts || 0}, '${f.frame}', '${f.medal}', '${f.nick_style}', '${f.avatar}', ${f.verified})">
+                    <div class="friend-item" onclick="viewProfile('${f.id}', '${f.name}', ${f.coins}, ${f.gifts || 0}, '${f.frame}', '${f.medal}', '${f.nick_style}', '${f.avatar}', ${f.verified}, ${JSON.stringify(f.gift_history || [])})">
                         <div class="friend-avatar">${f.avatar ? `<img src="${f.avatar}">` : '🐼'}</div>
                         <div class="friend-name-box">
                             <div class="friend-name-row">
@@ -937,7 +956,7 @@ HTML_CONTENT = """
             try {
                 const res = await fetch(`${API_URL}/api/leaderboard`); const data = await res.json(); const list = document.getElementById('leaderboard-list');
                 list.innerHTML = data.map((p, i) => `
-                    <div class="leaderboard-item" onclick="viewProfile('${p.id}', '${p.name}', ${p.coins}, ${p.gifts || 0}, '${p.frame}', '${p.medal}', '${p.nick_style}', '${p.avatar}', ${p.verified})">
+                    <div class="leaderboard-item" onclick="viewProfile('${p.id}', '${p.name}', ${p.coins}, ${p.gifts || 0}, '${p.frame}', '${p.medal}', '${p.nick_style}', '${p.avatar}', ${p.verified}, ${JSON.stringify(p.gift_history || [])})">
                         <span class="lb-rank">${i + 1}.</span>
                         <div class="lb-avatar">${p.avatar ? `<img src="${p.avatar}">` : '🐼'}</div>
                         <span class="lb-name ${p.nick_style}">${p.name} ${p.medal !== 'none' ? `<span class="medal-emoji small">${allMedals.find(m => m.id === p.medal)?.emoji}</span>` : ''} ${p.verified ? '<span class="verified-badge">✔</span>' : ''} ${p.online ? '<span class="status-dot status-online"></span>' : ''}</span>
@@ -947,7 +966,9 @@ HTML_CONTENT = """
             } catch(e) { document.getElementById('leaderboard-list').innerHTML = `<p style="text-align:center; color:#888;">Сервер просыпается...</p>`; }
         }
         
-        function viewProfile(id, name, coins, gifts, frameId, medalId, nickStyle, avatarUrl, isVerified) {
+        let currentViewPlayerId = null;
+        function viewProfile(id, name, coins, gifts, frameId, medalId, nickStyle, avatarUrl, isVerified, giftHistory) {
+            currentViewPlayerId = id;
             document.getElementById('vp-name').innerText = name;
             document.getElementById('vp-name').className = `profile-name ${nickStyle}`;
             document.getElementById('vp-coins').innerText = coins.toLocaleString(); 
@@ -968,14 +989,34 @@ HTML_CONTENT = """
                 document.getElementById('vp-name').innerHTML += ' <span class="verified-badge" style="font-size:16px; width:20px; height:20px;">✔</span>';
             }
 
+            // Отображение истории подарков
+            const historyContainer = document.getElementById('vp-gift-history');
+            if (historyContainer) {
+                if (giftHistory && giftHistory.length > 0) {
+                    historyContainer.innerHTML = giftHistory.map(g => `<div class="gift-history-item"><span class="gift-history-icon">${g.gift}</span> <span>от <b>${g.from}</b></span></div>`).join('');
+                } else {
+                    historyContainer.innerHTML = '<div style="color:#888; font-size:12px;">Подарков пока нет</div>';
+                }
+            }
+
             document.getElementById('view-profile-modal').classList.add('active');
         }
 
         window.openGiftModal = function() { document.getElementById('gift-modal').classList.add('active'); };
         window.closeModal = function(id) { document.getElementById(id).classList.remove('active'); };
+        window.sendGift = function(giftEmoji, price) {
+            if (state.gems < price) { tg.showAlert("Недостаточно гемов! 💎"); return; }
+            state.gems -= price; 
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "send_gift", to: currentViewPlayerId, gift: giftEmoji, cost: price, from_name: state.nickname }));
+            }
+            tg.showAlert(`🎁 Ты подарил ${giftEmoji}!`);
+            closeModal('gift-modal');
+            updateUI();
+        };
 
         function claimChest() { document.getElementById('chest-modal').classList.remove('active'); state.lastChest = Date.now(); state.coins += 1000; tg.showAlert("+1000 монет!"); updateUI(); }
-        function inviteFriend() { const link = `https://t.me/nash_sad_69_bot?startapp=${roomId}`; const text = `Присоединяйся!`; if (tg.openTelegramLink) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`); else navigator.clipboard.writeText(link).then(() => tg.showAlert("Скопировано!")); }
+        function inviteFriend() { const link = `https://t.me/nash_sad_69_bot/play?startapp=${roomId}`; const text = `Присоединяйся ко мне в игре!`; if (tg.openTelegramLink) tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`); else navigator.clipboard.writeText(link).then(() => tg.showAlert("Скопировано!")); }
 
         setInterval(() => {
             if (state.energy < state.maxEnergy) state.energy = Math.min(state.maxEnergy, state.energy + state.regen);
@@ -1003,7 +1044,7 @@ async def serve_game():
 async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     await websocket.accept()
     if user_id not in players_db:
-        players_db[user_id] = {"name": f"Panda_{user_id[:4]}", "coins": 0, "gems": 0, "gender": "male", "last_active": time.time(), "friends": [], "gifts": 0, "verified": True if user_id == '6877882967' else False, "avatar": "", "frame": "default", "medal": "none", "nick_style": "nick-default"}
+        players_db[user_id] = {"name": f"Panda_{user_id[:4]}", "coins": 0, "gems": 0, "gender": "male", "last_active": time.time(), "friends": [], "gifts": 0, "gift_history": [], "verified": True if user_id == '6877882967' else False, "avatar": "", "frame": "default", "medal": "none", "nick_style": "nick-default"}
     else:
         players_db[user_id]["last_active"] = time.time()
         
@@ -1052,11 +1093,14 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             if message.get("type") == "send_gift":
                 target_id = message.get("to")
                 gift_type = message.get("gift")
-                cost = message.get("cost", 0)
+                from_name = message.get("from_name", "Друг")
+                
                 if target_id in players_db:
                     players_db[target_id]["gifts"] += 1
+                    players_db[target_id]["gift_history"].append({"from": from_name, "gift": gift_type, "time": time.time()})
+                    
                     if target_id in rooms[room_id]["players"]:
-                        try: await rooms[room_id]["players"][target_id].send_text(json.dumps({"type": "gift_received", "gift": gift_type}))
+                        try: await rooms[room_id]["players"][target_id].send_text(json.dumps({"type": "gift_received", "gift": gift_type, "from_name": from_name}))
                         except: pass
                 continue
                 
@@ -1078,7 +1122,7 @@ async def get_leaderboard():
     result = []
     for uid, data in sorted_players:
         is_online = (time.time() - data["last_active"]) < 120
-        result.append({"id": uid, "name": data["name"], "coins": data["coins"], "online": is_online, "gifts": data.get("gifts", 0), "verified": data.get("verified", False), "avatar": data.get("avatar", ""), "frame": data.get("frame", "default"), "medal": data.get("medal", "none"), "nick_style": data.get("nick_style", "nick-default")})
+        result.append({"id": uid, "name": data["name"], "coins": data["coins"], "online": is_online, "gifts": data.get("gifts", 0), "gift_history": data.get("gift_history", []), "verified": data.get("verified", False), "avatar": data.get("avatar", ""), "frame": data.get("frame", "default"), "medal": data.get("medal", "none"), "nick_style": data.get("nick_style", "nick-default")})
     return result
 
 @app.get("/api/friends/{user_id}")
@@ -1089,7 +1133,7 @@ async def get_friends(user_id: str):
         if f_id in players_db:
             f_data = players_db[f_id]
             is_online = (time.time() - f_data["last_active"]) < 120
-            friends_list.append({"id": f_id, "name": f_data["name"], "coins": f_data["coins"], "online": is_online, "gifts": f_data.get("gifts", 0), "verified": f_data.get("verified", False), "avatar": f_data.get("avatar", ""), "frame": f_data.get("frame", "default"), "medal": f_data.get("medal", "none"), "nick_style": f_data.get("nick_style", "nick-default")})
+            friends_list.append({"id": f_id, "name": f_data["name"], "coins": f_data["coins"], "online": is_online, "gifts": f_data.get("gifts", 0), "gift_history": f_data.get("gift_history", []), "verified": f_data.get("verified", False), "avatar": f_data.get("avatar", ""), "frame": f_data.get("frame", "default"), "medal": f_data.get("medal", "none"), "nick_style": f_data.get("nick_style", "nick-default")})
     return friends_list
 
 async def broadcast_room_state(room_id: str):
