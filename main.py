@@ -32,7 +32,6 @@ HTML_CONTENT = """
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: #0a120e; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
 
-        /* ЭКРАН ВЫБОРА ПОЛА */
         #setup-screen { position: fixed; inset: 0; background: rgba(10, 18, 14, 0.98); z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; }
         #setup-screen h1 { font-size: 28px; margin-bottom: 10px; color: #ffd700; }
         .gender-btns { display: flex; gap: 20px; margin-top: 20px; }
@@ -40,26 +39,18 @@ HTML_CONTENT = """
         .gender-btn:hover { background: rgba(76, 175, 80, 0.3); transform: scale(1.05); }
         .gender-btn .icon { font-size: 50px; display: block; margin-bottom: 10px; }
 
-        /* НОВЫЙ ФОН */
         .bg-container { position: absolute; inset: 0; z-index: 1; overflow: hidden; }
         .bg-sky { position: absolute; inset: 0; background: linear-gradient(180deg, #1a2a3a 0%, #2d4a5e 40%, #4a7a8c 80%, #6b9e7a 100%); }
         .bg-sun { position: absolute; top: 10%; right: 20%; width: 60px; height: 60px; background: radial-gradient(circle, #fff9c4, #ffe082, transparent); border-radius: 50%; filter: blur(5px); opacity: 0.8; }
-        
-        /* Горы */
         .bg-mountains { position: absolute; bottom: 20%; left: 0; width: 100%; height: 40%; opacity: 0.4; }
         .bg-mountains svg { width: 100%; height: 100%; }
-        
-        /* Бамбук (стоит на земле) */
         .bg-bamboo { position: absolute; bottom: 0; left: 0; width: 100%; height: 85%; display: flex; justify-content: space-around; align-items: flex-end; z-index: 2; }
         .stalk { position: relative; width: 18px; background: linear-gradient(90deg, #1b4d2e 0%, #4ea868 30%, #4ea868 70%, #1b4d2e 100%); border-radius: 8px; box-shadow: 2px 0 5px rgba(0,0,0,0.5); }
         .stalk::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(180deg, transparent 0 90px, #0d2818 90px 95px); border-radius: 8px; }
         .stalk::after { content: ''; position: absolute; top: 25%; left: 18px; width: 45px; height: 12px; background: #4ea868; border-radius: 4px 15px 0 4px; transform: rotate(-20deg); box-shadow: 2px 2px 5px rgba(0,0,0,0.3); }
-        
-        /* Земля и Трава */
         .bg-ground { position: absolute; bottom: 0; left: 0; width: 100%; height: 20%; background: linear-gradient(to top, #0a1f10 0%, #1b3d24 50%, #2d5e36 100%); z-index: 3; border-top-left-radius: 50% 20px; border-top-right-radius: 50% 20px; }
         .bg-grass-details { position: absolute; bottom: 0; left: 0; width: 100%; height: 25%; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,20 Q10,5 20,20 Q30,10 40,20 Q50,0 60,20 Q70,15 80,20 Q90,5 100,20 Z" fill="%231b3d24"/></svg>') repeat-x; background-size: 100px 20px; z-index: 4; }
 
-        /* ХЕДЕР */
         .header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: flex-start; z-index: 10; position: relative; }
         .rank-box { display: flex; align-items: center; gap: 10px; }
         
@@ -77,12 +68,10 @@ HTML_CONTENT = """
         .energy-bar { width: 80px; height: 8px; background: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; border: 1px solid rgba(255,255,255,0.4); }
         .energy-fill { height: 100%; background: linear-gradient(90deg, #00e5ff, #007bff); width: 100%; transition: width 0.3s; }
 
-        /* ЭКРАНЫ */
         .screens { flex: 1; position: relative; z-index: 5; overflow: hidden; }
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; }
         .screen.active { display: flex; }
 
-        /* ТАП */
         .tap-area { flex: 1; display: flex; justify-content: center; align-items: center; gap: 20px; position: relative; padding-bottom: 20px; }
         .panda-wrapper { position: relative; width: 190px; height: 210px; transform-origin: center bottom; cursor: pointer; transition: transform 1s ease-in-out; z-index: 5; }
         .panda-wrapper.partner-panda { width: 140px; height: 160px; opacity: 0.9; pointer-events: none; }
@@ -98,8 +87,7 @@ HTML_CONTENT = """
 
         .particle-coin { position: absolute; font-size: 24px; font-weight: 900; color: #ffd700; pointer-events: none; animation: popCoin 0.9s ease-out forwards; z-index: 20; text-shadow: 0 0 10px #ffd700; }
         @keyframes popCoin { 0% { transform: translateY(0) scale(0.4); opacity: 1; } 100% { transform: translateY(-100px) scale(1.2); opacity: 0; } }
-        
-        /* КОНТЕНТ */
+
         .content { flex: 1; padding: 15px; overflow-y: auto; background: rgba(10, 18, 14, 0.85); backdrop-filter: blur(5px); z-index: 20; }
         .section-title { font-size: 20px; font-weight: 900; margin-bottom: 15px; color: #fff; text-align: center; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -111,7 +99,6 @@ HTML_CONTENT = """
         .card-price:disabled { color: #555; border-color: #333; cursor: not-allowed; }
         .card-price.owned { background: rgba(76, 175, 80, 0.2); color: #4caf50; border-color: #4caf50; }
 
-        /* Друзья и Топ */
         .friend-list { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
         .friend-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
         .friend-info { display: flex; align-items: center; gap: 10px; }
@@ -128,28 +115,24 @@ HTML_CONTENT = """
         .leaderboard-item { display: flex; justify-content: space-between; padding: 8px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 14px; cursor: pointer; align-items: center; }
         .leaderboard-item span:first-child { font-weight: 900; color: #ffd700; width: 30px; }
 
-        /* Навигация (НОВЫЙ ПОРЯДОК) */
         .bottom-nav { background: rgba(10, 18, 14, 0.98); border-top: 1px solid rgba(46, 125, 50, 0.4); padding: 8px 5px 22px 5px; display: flex; justify-content: space-around; z-index: 30; position: relative; }
         .nav-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: #666; font-size: 9px; font-weight: 900; cursor: pointer; width: 16.6%; transition: 0.2s; }
         .nav-btn.active { color: #81c784; }
         .nav-btn span { font-size: 22px; margin-bottom: 2px; filter: grayscale(1); transition: 0.2s; }
         .nav-btn.active span { filter: drop-shadow(0 0 6px #81c784) grayscale(0); }
 
-        /* Мини-игра */
         .game-area-mini { height: 250px; width: 100%; background: #112217; position: relative; overflow: hidden; border-radius: 10px; border: 1px solid #4caf50; margin-bottom: 10px; }
         .falling-item { position: absolute; font-size: 30px; cursor: pointer; animation: fall linear forwards; }
         @keyframes fall { 0% { transform: translateY(-50px) rotate(0deg); } 100% { transform: translateY(280px) rotate(360deg); } }
 
-        /* Модалки */
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; backdrop-filter: blur(5px); }
         .modal.active { display: flex; }
         .modal-box { background: #1a2e22; border: 2px solid #4caf50; border-radius: 20px; padding: 25px; width: 90%; max-width: 350px; position: relative; }
         
         .name-input { width: 100%; padding: 10px; border-radius: 8px; border: none; font-size: 16px; font-weight: 900; text-align: center; margin-bottom: 15px; background: #fff; color: #111; }
 
-        /* Профиль */
         .profile-card { background: rgba(0,0,0,0.6); border-radius: 15px; padding: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; position: relative; overflow: hidden; }
-        .profile-avatar-large { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 10px; background: #333; display: flex; justify-content: center; align-items: center; font-size: 40px; border: 3px solid #ffd700; position: relative; overflow: hidden; }
+        .profile-avatar-large { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 10px; background: #333; display: flex; justify-content: center; align-items: center; font-size: 40px; border: 3px solid #ffd700; position: relative; overflow: hidden; cursor: pointer; }
         .profile-avatar-large img { width: 100%; height: 100%; object-fit: cover; }
         .profile-name { font-size: 20px; font-weight: 900; margin-bottom: 5px; }
         .profile-stats { display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; }
@@ -161,7 +144,6 @@ HTML_CONTENT = """
         .inv-icon { font-size: 24px; margin-bottom: 5px; filter: grayscale(1); }
         .inv-item.owned .inv-icon { filter: none; }
 
-        /* Квесты */
         .quest-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #ffd700; }
         .quest-info { flex: 1; }
         .quest-title { font-size: 14px; font-weight: 900; margin-bottom: 4px; }
@@ -234,12 +216,19 @@ HTML_CONTENT = """
         </div>
     </div>
 
-    <!-- Модалка Колеса Фортуны -->
     <div class="modal" id="wheel-modal">
         <div class="modal-box" style="text-align:center;">
             <h2 style="color:#ffd700; margin-bottom:15px;">🎡 Колесо Фортуны</h2>
             <div style="font-size:60px; margin:20px 0; animation: spin 2s linear infinite;" id="wheel-icon">🎡</div>
             <button class="card-price" style="background:#4caf50; color:#fff; padding:15px;" onclick="spinWheel()">Крутить (Бесплатно)</button>
+        </div>
+    </div>
+
+    <div class="modal" id="chest-modal">
+        <div class="modal-box" style="text-align:center;">
+            <h2 style="color:#ffd700;">🎁 Сундук дня!</h2>
+            <div style="font-size: 60px; margin: 20px 0;">📦</div>
+            <button class="card-price" style="background:#4caf50; color:#fff; font-size:16px; padding:15px;" onclick="claimChest()">Открыть</button>
         </div>
     </div>
 
@@ -284,7 +273,6 @@ HTML_CONTENT = """
     </div>
 
     <div class="screens">
-        <!-- ТАП -->
         <div class="screen active" id="screen-tap">
             <div class="tap-area">
                 <div style="text-align: center;">
@@ -352,7 +340,6 @@ HTML_CONTENT = """
             </div>
         </div>
 
-        <!-- ПРОФИЛЬ -->
         <div class="screen" id="screen-profile">
             <div class="content">
                 <div class="profile-card">
@@ -378,7 +365,6 @@ HTML_CONTENT = """
             </div>
         </div>
 
-        <!-- ФЕРМА -->
         <div class="screen" id="screen-farm">
             <div class="content">
                 <div class="section-title">Ферма бамбука 🎋</div>
@@ -386,7 +372,6 @@ HTML_CONTENT = """
             </div>
         </div>
 
-        <!-- ДРУЗЬЯ -->
         <div class="screen" id="screen-friends">
             <div class="content">
                 <div class="section-title">Друзья 👥</div>
@@ -411,7 +396,6 @@ HTML_CONTENT = """
             </div>
         </div>
 
-        <!-- МАГАЗИН -->
         <div class="screen" id="screen-shop">
             <div class="content">
                 <div class="section-title">Магазин 🛍️</div>
@@ -435,7 +419,6 @@ HTML_CONTENT = """
             </div>
         </div>
 
-        <!-- ИГРЫ -->
         <div class="screen" id="screen-games">
             <div class="content">
                 <div class="section-title">Мини-игры 🏆</div>
@@ -447,7 +430,6 @@ HTML_CONTENT = """
             </div>
         </div>
 
-        <!-- СЕМЬЯ -->
         <div class="screen" id="screen-family">
             <div class="content">
                 <div class="section-title">Семья 👨‍👩‍👧‍👦</div>
@@ -458,7 +440,6 @@ HTML_CONTENT = """
             </div>
         </div>
 
-        <!-- КВЕСТЫ -->
         <div class="screen" id="screen-quests">
             <div class="content">
                 <div class="section-title">Квесты 📜</div>
@@ -467,7 +448,6 @@ HTML_CONTENT = """
         </div>
     </div>
 
-    <!-- НАВИГАЦИЯ (НОВЫЙ ПОРЯДОК) -->
     <div class="bottom-nav">
         <button class="nav-btn active" onclick="switchTab('tap', this)"><span>👆</span>Панда</button>
         <button class="nav-btn" onclick="switchTab('friends', this)"><span>👥</span>Друзья</button>
@@ -524,7 +504,6 @@ HTML_CONTENT = """
         let banditInterval = null;
         let currentMode = 'solo';
 
-        // Загрузка аватарки из Telegram по умолчанию
         if (!state.avatarUrl) {
             state.avatarUrl = tg.initDataUnsafe?.user?.photo_url || ''; 
         }
@@ -544,7 +523,6 @@ HTML_CONTENT = """
         }
 
         function selectAvatar() {
-            // Заглушка для выбора аватарок
             tg.showAlert("Выбор аватарок появится в следующем обновлении! (Пока используется фото из Telegram)");
         }
 
@@ -562,7 +540,6 @@ HTML_CONTENT = """
             updateUI();
         }
 
-        // --- ЛОГИКА ФЕРМЫ (ИСПРАВЛЕНА) ---
         function renderFarm() {
             const grid = document.getElementById('farm-grid');
             if(!grid) return; grid.innerHTML = '';
@@ -585,7 +562,6 @@ HTML_CONTENT = """
             saveGame(); updateUI();
         }
 
-        // --- МАГАЗИН ГЕМОВ ---
         function switchShopTab(tab, btn) {
             document.querySelectorAll('#screen-shop .tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
@@ -602,7 +578,6 @@ HTML_CONTENT = """
             tg.showAlert(`Для покупки ${amount} гемов за Telegram Stars нужно подключить платежную систему в BotFather. Скоро добавим!`);
         }
 
-        // --- КОЛЕСО ФОРТУНЫ ---
         function spinWheel() {
             const now = Date.now();
             if (now - state.lastWheel < 24 * 60 * 60 * 1000) {
@@ -618,7 +593,6 @@ HTML_CONTENT = """
             updateUI();
         }
 
-        // --- ОСТАЛЬНОЙ КОД (без изменений) ---
         function updateUI() {
             document.getElementById('coins').innerText = Math.floor(state.coins).toLocaleString();
             document.getElementById('gems').innerText = Math.floor(state.gems).toLocaleString();
@@ -781,8 +755,6 @@ HTML_CONTENT = """
             document.getElementById('screen-' + tabId).classList.add('active');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             if (btn) btn.classList.add('active');
-            
-            // Принудительное обновление фермы при переходе
             if (tabId === 'farm') { renderFarm(); }
             if (tabId === 'friends') { fetchFriends(); fetchLeaderboard(); }
         }
@@ -871,27 +843,6 @@ HTML_CONTENT = """
             }, 4000);
         }
 
-        // Общий цикл (энергия, таймеры, ферма)
-        setInterval(() => {
-            if (state.energy < state.maxEnergy) state.energy = Math.min(state.maxEnergy, state.energy + state.regen);
-            
-            // Обновляем ферму каждую секунду, чтобы тикал таймер
-            if (document.getElementById('screen-farm').classList.contains('active')) {
-                renderFarm();
-            }
-            
-            const now = Date.now();
-            let changed = false;
-            state.bamboos.forEach(b => {
-                if (b.stage === 1 && now - b.planted > 60000) { b.stage = 2; changed = true; }
-                if (b.stage === 2 && now - b.planted > 120000) { b.stage = 3; changed = true; }
-            });
-            if (changed) saveGame();
-            
-            updateUI();
-        }, 1000);
-
-        // Заглушки для функций, которые не критичны (чтобы не было ошибок)
         function connectWebSocket() {
             ws = new WebSocket(`${WS_URL}/ws/${roomId}/${myId}`);
             ws.onopen = () => { document.getElementById('conn-status').innerText = "🟢 Онлайн"; ws.send(JSON.stringify({ type: "set_name", name: state.nickname })); ws.send(JSON.stringify({ type: "set_gender", gender: state.gender })); ws.send(JSON.stringify({ type: "update_stats", coins: state.coins, gems: state.gems })); document.getElementById('loading').style.display = 'none'; };
@@ -917,11 +868,66 @@ HTML_CONTENT = """
             ws.onclose = () => { document.getElementById('conn-status').innerText = "🔴 Оффлайн"; setTimeout(connectWebSocket, 3000); };
         }
         
-        function fetchFriends() { /* ... */ }
-        function fetchLeaderboard() { /* ... */ }
-        function startMiniGame() { /* ... */ }
-        function claimChest() { /* ... */ }
-        function claimGoldenPaw() { /* ... */ }
+        async function fetchFriends() {
+            try {
+                const res = await fetch(`${API_URL}/api/friends/${myId}`);
+                const data = await res.json();
+                state.friends = data;
+                const list = document.getElementById('friends-list');
+                if(!list) return;
+                if (state.friends.length === 0) { list.innerHTML = `<p style="text-align:center; color:#888;">Пока нет друзей.</p>`; return; }
+                list.innerHTML = state.friends.map(f => `
+                    <div class="friend-item" onclick="viewProfile('${f.id}', '${f.name}', ${f.coins}, ${f.gifts || 0})">
+                        <div class="friend-info">
+                            <div class="friend-status ${f.online ? 'status-online' : 'status-offline'}"></div>
+                            <div>
+                                <div class="friend-name">${f.name}</div>
+                                <div class="friend-coins">${f.coins.toLocaleString()} 🪙</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch(e) { document.getElementById('friends-list').innerHTML = `<p style="text-align:center; color:#888;">Сервер просыпается...</p>`; }
+        }
+
+        async function fetchLeaderboard() {
+            try {
+                const res = await fetch(`${API_URL}/api/leaderboard`);
+                const data = await res.json();
+                const list = document.getElementById('leaderboard-list');
+                list.innerHTML = data.map((player, index) => `
+                    <div class="leaderboard-item" onclick="viewProfile('${player.id}', '${player.name}', ${player.coins}, ${player.gifts || 0})">
+                        <span>${index + 1}.</span>
+                        <span style="flex:1; margin-left:10px;">${player.name} ${player.online ? '🟢' : ''}</span>
+                        <span style="color:#ffd700;">${player.coins.toLocaleString()} 🪙</span>
+                    </div>
+                `).join('');
+            } catch(e) { document.getElementById('leaderboard-list').innerHTML = `<p style="text-align:center; color:#888;">Сервер просыпается...</p>`; }
+        }
+        
+        function startMiniGame() { 
+            if (Date.now() - state.lastMiniGame < 5 * 60 * 1000) return;
+            state.lastMiniGame = Date.now(); updateUI();
+            tg.showAlert("Мини-игра началась! (Заглушка)"); 
+        }
+        
+        function claimChest() { 
+            document.getElementById('chest-modal').classList.remove('active');
+            state.lastChest = Date.now(); state.coins += 1000; tg.showAlert("+1000 монет!"); updateUI();
+        }
+
+        setInterval(() => {
+            if (state.energy < state.maxEnergy) state.energy = Math.min(state.maxEnergy, state.energy + state.regen);
+            if (document.getElementById('screen-farm').classList.contains('active')) { renderFarm(); }
+            const now = Date.now();
+            let changed = false;
+            state.bamboos.forEach(b => {
+                if (b.stage === 1 && now - b.planted > 60000) { b.stage = 2; changed = true; }
+                if (b.stage === 2 && now - b.planted > 120000) { b.stage = 3; changed = true; }
+            });
+            if (changed) saveGame();
+            updateUI();
+        }, 1000);
 
         loadGame();
     </script>
