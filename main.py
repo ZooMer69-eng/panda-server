@@ -7,7 +7,8 @@ import os
 import time
 import random
 import string
-import sqlite3
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 app = FastAPI()
 app.add_middleware(
@@ -18,12 +19,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ SQLITE ---
-DB_PATH = "panda_game.db"
+# --- ПОДКЛЮЧЕНИЕ К SUPABASE (POSTGRESQL) ---
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+def get_db():
+    try:
+        # sslmode='require' обязателен для Supabase
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor, sslmode='require')
+        return conn
+    except Exception as e:
+        print(f"DB CONNECTION ERROR: {e}")
+        return None
 
 def init_db():
+    conn = get_db()
+    if not conn: return
     try:
-        conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         c.execute('''CREATE TABLE IF NOT EXISTS players
                      (id TEXT PRIMARY KEY, data TEXT)''')
@@ -34,23 +45,27 @@ def init_db():
 
 def load_players():
     players = {}
+    conn = get_db()
+    if not conn: return players
     try:
-        if os.path.exists(DB_PATH):
-            conn = sqlite3.connect(DB_PATH)
-            c = conn.cursor()
-            c.execute("SELECT id, data FROM players")
-            for row in c.fetchall():
-                players[row[0]] = json.loads(row[1])
-            conn.close()
+        c = conn.cursor()
+        c.execute("SELECT id, data FROM players")
+        for row in c.fetchall():
+            players[row['id']] = json.loads(row['data'])
+        conn.close()
     except Exception as e:
         print(f"DB Load Error: {e}")
     return players
 
 def save_player(user_id, data):
+    conn = get_db()
+    if not conn: return
     try:
-        conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
-        c.execute("INSERT OR REPLACE INTO players (id, data) VALUES (?, ?)", (user_id, json.dumps(data)))
+        c.execute("""
+            INSERT INTO players (id, data) VALUES (%s, %s)
+            ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data
+        """, (user_id, json.dumps(data)))
         conn.commit()
         conn.close()
     except Exception as e:
@@ -95,7 +110,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 30.1</title>
+    <title>Panda Game 32.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -235,7 +250,7 @@ HTML_CONTENT = """
         .lb-avatar { width: 30px; height: 30px; border-radius: 50%; margin-right: 10px; overflow: hidden; }
         .lb-avatar img { width: 100%; height: 100%; object-fit: cover; }
         .lb-name { flex: 1; display: flex; align-items: center; gap: 5px; }
-        .lb-coins { color: #ffd700; font-weight: 900; }
+        .lb-coins { color: #ffd700; font-weight: 900; display: flex; align-items: center; gap: 3px; }
 
         /* НАВИГАЦИЯ */
         .bottom-nav { background: rgba(10, 18, 14, 0.98); border-top: 1px solid rgba(46, 125, 50, 0.4); padding: 8px 5px 22px 5px; display: flex; justify-content: space-around; z-index: 30; position: relative; }
@@ -635,7 +650,7 @@ HTML_CONTENT = """
             equipped: { pet: 'none' },
             bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }],
             lastMiniGame: 0, lastChest: 0, lastWheel: 0,
-            friends: [], giftsReceived: 0, giftHistory: [], friendRequests: [],
+            friends: [], giftsReceived: 0, giftHistory: [], friendRequests: [], leaderboard: [],
             nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: '', gameId: '',
             unlockedMedals: [], unlockedFrames: [], unlockedAnims: []
         };
@@ -1002,7 +1017,7 @@ HTML_CONTENT = """
             shopData.forEach(item => { 
                 const isOwned = state.inventory[item.id]; 
                 const isEq = state.equipped.pet === item.id; 
-                grid.innerHTML += `<div class="card"><div class="card-icon" style="width:60px; height:60px;"><svg viewBox="0 0 100 100">${petsData[item.id].svg}</svg></div><div class="card-title" style="margin-top:10px;">${item.name}</div><button class="card-price ${isOwned ? (isEq ? 'owned' : '') : ''}" onclick="buyItem('${item.id}', ${item.price})">${isOwned ? (isEq ? 'Снять' : 'Надеть') : `${item.price} 🪙`}</button></div>`; 
+                grid.innerHTML += `<div class="card"><div class="card-icon" style="width:60px; height:60px;"><svg viewBox="0 0 100 100">${petsData[item.id].svg}</svg></div><div class="card-title" style="margin-top:10px;">${item.name}</div><button class="card-price ${isOwned ? (isEq ? 'owned' : '') : ''}" onclick="buyItem('${item.id}', ${item.price})">${isOwned ? (isEq ? 'Снять' : 'Надеть') : `${item.price} <span class="icon-coin">$</span>`}</button></div>`; 
             });
         }
         function buyItem(id, price) { 
@@ -1249,7 +1264,7 @@ HTML_CONTENT = """
                 const res = await fetch(`${API_URL}/api/friends/${myId}`); const data = await res.json(); state.friends = data; const list = document.getElementById('friends-list'); if(!list) return;
                 if (state.friends.length === 0) { list.innerHTML = `<p style="text-align:center; color:#888;">Пока нет друзей.</p>`; return; }
                 list.innerHTML = state.friends.map(f => `
-                    <div class="friend-item" onclick="viewProfile('${f.id}', '${f.name}', ${f.coins}, ${f.gifts || 0}, '${f.frame}', '${f.medal}', '${f.nick_style}', '${f.avatar}', ${f.verified}, ${JSON.stringify(f.gift_history || [])})">
+                    <div class="friend-item" onclick="viewFriendProfile('${f.id}')">
                         <div class="friend-avatar">${f.avatar ? `<img src="${f.avatar}">` : '🐼'}</div>
                         <div class="friend-name-box">
                             <div class="friend-name-row">
@@ -1261,7 +1276,7 @@ HTML_CONTENT = """
                                 <span class="status-dot ${f.online ? 'status-online' : 'status-offline'}"></span> ${f.online ? 'В сети' : 'Не в сети'}
                             </div>
                         </div>
-                        <div class="friend-coins">${f.coins.toLocaleString()} 🪙</div>
+                        <div class="friend-coins">${f.coins.toLocaleString()} <span class="icon-coin">$</span></div>
                     </div>
                 `).join('');
             } catch(e) { document.getElementById('friends-list').innerHTML = `<p style="text-align:center; color:#888;">Сервер просыпается...</p>`; }
@@ -1269,45 +1284,48 @@ HTML_CONTENT = """
 
         async function fetchLeaderboard() {
             try {
-                const res = await fetch(`${API_URL}/api/leaderboard`); const data = await res.json(); const list = document.getElementById('leaderboard-list');
+                const res = await fetch(`${API_URL}/api/leaderboard`); const data = await res.json(); state.leaderboard = data; const list = document.getElementById('leaderboard-list');
                 list.innerHTML = data.map((p, i) => `
-                    <div class="leaderboard-item" onclick="viewProfile('${p.id}', '${p.name}', ${p.coins}, ${p.gifts || 0}, '${p.frame}', '${p.medal}', '${p.nick_style}', '${p.avatar}', ${p.verified}, ${JSON.stringify(p.gift_history || [])})">
+                    <div class="leaderboard-item" onclick="viewFriendProfile('${p.id}')">
                         <span class="lb-rank">${i + 1}.</span>
                         <div class="lb-avatar">${p.avatar ? `<img src="${p.avatar}">` : '🐼'}</div>
                         <span class="lb-name ${p.nick_style}">${p.name} ${p.medal !== 'none' ? `<span class="medal-emoji small">${allMedals.find(m => m.id === p.medal)?.emoji}</span>` : ''} ${p.verified ? '<span class="verified-badge">✔</span>' : ''} ${p.online ? '<span class="status-dot status-online"></span>' : ''}</span>
-                        <span class="lb-coins">${p.coins.toLocaleString()} 🪙</span>
+                        <span class="lb-coins">${p.coins.toLocaleString()} <span class="icon-coin">$</span></span>
                     </div>
                 `).join('');
             } catch(e) { document.getElementById('leaderboard-list').innerHTML = `<p style="text-align:center; color:#888;">Сервер просыпается...</p>`; }
         }
         
         let currentViewPlayerId = null;
-        function viewProfile(id, name, coins, gifts, frameId, medalId, nickStyle, avatarUrl, isVerified, giftHistory) {
+        function viewFriendProfile(id) {
+            const friend = state.friends.find(f => f.id === id) || state.leaderboard.find(p => p.id === id);
+            if (!friend) return;
+
             currentViewPlayerId = id;
-            document.getElementById('vp-name').innerText = name;
-            document.getElementById('vp-name').className = `profile-name ${nickStyle}`;
-            document.getElementById('vp-coins').innerText = coins.toLocaleString(); 
-            document.getElementById('vp-gifts').innerText = gifts || 0;
+            document.getElementById('vp-name').innerText = friend.name;
+            document.getElementById('vp-name').className = `profile-name ${friend.nick_style || 'nick-default'}`;
+            document.getElementById('vp-coins').innerText = friend.coins.toLocaleString(); 
+            document.getElementById('vp-gifts').innerText = friend.gifts || 0;
             
             const vpAv = document.getElementById('vp-avatar');
-            if (avatarUrl) vpAv.innerHTML = `<img src="${avatarUrl}">`; else vpAv.innerText = '🐼';
+            if (friend.avatar) vpAv.innerHTML = `<img src="${friend.avatar}">`; else vpAv.innerText = '🐼';
             
-            const frameData = allFrames.find(f => f.id === frameId);
+            const frameData = allFrames.find(f => f.id === friend.frame);
             document.getElementById('vp-frame').className = `avatar-frame ${frameData ? frameData.cssClass : 'default'}`;
             
-            const medData = allMedals.find(m => m.id === medalId);
+            const medData = allMedals.find(m => m.id === friend.medal);
             const vpMed = document.getElementById('vp-medal');
             if (medData) { vpMed.style.display = 'block'; vpMed.innerText = medData.emoji; }
             else vpMed.style.display = 'none';
 
-            if (isVerified) {
+            if (friend.verified) {
                 document.getElementById('vp-name').innerHTML += ' <span class="verified-badge" style="font-size:16px; width:20px; height:20px;">✔</span>';
             }
 
             const historyContainer = document.getElementById('vp-gift-history');
             if (historyContainer) {
-                if (giftHistory && giftHistory.length > 0) {
-                    historyContainer.innerHTML = giftHistory.map(g => `<div class="gift-history-item"><span class="gift-history-icon">${g.gift}</span> <span>от <b>${g.from}</b></span></div>`).join('');
+                if (friend.gift_history && friend.gift_history.length > 0) {
+                    historyContainer.innerHTML = friend.gift_history.map(g => `<div class="gift-history-item"><span class="gift-history-icon">${g.gift}</span> <span>от <b>${g.from}</b></span></div>`).join('');
                 } else {
                     historyContainer.innerHTML = '<div style="color:#888; font-size:12px;">Подарков пока нет</div>';
                 }
@@ -1364,7 +1382,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
         if "friend_requests" not in players_db[user_id]:
             players_db[user_id]["friend_requests"] = []
     
-    # Генерация Игрового ID, если его нет
     if "game_id" not in players_db[user_id]:
         players_db[user_id]["game_id"] = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
     
@@ -1445,7 +1462,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                             except: pass
                 continue
 
-            # ИСПРАВЛЕННАЯ ЛОГИКА ПРИНЯТИЯ ЗАЯВКИ
             if message.get("type") == "accept_friend_request":
                 sender_id = message.get("sender_id")
                 if sender_id in players_db:
@@ -1470,7 +1486,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     await websocket.send_text(json.dumps({"type": "friend_requests_list", "requests": reqs}))
                 continue
 
-            # ИСПРАВЛЕННАЯ ЛОГИКА ОТКЛОНЕНИЯ ЗАЯВКИ
             if message.get("type") == "decline_friend_request":
                 sender_id = message.get("sender_id")
                 if "friend_requests" in players_db[user_id] and sender_id in players_db[user_id]["friend_requests"]:
@@ -1511,6 +1526,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     if players_db[user_id]["gems"] >= cost:
                         players_db[user_id]["gems"] -= cost 
                         players_db[target_id]["gifts"] += 1
+                        if "gift_history" not in players_db[target_id]: players_db[target_id]["gift_history"] = []
                         players_db[target_id]["gift_history"].append({"from": from_name, "gift": gift_type, "time": time.time()})
                         
                         save_player(user_id, players_db[user_id])
