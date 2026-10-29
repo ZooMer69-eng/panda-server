@@ -25,7 +25,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 19.0</title>
+    <title>Panda Game 20.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -75,7 +75,7 @@ HTML_CONTENT = """
         .name-medal-block { display: flex; flex-direction: column; cursor: pointer; }
         .name-row { display: flex; align-items: center; gap: 5px; }
         .header-nick { font-size: 16px; font-weight: 900; text-shadow: 2px 2px 0 #000; -webkit-text-fill-color: currentColor; }
-        .header-medal { font-size: 18px; }
+        .header-medal { font-size: 18px; display: inline-flex; align-items: center; justify-content: center; filter: drop-shadow(0 0 5px rgba(255,255,255,0.4)); }
         .streak-badge { font-size: 10px; color: #ff6b00; font-weight: 900; margin-top: 2px; }
 
         .res-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
@@ -103,9 +103,9 @@ HTML_CONTENT = """
         .panda-wrapper.hit { animation: jump 0.25s ease-out; }
         @keyframes jump { 0% { transform: translateY(0); } 30% { transform: translateY(-15px) scale(1.05); } 100% { transform: translateY(0); } }
         
-        /* ПИТОМЦЫ (На заднем плане) */
-        .pet-container { position: absolute; bottom: 10px; right: -50px; width: 100px; height: 100px; z-index: 4; pointer-events: none; display: flex; justify-content: center; align-items: center; font-size: 60px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5)); animation: petIdle 3s infinite alternate ease-in-out; }
-        @keyframes petIdle { 0% { transform: translateY(0) scale(1) rotate(0deg); } 100% { transform: translateY(-5px) scale(1.05) rotate(5deg); } }
+        /* ПИТОМЦЫ (На заднем плане, отдельно от панды) */
+        .pet-container { position: absolute; bottom: 5px; right: -60px; width: 80px; height: 80px; z-index: 4; pointer-events: none; display: flex; justify-content: center; align-items: center; font-size: 55px; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); animation: petIdle 3s infinite alternate ease-in-out; }
+        @keyframes petIdle { 0% { transform: translateY(0) scale(1) rotate(-2deg); } 100% { transform: translateY(-8px) scale(1.05) rotate(2deg); } }
         
         /* Анимации ников */
         .nick-default { color: #fff; }
@@ -199,28 +199,10 @@ HTML_CONTENT = """
         .inv-icon { font-size: 24px; margin-bottom: 5px; filter: grayscale(1); }
         .inv-item.owned .inv-icon { filter: none; }
 
-        /* КРАСИВЫЕ МЕДАЛИ (КЛАССИЧЕСКИЕ) */
-        .medal-wrapper { width: 44px; height: 60px; position: relative; display: flex; flex-direction: column; align-items: center; }
-        .medal-ribbon { width: 24px; height: 25px; position: absolute; top: 0; z-index: 1; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 70%, 0 100%); }
-        .ribbon-red { background: #d32f2f; }
-        .ribbon-blue { background: #1976d2; }
-        .ribbon-green { background: #388e3c; }
-        .ribbon-purple { background: #8e24aa; }
-        .ribbon-black { background: #111; }
-        
-        .medal-coin { width: 36px; height: 36px; border-radius: 50%; position: absolute; bottom: 0; z-index: 2; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: 900; box-shadow: inset 0 0 5px rgba(255,255,255,0.5), 0 3px 5px rgba(0,0,0,0.5); border: 2px solid rgba(0,0,0,0.3); }
-        
-        .m-bronze .medal-coin { background: linear-gradient(135deg, #cd7f32, #f4a460); }
-        .m-silver .medal-coin { background: linear-gradient(135deg, #b0c4de, #f8f8ff); }
-        .m-gold .medal-coin { background: linear-gradient(135deg, #ffd700, #ffec8b); }
-        
-        .m-epic { animation: pulseEpic 2s infinite; }
-        .m-epic .medal-coin { background: linear-gradient(135deg, #8a2be2, #da70d6); }
-        @keyframes pulseEpic { 0% { filter: drop-shadow(0 0 5px #8a2be2); } 50% { filter: drop-shadow(0 0 15px #da70d6); } 100% { filter: drop-shadow(0 0 5px #8a2be2); } }
-
-        .m-mythic { animation: spinMythic 3s infinite linear; }
-        .m-mythic .medal-coin { background: linear-gradient(135deg, #e53935, #ff8a80); border-color: #ffeb3b; }
-        @keyframes spinMythic { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(3deg) scale(1.05); } 100% { transform: rotate(0deg) scale(1); } }
+        /* КРАСИВЫЕ ЭМОДЗИ-МЕДАЛИ */
+        .medal-emoji { font-size: 24px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+        .medal-emoji.small { font-size: 16px; }
+        .medal-emoji.large { font-size: 36px; }
 
         /* КОЛЕСО */
         .wheel-container { width: 240px; height: 240px; position: relative; margin: 20px auto; }
@@ -282,7 +264,7 @@ HTML_CONTENT = """
                 <div class="profile-avatar-large" id="vp-avatar">🐼</div>
             </div>
             <div class="profile-name" id="vp-name">Ник</div>
-            <div class="medal-wrapper" id="vp-medal" style="margin:0 auto 10px; display:none;"></div>
+            <div class="medal-emoji large" id="vp-medal" style="display:none; margin:0 auto 10px;"></div>
             <div class="profile-stats" style="justify-content:space-around;"><div>Монеты <span id="vp-coins">0</span></div><div>Подарки <span id="vp-gifts">0</span></div></div>
             <button class="card-price" style="background:#ff9800; color:#fff; margin-top:15px;" onclick="openGiftModal()">Подарить 🎁</button>
             <button class="card-price" style="background:#555; color:#fff; margin-top:10px;" onclick="closeModal('view-profile-modal')">Закрыть</button>
@@ -328,7 +310,7 @@ HTML_CONTENT = """
                 <div class="name-medal-block" onclick="goToProfile()">
                     <div class="name-row">
                         <span class="header-nick nick-default" id="my-name">Ник</span>
-                        <div class="medal-wrapper" id="header-medal" style="width:24px; height:30px; display:none;"></div>
+                        <div class="header-medal" id="header-medal" style="display:none;"></div>
                     </div>
                     <div class="streak-badge" id="streak-badge">🔥 Серия: 0</div>
                 </div>
@@ -386,7 +368,7 @@ HTML_CONTENT = """
                             </g>
                         </svg>
                     </div>
-                    <!-- ПИТОМЕЦ (На заднем плане, красивый эмодзи) -->
+                    <!-- ПИТОМЕЦ (На заднем плане, отдельно) -->
                     <div class="pet-container" id="my-pet-container" style="display:none;">🐶</div>
                 </div>
             </div>
@@ -402,7 +384,7 @@ HTML_CONTENT = """
                         <div class="profile-avatar-large" id="my-avatar-large">🐼</div>
                     </div>
                     <div class="profile-name" id="my-name-profile">Загрузка...</div>
-                    <div class="medal-wrapper" id="my-medal-display" style="margin:0 auto 10px; display:none;"></div>
+                    <div class="medal-emoji large" id="my-medal-display" style="display:none; margin:0 auto 10px;"></div>
                     <button class="card-price" style="width:auto; display:inline-block; margin-top:5px; background:#2196f3; padding:5px 15px;" onclick="openNameModal()">Изменить ник</button>
                     
                     <div class="profile-stats">
@@ -569,12 +551,13 @@ HTML_CONTENT = """
         }
 
         // ========== КОНФИГ ==========
+        // ИСПОЛЬЗУЕМ ЧИСТЫЕ ЭМОДЗИ ДЛЯ МЕДАЛЕЙ
         const allMedals = [
-            { id: 'bronze', name: 'Бронза', req: 30, cssClass: 'm-bronze', ribbon: 'ribbon-red' }, 
-            { id: 'silver', name: 'Серебро', req: 90, cssClass: 'm-silver', ribbon: 'ribbon-blue' },
-            { id: 'gold', name: 'Золото', req: 180, cssClass: 'm-gold', ribbon: 'ribbon-green' }, 
-            { id: 'epic', name: 'Эпик', req: 365, cssClass: 'm-epic', ribbon: 'ribbon-purple' },
-            { id: 'mythic', name: 'Мифик', req: 730, cssClass: 'm-mythic', ribbon: 'ribbon-black' }
+            { id: 'bronze', name: 'Бронза', req: 30, emoji: '🥉' }, 
+            { id: 'silver', name: 'Серебро', req: 90, emoji: '🥈' },
+            { id: 'gold', name: 'Золото', req: 180, emoji: '🥇' }, 
+            { id: 'epic', name: 'Эпик', req: 365, emoji: '💎' },
+            { id: 'mythic', name: 'Мифик', req: 730, emoji: '👑' }
         ];
         const allFrames = [
             { id: 'default', name: 'Новичок', cssClass: 'default' }, 
@@ -588,12 +571,13 @@ HTML_CONTENT = """
             { id: 'rainbow', name: 'Радуга', cssClass: 'nick-rainbow' }
         ];
 
+        // КРАСИВЫЕ 3D ПИТОМЦЫ (Имитация через стилизованные эмодзи)
         const petsData = {
-            'pet_dog': { icon: '🐶', name: 'Собачка', emoji: '🐶' },
-            'pet_cat': { icon: '🐱', name: 'Котик', emoji: '🐱' },
-            'pet_fox': { icon: '🦊', name: 'Лисичка', emoji: '🦊' },
-            'pet_dragon': { icon: '🐉', name: 'Дракон', emoji: '🐉' },
-            'pet_unicorn': { icon: '🦄', name: 'Единорог', emoji: '🦄' }
+            'pet_dog': { icon: '🐶', name: 'Собачка' },
+            'pet_cat': { icon: '🐱', name: 'Котик' },
+            'pet_fox': { icon: '🦊', name: 'Лисичка' },
+            'pet_dragon': { icon: '🐉', name: 'Дракон' },
+            'pet_unicorn': { icon: '🦄', name: 'Единорог' }
         };
 
         if (!state.avatarUrl) state.avatarUrl = tg.initDataUnsafe?.user?.photo_url || '';
@@ -651,7 +635,7 @@ HTML_CONTENT = """
             
             const hMed = document.getElementById('header-medal');
             if(hMed) {
-                if (med) { hMed.style.display = 'flex'; hMed.innerHTML = `<div class="medal-ribbon ${med.ribbon}"></div><div class="medal-coin"></div>`; }
+                if (med) { hMed.style.display = 'inline-flex'; hMed.innerText = med.emoji; }
                 else hMed.style.display = 'none';
             }
 
@@ -662,7 +646,7 @@ HTML_CONTENT = """
             
             const pMed = document.getElementById('my-medal-display');
             if(pMed) {
-                if (med) { pMed.style.display = 'flex'; pMed.innerHTML = `<div class="medal-ribbon ${med.ribbon}"></div><div class="medal-coin"></div>`; }
+                if (med) { pMed.style.display = 'block'; pMed.innerText = med.emoji; }
                 else pMed.style.display = 'none';
             }
 
@@ -678,7 +662,7 @@ HTML_CONTENT = """
             if (petEl) {
                 if (state.equipped.pet && state.equipped.pet !== 'none') {
                     petEl.style.display = 'flex';
-                    petEl.innerText = petsData[state.equipped.pet].emoji;
+                    petEl.innerText = petsData[state.equipped.pet].icon;
                 } else {
                     petEl.style.display = 'none';
                 }
@@ -686,7 +670,7 @@ HTML_CONTENT = """
 
             // Grids
             const mGrid = document.getElementById('medals-grid'); if(mGrid) { mGrid.innerHTML = '';
-                allMedals.forEach(m => { const o = state.unlockedMedals.includes(m.id); const s = state.selectedMedal === m.id; mGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Medal','${m.id}')" style="${o?'':'opacity:0.3;'}"><div class="medal-wrapper"><div class="medal-ribbon ${m.ribbon}"></div><div class="medal-coin"></div></div><div style="font-size:10px; margin-top:5px;">${m.name}</div></div>`; });
+                allMedals.forEach(m => { const o = state.unlockedMedals.includes(m.id); const s = state.selectedMedal === m.id; mGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Medal','${m.id}')" style="${o?'':'opacity:0.3;'}"><div class="medal-emoji">${m.emoji}</div><div style="font-size:10px; margin-top:5px;">${m.name}</div></div>`; });
             }
             const fGrid = document.getElementById('frames-grid'); if(fGrid) { fGrid.innerHTML = '';
                 allFrames.forEach(f => { const o = state.unlockedFrames.includes(f.id); const s = state.selectedFrame === f.id; fGrid.innerHTML += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Frame','${f.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon" style="border:4px solid #fff; border-radius:50%; width:30px; height:30px; margin:0 auto; ${f.id==='millionaire'?'border-color:#ffd700; box-shadow:0 0 10px #ffd700;':f.id==='legend'?'border-color:#00e5ff; box-shadow:0 0 15px #00e5ff;':''}"></div><div style="font-size:10px; margin-top:5px;">${f.name}</div></div>`; });
@@ -794,7 +778,7 @@ HTML_CONTENT = """
             shopData.forEach(item => { 
                 const isOwned = state.inventory[item.id]; 
                 const isEq = state.equipped.pet === item.id; 
-                grid.innerHTML += `<div class="card"><div class="card-icon">${item.icon}</div><div class="card-title">${item.name}</div><button class="card-price ${isOwned ? (isEq ? 'owned' : '') : ''}" onclick="buyItem('${item.id}', ${item.price})">${isOwned ? (isEq ? 'Снять' : 'Надеть') : `${item.price} 🪙`}</button></div>`; 
+                grid.innerHTML += `<div class="card"><div class="card-icon" style="font-size:48px; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));">${item.icon}</div><div class="card-title" style="margin-top:10px;">${item.name}</div><button class="card-price ${isOwned ? (isEq ? 'owned' : '') : ''}" onclick="buyItem('${item.id}', ${item.price})">${isOwned ? (isEq ? 'Снять' : 'Надеть') : `${item.price} 🪙`}</button></div>`; 
             });
         }
         function buyItem(id, price) { 
@@ -820,7 +804,7 @@ HTML_CONTENT = """
                 
                 const med = allMedals.find(m => m.id === state.selectedMedal);
                 const dMed = document.getElementById('duo-my-medal');
-                if (med) dMed.innerHTML = `<div class="medal-wrapper" style="width:30px; height:40px;"><div class="medal-ribbon ${med.ribbon}"></div><div class="medal-coin"></div></div>`;
+                if (med) dMed.innerHTML = `<span class="medal-emoji">${med.emoji}</span>`;
                 else dMed.innerHTML = '';
 
                 const status = document.getElementById('family-status'); const btnCont = document.getElementById('pregnancy-btn-container');
@@ -936,6 +920,7 @@ HTML_CONTENT = """
                         <div class="friend-name-box">
                             <div class="friend-name-row">
                                 <span class="${f.nick_style}">${f.name}</span>
+                                ${f.medal !== 'none' ? `<span class="medal-emoji small">${allMedals.find(m => m.id === f.medal)?.emoji}</span>` : ''}
                                 ${f.verified ? '<span class="verified-badge">✔</span>' : ''}
                             </div>
                             <div class="friend-sub">
@@ -955,7 +940,7 @@ HTML_CONTENT = """
                     <div class="leaderboard-item" onclick="viewProfile('${p.id}', '${p.name}', ${p.coins}, ${p.gifts || 0}, '${p.frame}', '${p.medal}', '${p.nick_style}', '${p.avatar}', ${p.verified})">
                         <span class="lb-rank">${i + 1}.</span>
                         <div class="lb-avatar">${p.avatar ? `<img src="${p.avatar}">` : '🐼'}</div>
-                        <span class="lb-name ${p.nick_style}">${p.name} ${p.verified ? '<span class="verified-badge">✔</span>' : ''} ${p.online ? '<span class="status-dot status-online"></span>' : ''}</span>
+                        <span class="lb-name ${p.nick_style}">${p.name} ${p.medal !== 'none' ? `<span class="medal-emoji small">${allMedals.find(m => m.id === p.medal)?.emoji}</span>` : ''} ${p.verified ? '<span class="verified-badge">✔</span>' : ''} ${p.online ? '<span class="status-dot status-online"></span>' : ''}</span>
                         <span class="lb-coins">${p.coins.toLocaleString()} 🪙</span>
                     </div>
                 `).join('');
@@ -976,7 +961,7 @@ HTML_CONTENT = """
             
             const medData = allMedals.find(m => m.id === medalId);
             const vpMed = document.getElementById('vp-medal');
-            if (medData) { vpMed.style.display = 'flex'; vpMed.innerHTML = `<div class="medal-ribbon ${medData.ribbon}"></div><div class="medal-coin"></div>`; }
+            if (medData) { vpMed.style.display = 'block'; vpMed.innerText = medData.emoji; }
             else vpMed.style.display = 'none';
 
             if (isVerified) {
