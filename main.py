@@ -59,6 +59,7 @@ def save_player(user_id, data):
 init_db()
 players_db: Dict[str, dict] = load_players()
 rooms: Dict[str, dict] = {}
+active_connections: Dict[str, WebSocket] = {} # Для мгновенных уведомлений
 
 @app.api_route("/", methods=["GET", "HEAD"])
 @app.api_route("/health", methods=["GET", "HEAD"])
@@ -69,7 +70,7 @@ async def serve_game():
     response.headers["Expires"] = "0"
     return response
 
-# --- ПОИСК ИГРОКОВ (ПО НИКУ ИЛИ ID) ---
+# --- ПОИСК ИГРОКОВ ---
 @app.get("/api/search_players")
 async def search_players(q: str, my_id: str):
     results = []
@@ -95,7 +96,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 28.1</title>
+    <title>Panda Game 29.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -218,7 +219,8 @@ HTML_CONTENT = """
         .friend-name-box { display: flex; flex-direction: column; flex: 1; }
         .friend-name-row { display: flex; align-items: center; gap: 6px; font-weight: 900; font-size: 14px; }
         .friend-sub { font-size: 11px; color: #aaa; display: flex; align-items: center; gap: 5px; }
-        .add-friend-btn { background: #4caf50; color: #fff; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: 900; cursor: pointer; }
+        
+        .request-btn { border: none; padding: 5px 10px; border-radius: 5px; font-size: 14px; font-weight: 900; cursor: pointer; color: #fff; }
         
         .verified-badge { display: inline-flex; justify-content: center; align-items: center; width: 16px; height: 16px; background: #2196f3; border-radius: 50%; color: #fff; font-size: 10px; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
@@ -475,7 +477,7 @@ HTML_CONTENT = """
                         <div class="profile-avatar-large" id="my-avatar-large">🐼</div>
                     </div>
                     <div class="profile-name" id="my-name-profile">Загрузка...</div>
-                    <div style="font-size:12px; color:#00e5ff; font-weight:900; margin-bottom:5px;">ID: <span id="my-game-id">...</span></div>
+                    <div style="font-size:14px; color:#00e5ff; font-weight:900; margin-bottom:5px; cursor:pointer;" onclick="copyId()" title="Нажми, чтобы скопировать">ID: <span id="my-game-id">...</span> 📋</div>
                     <div class="medal-emoji large" id="my-medal-display" style="display:none; margin:0 auto 10px;"></div>
                     <button class="card-price" style="width:auto; display:inline-block; margin-top:5px; background:#2196f3; padding:5px 15px;" onclick="openNameModal()">Изменить ник</button>
                     
@@ -509,7 +511,13 @@ HTML_CONTENT = """
             <div class="content">
                 <div class="section-title">Друзья 👥</div>
                 
-                <!-- НОВАЯ СТРОКА ПОИСКА -->
+                <!-- БЛОК ЗАЯВОК -->
+                <div id="incoming-requests" style="display: none; margin-bottom: 15px;">
+                    <div class="section-title" style="font-size: 14px; color: #ffd700; margin-bottom: 10px;">Заявки в друзья</div>
+                    <div class="friend-list" id="requests-list"></div>
+                </div>
+
+                <!-- ПОИСК -->
                 <div class="search-container">
                     <input type="text" id="search-input" class="search-input" placeholder="Ник или ID игрока...">
                     <button class="search-btn" onclick="searchPlayers()">Найти</button>
@@ -626,7 +634,7 @@ HTML_CONTENT = """
             equipped: { pet: 'none' },
             bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }],
             lastMiniGame: 0, lastChest: 0, lastWheel: 0,
-            friends: [], giftsReceived: 0, giftHistory: [],
+            friends: [], giftsReceived: 0, giftHistory: [], friendRequests: [],
             nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: '', gameId: '',
             unlockedMedals: [], unlockedFrames: [], unlockedAnims: []
         };
@@ -751,6 +759,15 @@ HTML_CONTENT = """
             else { if(miniAv) miniAv.innerHTML = '🐼'; if(largeAv) largeAv.innerHTML = '🐼'; }
         }
 
+        function copyId() {
+            if (!state.gameId) return;
+            navigator.clipboard.writeText(state.gameId).then(() => {
+                tg.showAlert("📋 ID скопирован: " + state.gameId);
+            }).catch(() => {
+                tg.showAlert("Не удалось скопировать. Ваш ID: " + state.gameId);
+            });
+        }
+
         function goToProfile() { switchTab('profile', document.querySelectorAll('.nav-btn')[5]); }
         function goToGemShop() { switchTab('shop', document.querySelectorAll('.nav-btn')[3]); switchShopTab('gems', document.querySelectorAll('#screen-shop .tab-btn')[1]); }
 
@@ -805,7 +822,6 @@ HTML_CONTENT = """
             const profName = document.getElementById('my-name-profile');
             if(profName) { profName.className = `profile-name ${animCss}`; profName.innerText = state.nickname; }
             
-            // Вывод Игрового ID
             const idEl = document.getElementById('my-game-id');
             if(idEl) idEl.innerText = state.gameId || '...';
 
@@ -1052,7 +1068,7 @@ HTML_CONTENT = """
                                 ${p.online ? '<span class="status-dot status-online"></span>' : ''}
                             </div>
                         </div>
-                        <button class="add-friend-btn" onclick="addFriendById('${p.id}')">Добавить</button>
+                        <button class="add-friend-btn" style="background:#ff9800;" onclick="sendFriendRequest('${p.id}')">Заявка</button>
                     </div>
                 `).join('');
             } catch(e) {
@@ -1060,12 +1076,46 @@ HTML_CONTENT = """
             }
         }
 
-        function addFriendById(targetId) {
+        function sendFriendRequest(targetId) {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "add_friend_by_id", target_id: targetId }));
-                tg.showAlert("Запрос отправлен!");
+                ws.send(JSON.stringify({ type: "send_friend_request", target_id: targetId }));
+                tg.showAlert("Заявка в друзья отправлена!");
                 document.getElementById('search-results').innerHTML = '';
                 document.getElementById('search-input').value = '';
+            }
+        }
+
+        function renderFriendRequests(requests) {
+            const container = document.getElementById('incoming-requests');
+            const list = document.getElementById('requests-list');
+            if (!requests || requests.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+            container.style.display = 'block';
+            list.innerHTML = requests.map(r => `
+                <div class="friend-item" style="background: rgba(255,215,0,0.1); border-color: #ffd700;">
+                    <div class="friend-avatar">${r.avatar ? `<img src="${r.avatar}">` : '🐼'}</div>
+                    <div class="friend-name-box">
+                        <div class="friend-name-row"><span>${r.name}</span></div>
+                    </div>
+                    <div style="display:flex; gap:5px;">
+                        <button class="request-btn" style="background:#4caf50;" onclick="acceptRequest('${r.id}')">✔</button>
+                        <button class="request-btn" style="background:#f44336;" onclick="declineRequest('${r.id}')">✖</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function acceptRequest(senderId) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "accept_friend_request", sender_id: senderId }));
+            }
+        }
+
+        function declineRequest(senderId) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "decline_friend_request", sender_id: senderId }));
             }
         }
 
@@ -1107,6 +1157,7 @@ HTML_CONTENT = """
                 ws.send(JSON.stringify({ type: "set_name", name: state.nickname })); 
                 ws.send(JSON.stringify({ type: "set_gender", gender: state.gender })); 
                 ws.send(JSON.stringify({ type: "update_stats", coins: state.coins, gems: state.gems })); 
+                ws.send(JSON.stringify({ type: "get_friend_requests" })); // Запрашиваем заявки при входе
                 
                 if (inviterId) {
                     ws.send(JSON.stringify({ type: "add_friend", inviter_id: inviterId }));
@@ -1142,6 +1193,12 @@ HTML_CONTENT = """
                 } else if (data.type === 'friend_added') {
                     tg.showAlert(`🤝 Вы теперь друзья с ${data.friend_name}!`);
                     fetchFriends();
+                } else if (data.type === 'new_friend_request') {
+                    tg.showAlert(`🔔 Новая заявка в друзья от ${data.from_name}!`);
+                    ws.send(JSON.stringify({ type: "get_friend_requests" })); // Обновляем список
+                } else if (data.type === 'friend_requests_list') {
+                    state.friendRequests = data.requests;
+                    renderFriendRequests(data.requests);
                 } else if (data.type === 'gift_sent_success') {
                     tg.showAlert(data.message);
                 } else if (data.type === 'error') {
@@ -1262,14 +1319,17 @@ async def serve_game():
 @app.websocket("/ws/{room_id}/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     await websocket.accept()
+    active_connections[user_id] = websocket
     
     if "_" in room_id:
         room_id = room_id.split("_")[0]
 
     if user_id not in players_db:
-        players_db[user_id] = {"name": f"Panda_{user_id[:4]}", "coins": 0, "gems": 0, "gender": "male", "last_active": time.time(), "friends": [], "gifts": 0, "gift_history": [], "verified": True if user_id == '6877882967' else False, "avatar": "", "frame": "default", "medal": "none", "nick_style": "nick-default"}
+        players_db[user_id] = {"name": f"Panda_{user_id[:4]}", "coins": 0, "gems": 0, "gender": "male", "last_active": time.time(), "friends": [], "friend_requests": [], "gifts": 0, "gift_history": [], "verified": True if user_id == '6877882967' else False, "avatar": "", "frame": "default", "medal": "none", "nick_style": "nick-default"}
     else:
         players_db[user_id]["last_active"] = time.time()
+        if "friend_requests" not in players_db[user_id]:
+            players_db[user_id]["friend_requests"] = []
     
     # Генерация Игрового ID, если его нет
     if "game_id" not in players_db[user_id]:
@@ -1277,7 +1337,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     
     save_player(user_id, players_db[user_id])
     
-    # Отправляем ID клиенту
     await websocket.send_text(json.dumps({"type": "init_data", "game_id": players_db[user_id]["game_id"]}))
         
     if room_id not in rooms: rooms[room_id] = {"players": {}, "joint_progress": 0}
@@ -1327,19 +1386,64 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 save_player(user_id, players_db[user_id])
                 continue
 
-            if message.get("type") == "add_friend_by_id":
+            if message.get("type") == "get_friend_requests":
+                reqs = []
+                for req_id in players_db[user_id].get("friend_requests", []):
+                    if req_id in players_db:
+                        reqs.append({"id": req_id, "name": players_db[req_id]["name"], "avatar": players_db[req_id].get("avatar", "")})
+                await websocket.send_text(json.dumps({"type": "friend_requests_list", "requests": reqs}))
+                continue
+
+            if message.get("type") == "send_friend_request":
                 target_id = message.get("target_id")
                 if target_id in players_db and target_id != user_id:
-                    if target_id not in players_db[user_id]["friends"]: players_db[user_id]["friends"].append(target_id)
-                    if user_id not in players_db[target_id]["friends"]: players_db[target_id]["friends"].append(user_id)
-                    
+                    if "friend_requests" not in players_db[target_id]: players_db[target_id]["friend_requests"] = []
+                    if user_id not in players_db[target_id]["friend_requests"] and user_id not in players_db[target_id]["friends"]:
+                        players_db[target_id]["friend_requests"].append(user_id)
+                        save_player(target_id, players_db[target_id])
+                        
+                        if target_id in active_connections:
+                            try: 
+                                await active_connections[target_id].send_text(json.dumps({
+                                    "type": "new_friend_request", 
+                                    "from_name": players_db[user_id]["name"], 
+                                    "from_id": user_id
+                                }))
+                            except: pass
+                continue
+
+            if message.get("type") == "accept_friend_request":
+                sender_id = message.get("sender_id")
+                if sender_id in players_db and user_id in players_db[sender_id].get("friend_requests", []):
+                    players_db[sender_id]["friend_requests"].remove(user_id)
+                    if sender_id not in players_db[user_id]["friends"]: players_db[user_id]["friends"].append(sender_id)
+                    if user_id not in players_db[sender_id]["friends"]: players_db[sender_id]["friends"].append(user_id)
                     save_player(user_id, players_db[user_id])
-                    save_player(target_id, players_db[target_id])
+                    save_player(sender_id, players_db[sender_id])
                     
-                    await websocket.send_text(json.dumps({"type": "friend_added", "friend_name": players_db[target_id]["name"]}))
-                    if target_id in rooms.get(target_id, {}).get("players", {}):
-                        try: await rooms[target_id]["players"][target_id].send_text(json.dumps({"type": "friend_added", "friend_name": players_db[user_id]["name"]}))
+                    if sender_id in active_connections:
+                        try: await active_connections[sender_id].send_text(json.dumps({"type": "friend_added", "friend_name": players_db[user_id]["name"]}))
                         except: pass
+                    await websocket.send_text(json.dumps({"type": "friend_added", "friend_name": players_db[sender_id]["name"]}))
+                    
+                    reqs = []
+                    for req_id in players_db[user_id].get("friend_requests", []):
+                        if req_id in players_db:
+                            reqs.append({"id": req_id, "name": players_db[req_id]["name"], "avatar": players_db[req_id].get("avatar", "")})
+                    await websocket.send_text(json.dumps({"type": "friend_requests_list", "requests": reqs}))
+                continue
+
+            if message.get("type") == "decline_friend_request":
+                sender_id = message.get("sender_id")
+                if sender_id in players_db and user_id in players_db[user_id].get("friend_requests", []):
+                    players_db[user_id]["friend_requests"].remove(sender_id)
+                    save_player(user_id, players_db[user_id])
+                    
+                    reqs = []
+                    for req_id in players_db[user_id].get("friend_requests", []):
+                        if req_id in players_db:
+                            reqs.append({"id": req_id, "name": players_db[req_id]["name"], "avatar": players_db[req_id].get("avatar", "")})
+                    await websocket.send_text(json.dumps({"type": "friend_requests_list", "requests": reqs}))
                 continue
                 
             if message.get("type") == "add_friend":
@@ -1354,8 +1458,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     save_player(inviter_id, players_db[inviter_id])
                     
                     await websocket.send_text(json.dumps({"type": "friend_added", "friend_name": players_db[inviter_id]["name"]}))
-                    if inviter_id in rooms.get(inviter_id, {}).get("players", {}):
-                        try: await rooms[inviter_id]["players"][inviter_id].send_text(json.dumps({"type": "friend_added", "friend_name": players_db[user_id]["name"]}))
+                    if inviter_id in active_connections:
+                        try: await active_connections[inviter_id].send_text(json.dumps({"type": "friend_added", "friend_name": players_db[user_id]["name"]}))
                         except: pass
                 continue
                 
@@ -1377,8 +1481,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                         await websocket.send_text(json.dumps({"type": "gift_sent_success", "message": f"🎁 Ты подарил {gift_type}!"}))
                         await websocket.send_text(json.dumps({"type": "update_stats", "gems": players_db[user_id]["gems"], "coins": players_db[user_id]["coins"]}))
                         
-                        if target_id in rooms.get(room_id, {}).get("players", {}):
-                            try: await rooms[room_id]["players"][target_id].send_text(json.dumps({"type": "gift_received", "gift": gift_type, "from_name": from_name}))
+                        if target_id in active_connections:
+                            try: await active_connections[target_id].send_text(json.dumps({"type": "gift_received", "gift": gift_type, "from_name": from_name}))
                             except: pass
                     else:
                         await websocket.send_text(json.dumps({"type": "error", "message": "Недостаточно гемов! 💎"}))
@@ -1392,6 +1496,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
 
                 await broadcast(room_id, {"type": "player_tapped", "user_id": user_id, "power": message.get("power", 1)}, exclude_user=user_id)
     except WebSocketDisconnect:
+        if user_id in active_connections: del active_connections[user_id]
         if user_id in rooms[room_id]["players"]: del rooms[room_id]["players"][user_id]
         if len(rooms[room_id]["players"]) == 0: del rooms[room_id]
         else: await broadcast_room_state(room_id)
