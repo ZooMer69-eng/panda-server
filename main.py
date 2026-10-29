@@ -59,7 +59,7 @@ init_db()
 players_db: Dict[str, dict] = load_players()
 rooms: Dict[str, dict] = {}
 
-# --- ЭНДПОИНТ ДЛЯ UPTIMEROBOT (чтобы сервер не падал) ---
+# --- ЭНДПОИНТ ДЛЯ UPTIMEROBOT ---
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
@@ -70,7 +70,12 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 24.1</title>
+    <!-- ЗАПРЕТ КЭШИРОВАНИЯ TELEGRAM -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <title>Panda Game 24.2</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -147,7 +152,7 @@ HTML_CONTENT = """
         .panda-wrapper.hit { animation: jump 0.25s ease-out; }
         @keyframes jump { 0% { transform: translateY(0); } 30% { transform: translateY(-15px) scale(1.05); } 100% { transform: translateY(0); } }
         
-        /* ПИТОМЦЫ (Детализированные, как собачка) */
+        /* ПИТОМЦЫ (Детализированные) */
         .pet-container { position: absolute; bottom: 0px; right: -70px; width: 90px; height: 90px; z-index: 4; pointer-events: none; display: flex; justify-content: center; align-items: center; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); animation: petIdle 3s infinite alternate ease-in-out; }
         @keyframes petIdle { 0% { transform: translateY(0) scale(1) rotate(-2deg); } 100% { transform: translateY(-8px) scale(1.05) rotate(2deg); } }
         
@@ -639,68 +644,68 @@ HTML_CONTENT = """
                 name: 'Собачка', 
                 svg: `
                 <style> @keyframes tailWag { 0%,100% { transform: rotate(-10deg); } 50% { transform: rotate(20deg); } } .tail { transform-origin: 20px 75px; animation: tailWag 0.5s infinite; } </style>
-                <ellipse cx="50" cy="75" rx="25" ry="15" fill="#e6a869"/> <!-- body -->
-                <circle cx="50" cy="45" r="20" fill="#e6a869"/> <!-- head -->
-                <ellipse cx="35" cy="70" rx="5" ry="10" fill="#e6a869"/> <!-- back leg -->
-                <ellipse cx="65" cy="70" rx="5" ry="10" fill="#e6a869"/> <!-- back leg -->
-                <ellipse cx="35" cy="85" rx="6" ry="4" fill="#e6a869"/> <!-- front paw -->
-                <ellipse cx="65" cy="85" rx="6" ry="4" fill="#e6a869"/> <!-- front paw -->
-                <path d="M25,45 Q20,30 30,25 Q40,25 35,45" fill="#c48a54"/> <!-- ear -->
-                <path d="M75,45 Q80,30 70,25 Q60,25 65,45" fill="#c48a54"/> <!-- ear -->
-                <circle cx="42" cy="42" r="3" fill="#000"/> <!-- eye -->
-                <circle cx="58" cy="42" r="3" fill="#000"/> <!-- eye -->
-                <ellipse cx="50" cy="50" rx="4" ry="2" fill="#000"/> <!-- nose -->
-                <path d="M20,75 Q10,65 15,55" stroke="#e6a869" stroke-width="5" fill="none" class="tail"/> <!-- tail -->
+                <ellipse cx="50" cy="75" rx="25" ry="15" fill="#e6a869"/>
+                <circle cx="50" cy="45" r="20" fill="#e6a869"/>
+                <ellipse cx="35" cy="70" rx="5" ry="10" fill="#e6a869"/>
+                <ellipse cx="65" cy="70" rx="5" ry="10" fill="#e6a869"/>
+                <ellipse cx="35" cy="85" rx="6" ry="4" fill="#e6a869"/>
+                <ellipse cx="65" cy="85" rx="6" ry="4" fill="#e6a869"/>
+                <path d="M25,45 Q20,30 30,25 Q40,25 35,45" fill="#c48a54"/>
+                <path d="M75,45 Q80,30 70,25 Q60,25 65,45" fill="#c48a54"/>
+                <circle cx="42" cy="42" r="3" fill="#000"/>
+                <circle cx="58" cy="42" r="3" fill="#000"/>
+                <ellipse cx="50" cy="50" rx="4" ry="2" fill="#000"/>
+                <path d="M20,75 Q10,65 15,55" stroke="#e6a869" stroke-width="5" fill="none" class="tail"/>
                 ` 
             },
             'pet_cat': { 
                 name: 'Котик', 
                 svg: `
                 <style> @keyframes tailWagCat { 0%,100% { transform: rotate(-15deg); } 50% { transform: rotate(25deg); } } .tail-cat { transform-origin: 20px 75px; animation: tailWagCat 0.6s infinite; } </style>
-                <ellipse cx="50" cy="75" rx="22" ry="14" fill="#ffb74d"/> <!-- body -->
-                <circle cx="50" cy="45" r="18" fill="#ffb74d"/> <!-- head -->
-                <polygon points="35,32 40,20 45,32" fill="#ffb74d"/> <!-- ear -->
-                <polygon points="65,32 60,20 55,32" fill="#ffb74d"/> <!-- ear -->
-                <ellipse cx="38" cy="85" rx="6" ry="4" fill="#ffb74d"/> <!-- paw -->
-                <ellipse cx="62" cy="85" rx="6" ry="4" fill="#ffb74d"/> <!-- paw -->
-                <circle cx="43" cy="42" r="2.5" fill="#000"/> <!-- eye -->
-                <circle cx="57" cy="42" r="2.5" fill="#000"/> <!-- eye -->
-                <ellipse cx="50" cy="48" rx="3" ry="2" fill="#ff9999"/> <!-- nose -->
-                <path d="M15,70 Q5,50 20,40" stroke="#ffb74d" stroke-width="5" fill="none" class="tail-cat"/> <!-- tail -->
+                <ellipse cx="50" cy="75" rx="22" ry="14" fill="#ffb74d"/>
+                <circle cx="50" cy="45" r="18" fill="#ffb74d"/>
+                <polygon points="35,32 40,20 45,32" fill="#ffb74d"/>
+                <polygon points="65,32 60,20 55,32" fill="#ffb74d"/>
+                <ellipse cx="38" cy="85" rx="6" ry="4" fill="#ffb74d"/>
+                <ellipse cx="62" cy="85" rx="6" ry="4" fill="#ffb74d"/>
+                <circle cx="43" cy="42" r="2.5" fill="#000"/>
+                <circle cx="57" cy="42" r="2.5" fill="#000"/>
+                <ellipse cx="50" cy="48" rx="3" ry="2" fill="#ff9999"/>
+                <path d="M15,70 Q5,50 20,40" stroke="#ffb74d" stroke-width="5" fill="none" class="tail-cat"/>
                 ` 
             },
             'pet_fox': { 
                 name: 'Лисичка', 
                 svg: `
                 <style> @keyframes tailWagFox { 0%,100% { transform: rotate(-10deg); } 50% { transform: rotate(15deg); } } .tail-fox { transform-origin: 20px 75px; animation: tailWagFox 0.5s infinite; } </style>
-                <ellipse cx="50" cy="75" rx="20" ry="12" fill="#ff7043"/> <!-- body -->
-                <circle cx="50" cy="45" r="18" fill="#ff7043"/> <!-- head -->
-                <polygon points="32,30 38,15 45,30" fill="#ff7043"/> <!-- ear -->
-                <polygon points="68,30 62,15 55,30" fill="#ff7043"/> <!-- ear -->
-                <ellipse cx="38" cy="85" rx="6" ry="4" fill="#ff7043"/> <!-- paw -->
-                <ellipse cx="62" cy="85" rx="6" ry="4" fill="#ff7043"/> <!-- paw -->
-                <circle cx="42" cy="42" r="2.5" fill="#000"/> <!-- eye -->
-                <circle cx="58" cy="42" r="2.5" fill="#000"/> <!-- eye -->
-                <ellipse cx="50" cy="48" rx="3" ry="2" fill="#000"/> <!-- nose -->
-                <path d="M15,75 Q0,50 20,45" stroke="#ff7043" stroke-width="8" fill="none" class="tail-fox"/> <!-- tail -->
-                <path d="M20,45 Q10,40 15,55" fill="#fff"/> <!-- tail tip -->
+                <ellipse cx="50" cy="75" rx="20" ry="12" fill="#ff7043"/>
+                <circle cx="50" cy="45" r="18" fill="#ff7043"/>
+                <polygon points="32,30 38,15 45,30" fill="#ff7043"/>
+                <polygon points="68,30 62,15 55,30" fill="#ff7043"/>
+                <ellipse cx="38" cy="85" rx="6" ry="4" fill="#ff7043"/>
+                <ellipse cx="62" cy="85" rx="6" ry="4" fill="#ff7043"/>
+                <circle cx="42" cy="42" r="2.5" fill="#000"/>
+                <circle cx="58" cy="42" r="2.5" fill="#000"/>
+                <ellipse cx="50" cy="48" rx="3" ry="2" fill="#000"/>
+                <path d="M15,75 Q0,50 20,45" stroke="#ff7043" stroke-width="8" fill="none" class="tail-fox"/>
+                <path d="M20,45 Q10,40 15,55" fill="#fff"/>
                 ` 
             },
             'pet_dragon': { 
                 name: 'Дракон', 
                 svg: `
                 <style> @keyframes tailWagDragon { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(20deg); } } .tail-dragon { transform-origin: 20px 75px; animation: tailWagDragon 1s infinite; } </style>
-                <ellipse cx="50" cy="75" rx="22" ry="14" fill="#4caf50"/> <!-- body -->
-                <circle cx="50" cy="45" r="18" fill="#4caf50"/> <!-- head -->
-                <polygon points="35,30 40,20 45,30" fill="#81c784"/> <!-- horns -->
-                <polygon points="65,30 60,20 55,30" fill="#81c784"/> <!-- horns -->
-                <ellipse cx="38" cy="85" rx="6" ry="4" fill="#4caf50"/> <!-- paw -->
-                <ellipse cx="62" cy="85" rx="6" ry="4" fill="#4caf50"/> <!-- paw -->
-                <circle cx="43" cy="42" r="2.5" fill="#fff"/> <!-- eye -->
-                <circle cx="57" cy="42" r="2.5" fill="#fff"/> <!-- eye -->
-                <path d="M45,50 Q50,55 55,50" stroke="#1b5e20" fill="none"/> <!-- mouth -->
-                <path d="M15,75 Q0,60 15,55" stroke="#4caf50" stroke-width="6" fill="none" class="tail-dragon"/> <!-- tail -->
-                <polygon points="10,60 15,50 20,60" fill="#81c784"/> <!-- spike -->
+                <ellipse cx="50" cy="75" rx="22" ry="14" fill="#4caf50"/>
+                <circle cx="50" cy="45" r="18" fill="#4caf50"/>
+                <polygon points="35,30 40,20 45,30" fill="#81c784"/>
+                <polygon points="65,30 60,20 55,30" fill="#81c784"/>
+                <ellipse cx="38" cy="85" rx="6" ry="4" fill="#4caf50"/>
+                <ellipse cx="62" cy="85" rx="6" ry="4" fill="#4caf50"/>
+                <circle cx="43" cy="42" r="2.5" fill="#fff"/>
+                <circle cx="57" cy="42" r="2.5" fill="#fff"/>
+                <path d="M45,50 Q50,55 55,50" stroke="#1b5e20" fill="none"/>
+                <path d="M15,75 Q0,60 15,55" stroke="#4caf50" stroke-width="6" fill="none" class="tail-dragon"/>
+                <polygon points="10,60 15,50 20,60" fill="#81c784"/>
                 ` 
             }
         };
