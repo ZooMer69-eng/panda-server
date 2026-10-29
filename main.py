@@ -24,7 +24,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 9.0</title>
+    <title>Panda Game 10.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -873,8 +873,16 @@ HTML_CONTENT = """
         
         function inviteFriend() {
             state.quests.invited = true; // Выполняем квест
-            const link = `https://t.me/nash_sad_69_bot/play?startapp=${roomId}`;
-            navigator.clipboard.writeText(link).then(() => tg.showAlert("Ссылка скопирована! Отправь другу."));
+            
+            // ИСПОЛЬЗУЕМ ВСТРОЕННЫЙ ШАРИНГ TELEGRAM (надежнее чем navigator.clipboard)
+            const link = `https://t.me/nash_sad_69_bot?startapp=${roomId}`; 
+            const text = `Присоединяйся к моей игре с пандой!`;
+            
+            if (tg.openTelegramLink) {
+                tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+            } else {
+                navigator.clipboard.writeText(link).then(() => tg.showAlert("Ссылка скопирована! Отправь другу."));
+            }
             updateUI();
         }
 
@@ -1020,7 +1028,7 @@ HTML_CONTENT = """
         }
 
         setInterval(() => {
-            if (state.energy < state.maxEnergy) state.energy = Math.min(state.maxEnergy, state.energy + state.regen);
+            if (state.energy < state.maxEnergy) state.energy = Math.min(state.maxEnergy, state.energy + state.regenerate);
             const now = Date.now();
             let changed = false;
             state.bamboos.forEach(b => {
@@ -1158,3 +1166,4 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
