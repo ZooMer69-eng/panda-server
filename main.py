@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from typing import Dict, List
@@ -59,7 +59,15 @@ init_db()
 players_db: Dict[str, dict] = load_players()
 rooms: Dict[str, dict] = {}
 
-# --- ЭНДПОИНТ ДЛЯ UPTIMEROBOT ---
+# --- ИСПРАВЛЕНИЕ: Обработка HEAD запросов для Render и UptimeRobot ---
+@app.head("/")
+async def head_root():
+    return HTMLResponse(content="", status_code=200)
+
+@app.head("/health")
+async def head_health():
+    return HTMLResponse(content="", status_code=200)
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
@@ -70,12 +78,11 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- ЗАПРЕТ КЭШИРОВАНИЯ TELEGRAM -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
-    <title>Panda Game 24.2</title>
+    <title>Panda Game 24.3</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -608,7 +615,8 @@ HTML_CONTENT = """
         let ws;
         let currentMode = 'solo';
         
-        let inviterId = (startParam && /^\d+$/.test(startParam) && startParam !== myId) ? startParam : null;
+        // ИСПРАВЛЕНИЕ WARNING: используем [0-9] вместо \d
+        let inviterId = (startParam && /^[0-9]+$/.test(startParam) && startParam !== myId) ? startParam : null;
 
         // ========== АДМИН РЕЖИМ ==========
         const ADMIN_ID = '6877882967'; 
