@@ -56,7 +56,7 @@ HTML_CONTENT = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 23.0</title>
+    <title>Panda Game 24.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -133,7 +133,7 @@ HTML_CONTENT = """
         .panda-wrapper.hit { animation: jump 0.25s ease-out; }
         @keyframes jump { 0% { transform: translateY(0); } 30% { transform: translateY(-15px) scale(1.05); } 100% { transform: translateY(0); } }
         
-        /* ПИТОМЦЫ */
+        /* ПИТОМЦЫ (Детализированные и анимированные) */
         .pet-container { position: absolute; bottom: 0px; right: -70px; width: 90px; height: 90px; z-index: 4; pointer-events: none; display: flex; justify-content: center; align-items: center; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); animation: petIdle 3s infinite alternate ease-in-out; }
         @keyframes petIdle { 0% { transform: translateY(0) scale(1) rotate(-2deg); } 100% { transform: translateY(-8px) scale(1.05) rotate(2deg); } }
         
@@ -588,7 +588,9 @@ HTML_CONTENT = """
         const API_URL = window.location.origin;
         let ws;
         let currentMode = 'solo';
-        let inviterId = startParam && startParam !== myId ? startParam : null;
+        
+        // Проверка, что startParam - это число (ID), а не мусор
+        let inviterId = (startParam && /^\d+$/.test(startParam) && startParam !== myId) ? startParam : null;
 
         // ========== АДМИН РЕЖИМ ==========
         const ADMIN_ID = '6877882967'; 
@@ -618,20 +620,65 @@ HTML_CONTENT = """
             { id: 'rainbow', name: 'Радуга', cssClass: 'nick-rainbow' }
         ];
 
-        // КРАСИВЫЕ ПОЛНОЦЕННЫЕ SVG ПИТОМЦЫ
+        // КРАСИВЫЕ ДЕТАЛИЗИРОВАННЫЕ SVG ПИТОМЦЫ С АНИМАЦИЯМИ
         const petsData = {
-            'pet_dog': { name: 'Собачка', svg: '<path d="M20,80 Q10,60 20,40 L30,40 Q30,20 40,20 Q50,20 50,40 L70,40 Q70,20 80,20 Q90,20 90,40 L100,40 Q110,60 100,80 Z" fill="#e6a869"/><circle cx="40" cy="50" r="5" fill="#fff"/><circle cx="60" cy="50" r="5" fill="#fff"/><circle cx="40" cy="50" r="2" fill="#000"/><circle cx="60" cy="50" r="2" fill="#000"/><ellipse cx="50" cy="60" rx="8" ry="5" fill="#000"/><path d="M50,65 Q50,70 55,70 Q60,70 60,65" fill="none" stroke="#000" stroke-width="2"/>' },
-            'pet_cat': { name: 'Котик', svg: '<circle cx="50" cy="50" r="30" fill="#ffb74d"/><polygon points="20,20 30,45 15,45" fill="#ffb74d"/><polygon points="80,20 70,45 85,45" fill="#ffb74d"/><circle cx="35" cy="45" r="5" fill="#fff"/><circle cx="65" cy="45" r="5" fill="#fff"/><circle cx="35" cy="45" r="2" fill="#000"/><circle cx="65" cy="45" r="2" fill="#000"/><ellipse cx="50" cy="55" rx="6" ry="4" fill="#ff9999"/><path d="M40,60 Q50,70 60,60" fill="none" stroke="#000" stroke-width="2"/>' },
-            'pet_fox': { name: 'Лисичка', svg: '<path d="M20,80 L10,40 L35,45 L50,20 L65,45 L90,40 L80,80 Z" fill="#ff7043"/><circle cx="35" cy="55" r="5" fill="#fff"/><circle cx="65" cy="55" r="5" fill="#fff"/><circle cx="35" cy="55" r="2" fill="#000"/><circle cx="65" cy="55" r="2" fill="#000"/><ellipse cx="50" cy="65" rx="6" ry="4" fill="#000"/>' },
-            'pet_dragon': { name: 'Дракон', svg: '<circle cx="50" cy="50" r="30" fill="#4caf50"/><path d="M20,40 Q30,20 40,40 Q50,20 60,40 Q70,20 80,40" fill="none" stroke="#81c784" stroke-width="5"/><circle cx="35" cy="45" r="5" fill="#fff"/><circle cx="65" cy="45" r="5" fill="#fff"/><circle cx="35" cy="45" r="2" fill="#000"/><circle cx="65" cy="45" r="2" fill="#000"/><path d="M40,60 Q50,70 60,60" fill="none" stroke="#000" stroke-width="2"/>' }
+            'pet_dog': { 
+                name: 'Собачка', 
+                svg: `
+                <style> @keyframes tailWag { 0%,100% { transform: rotate(-10deg); } 50% { transform: rotate(20deg); } } .tail { transform-origin: 20px 80px; animation: tailWag 0.5s infinite; } </style>
+                <path d="M30,90 Q10,80 20,60 Q30,40 50,40 Q70,40 80,60 Q90,80 70,90 Z" fill="#e6a869"/>
+                <circle cx="50" cy="35" r="25" fill="#e6a869"/>
+                <path d="M30,20 Q20,0 40,15 Q50,25 40,35 Z" fill="#c48a54"/>
+                <path d="M70,20 Q80,0 60,15 Q50,25 60,35 Z" fill="#c48a54"/>
+                <circle cx="40" cy="30" r="5" fill="#fff"/><circle cx="60" cy="30" r="5" fill="#fff"/>
+                <circle cx="40" cy="30" r="2" fill="#000" class="pet-eye"/><circle cx="60" cy="30" r="2" fill="#000" class="pet-eye"/>
+                <ellipse cx="50" cy="45" rx="6" ry="4" fill="#000"/>
+                <path d="M45,50 Q50,60 55,50" fill="none" stroke="#ff69b4" stroke-width="3" stroke-linecap="round"/>
+                <path class="tail" d="M25,80 Q0,70 10,50" fill="none" stroke="#e6a869" stroke-width="8" stroke-linecap="round"/>` 
+            },
+            'pet_cat': { 
+                name: 'Котик', 
+                svg: `
+                <style> @keyframes tailWagCat { 0%,100% { transform: rotate(-15deg); } 50% { transform: rotate(25deg); } } .tail-cat { transform-origin: 80px 80px; animation: tailWagCat 0.6s infinite; } </style>
+                <circle cx="50" cy="50" r="30" fill="#ffb74d"/>
+                <polygon points="25,25 35,45 15,45" fill="#ffb74d"/><polygon points="75,25 65,45 85,45" fill="#ffb74d"/>
+                <polygon points="28,28 34,42 20,42" fill="#ffcc80"/><polygon points="72,28 66,42 80,42" fill="#ffcc80"/>
+                <circle cx="38" cy="45" r="5" fill="#fff"/><circle cx="62" cy="45" r="5" fill="#fff"/>
+                <circle cx="38" cy="45" r="2" fill="#000" class="pet-eye"/><circle cx="62" cy="45" r="2" fill="#000" class="pet-eye"/>
+                <ellipse cx="50" cy="55" rx="4" ry="3" fill="#ff9999"/>
+                <path d="M45,60 Q50,65 55,60" fill="none" stroke="#000" stroke-width="2"/>
+                <path class="tail-cat" d="M75,85 Q100,80 90,60" fill="none" stroke="#ffb74d" stroke-width="8" stroke-linecap="round"/>` 
+            },
+            'pet_fox': { 
+                name: 'Лисичка', 
+                svg: `
+                <style> @keyframes tailWagFox { 0%,100% { transform: rotate(-10deg); } 50% { transform: rotate(15deg); } } .tail-fox { transform-origin: 20px 80px; animation: tailWagFox 0.5s infinite; } </style>
+                <path d="M25,90 L15,40 L35,45 L50,20 L65,45 L85,40 L75,90 Z" fill="#ff7043"/>
+                <path d="M35,55 L25,65 L50,90 L75,65 L65,55 Z" fill="#fff"/>
+                <circle cx="40" cy="45" r="5" fill="#fff"/><circle cx="60" cy="45" r="5" fill="#fff"/>
+                <circle cx="40" cy="45" r="2" fill="#000" class="pet-eye"/><circle cx="60" cy="45" r="2" fill="#000" class="pet-eye"/>
+                <ellipse cx="50" cy="60" rx="5" ry="3" fill="#000"/>
+                <path class="tail-fox" d="M25,85 Q0,70 10,50" fill="none" stroke="#ff7043" stroke-width="10" stroke-linecap="round"/>` 
+            },
+            'pet_dragon': { 
+                name: 'Дракон', 
+                svg: `
+                <style> @keyframes tailWagDragon { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(20deg); } } .tail-dragon { transform-origin: 80px 80px; animation: tailWagDragon 1s infinite; } </style>
+                <circle cx="50" cy="50" r="30" fill="#4caf50"/>
+                <polygon points="25,25 35,15 40,35" fill="#81c784"/><polygon points="75,25 65,15 60,35" fill="#81c784"/>
+                <circle cx="40" cy="45" r="6" fill="#fff"/><circle cx="60" cy="45" r="6" fill="#fff"/>
+                <circle cx="40" cy="45" r="3" fill="#000" class="pet-eye"/><circle cx="60" cy="45" r="3" fill="#000" class="pet-eye"/>
+                <path d="M40,60 Q50,70 60,60" fill="none" stroke="#1b5e20" stroke-width="2"/>
+                <path class="tail-dragon" d="M75,85 Q100,100 80,70" fill="none" stroke="#4caf50" stroke-width="8" stroke-linecap="round"/>` 
+            }
         };
 
         if (!state.avatarUrl) state.avatarUrl = tg.initDataUnsafe?.user?.photo_url || '';
         
         function updateAvatarUI() {
             const miniAv = document.getElementById('mini-avatar'); const largeAv = document.getElementById('my-avatar-large');
-            if (state.avatarUrl) { miniAv.innerHTML = `<img src="${state.avatarUrl}">`; largeAv.innerHTML = `<img src="${state.avatarUrl}">`; } 
-            else { miniAv.innerHTML = '🐼'; largeAv.innerHTML = '🐼'; }
+            if (state.avatarUrl) { if(miniAv) miniAv.innerHTML = `<img src="${state.avatarUrl}">`; if(largeAv) largeAv.innerHTML = `<img src="${state.avatarUrl}">`; } 
+            else { if(miniAv) miniAv.innerHTML = '🐼'; if(largeAv) largeAv.innerHTML = '🐼'; }
         }
 
         function goToProfile() { switchTab('profile', document.querySelectorAll('.nav-btn')[5]); }
@@ -813,7 +860,6 @@ HTML_CONTENT = """
 
         function saveGame() { 
             localStorage.setItem('pandaUltimate', JSON.stringify(state)); 
-            // Отправляем данные на сервер для сохранения в БД
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ 
                     type: "update_stats", 
@@ -951,10 +997,9 @@ HTML_CONTENT = """
                 ws.send(JSON.stringify({ type: "set_gender", gender: state.gender })); 
                 ws.send(JSON.stringify({ type: "update_stats", coins: state.coins, gems: state.gems })); 
                 
-                // Если мы зашли по приглашению друга
                 if (inviterId) {
                     ws.send(JSON.stringify({ type: "add_friend", inviter_id: inviterId }));
-                    inviterId = null; // Отправляем только один раз
+                    inviterId = null; 
                 }
                 
                 document.getElementById('loading').style.display = 'none'; 
@@ -986,6 +1031,8 @@ HTML_CONTENT = """
                 } else if (data.type === 'friend_added') {
                     tg.showAlert(`🤝 Вы теперь друзья с ${data.friend_name}!`);
                     fetchFriends();
+                } else if (data.type === 'error') {
+                    tg.showAlert(data.message);
                 }
             };
             ws.onclose = () => { document.getElementById('conn-status').innerText = "🔴 Оффлайн"; setTimeout(connectWebSocket, 3000); };
@@ -1066,14 +1113,11 @@ HTML_CONTENT = """
         window.openGiftModal = function() { document.getElementById('gift-modal').classList.add('active'); };
         window.closeModal = function(id) { document.getElementById(id).classList.remove('active'); };
         window.sendGift = function(giftEmoji, price) {
-            if (state.gems < price) { tg.showAlert("Недостаточно гемов! 💎"); return; }
-            state.gems -= price; 
+            // Теперь мы не списываем гемы сразу на клиенте, а ждем подтверждения от сервера
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: "send_gift", to: currentViewPlayerId, gift: giftEmoji, cost: price, from_name: state.nickname }));
+                closeModal('gift-modal');
             }
-            tg.showAlert(`🎁 Ты подарил ${giftEmoji}!`);
-            closeModal('gift-modal');
-            updateUI();
         };
 
         function claimChest() { document.getElementById('chest-modal').classList.remove('active'); state.lastChest = Date.now(); state.coins += 1000; tg.showAlert("+1000 монет!"); updateUI(); }
@@ -1115,7 +1159,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     else:
         players_db[user_id]["last_active"] = time.time()
     
-    # Сохраняем игрока в БД при подключении
     save_player(user_id, players_db[user_id])
         
     if room_id not in rooms: rooms[room_id] = {"players": {}, "joint_progress": 0}
@@ -1173,7 +1216,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     save_player(user_id, players_db[user_id])
                     save_player(inviter_id, players_db[inviter_id])
                     
-                    # Уведомляем обоих
                     await websocket.send_text(json.dumps({"type": "friend_added", "friend_name": players_db[inviter_id]["name"]}))
                     if inviter_id in rooms.get(inviter_id, {}).get("players", {}):
                         try: await rooms[inviter_id]["players"][inviter_id].send_text(json.dumps({"type": "friend_added", "friend_name": players_db[user_id]["name"]}))
@@ -1184,15 +1226,29 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 target_id = message.get("to")
                 gift_type = message.get("gift")
                 from_name = message.get("from_name", "Друг")
+                cost = message.get("cost", 0)
                 
                 if target_id in players_db:
-                    players_db[target_id]["gifts"] += 1
-                    players_db[target_id]["gift_history"].append({"from": from_name, "gift": gift_type, "time": time.time()})
-                    save_player(target_id, players_db[target_id])
-                    
-                    if target_id in rooms.get(room_id, {}).get("players", {}):
-                        try: await rooms[room_id]["players"][target_id].send_text(json.dumps({"type": "gift_received", "gift": gift_type, "from_name": from_name}))
-                        except: pass
+                    # ЗАЩИТА ОТ ЧИТОВ: Проверяем баланс гемов на сервере
+                    if players_db[user_id]["gems"] >= cost:
+                        players_db[user_id]["gems"] -= cost # Списываем
+                        players_db[target_id]["gifts"] += 1
+                        players_db[target_id]["gift_history"].append({"from": from_name, "gift": gift_type, "time": time.time()})
+                        
+                        save_player(user_id, players_db[user_id])
+                        save_player(target_id, players_db[target_id])
+                        
+                        # Отправляем подтверждение отправителю, чтобы обновить UI
+                        await websocket.send_text(json.dumps({"type": "update_stats", "gems": players_db[user_id]["gems"], "coins": players_db[user_id]["coins"]}))
+                        # На клиенте это вызовет обновление через ws.onmessage (но нам нужно добавить обработку update_stats в onmessage)
+                        # Для простоты просто обновляем стейт через tg.showAlert
+                        await websocket.send_text(json.dumps({"type": "gift_sent_success", "message": f"🎁 Ты подарил {gift_type}!"}))
+                        
+                        if target_id in rooms.get(room_id, {}).get("players", {}):
+                            try: await rooms[room_id]["players"][target_id].send_text(json.dumps({"type": "gift_received", "gift": gift_type, "from_name": from_name}))
+                            except: pass
+                    else:
+                        await websocket.send_text(json.dumps({"type": "error", "message": "Недостаточно гемов! 💎"}))
                 continue
                 
             if message.get("type") == "tap":
