@@ -21,10 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Токен бота (для отправки счета)
 BOT_TOKEN = "9244645218:AAFopJ-hOND0D5dQx9qzZurAUTbAWQpKs3A"
-
-# --- ПОДКЛЮЧЕНИЕ К SUPABASE ---
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db():
@@ -40,7 +37,7 @@ def init_db():
     if not conn: return
     try:
         c = conn.cursor()
-        c.execute('''CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, data TEXT)''')
+        c.execute("CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, data TEXT)")
         conn.commit()
         conn.close()
     except Exception as e: print(f"DB Init Error: {e}")
@@ -72,7 +69,6 @@ players_db: Dict[str, dict] = load_players()
 rooms: Dict[str, dict] = {}
 active_connections: Dict[str, WebSocket] = {}
 
-# --- МОДЕЛИ ---
 class GemPurchase(BaseModel):
     user_id: str
     amount: int
@@ -82,7 +78,6 @@ class InvoiceRequest(BaseModel):
     stars: int
     gems: int
 
-# --- API ДЛЯ БОТА (НАЧИСЛЕНИЕ ГЕМОВ) ---
 @app.post("/api/add_gems")
 async def add_gems(data: GemPurchase):
     if data.user_id in players_db:
@@ -94,7 +89,6 @@ async def add_gems(data: GemPurchase):
         return {"status": "ok"}
     return {"status": "error"}
 
-# --- API ДЛЯ ОТПРАВКИ СЧЕТА ---
 @app.post("/api/create_invoice")
 async def create_invoice(req: InvoiceRequest):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendInvoice"
@@ -131,8 +125,7 @@ async def search_players(q: str, my_id: str):
             if len(results) >= 15: break
     return results
 
-# --- HTML ИГРЫ (ИЗМЕНЕНА ТОЛЬКО ФУНКЦИЯ buyGems) ---
-HTML_CONTENT = """
+HTML_CONTENT = r"""
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -401,24 +394,7 @@ HTML_CONTENT = """
         function renderFarm() { const grid = document.getElementById('farm-grid'); if(!grid) return; grid.innerHTML = ''; state.bamboos.forEach(b => { let s = "Пусто", btn = "Посадить", icon = "🟫", dis = false; if (b.stage === 1) { const t = Math.ceil((60000 - (Date.now() - b.planted)) / 1000); s = t > 0 ? `Растет... ${t}с` : "Созрел!"; btn = "Ждем"; icon = "🌱"; dis = t > 0; } else if (b.stage === 2) { s = "Созрел!"; btn = "Собрать"; icon = "🎋"; } else if (b.stage === 3) { s = "Сгнил!"; btn = "Убрать"; icon = "🥀"; } grid.innerHTML += `<div class="card"><div class="card-icon">${icon}</div><div class="card-title">Участок ${b.id}</div><div class="card-desc">${s}</div><button class="card-price" ${dis ? 'disabled' : ''} onclick="handleFarmClick(${b.id})">${btn}</button></div>`; }); }
         function handleFarmClick(id) { const b = state.bamboos.find(x => x.id === id); if (b.stage === 0) { b.planted = Date.now(); b.stage = 1; } else if (b.stage === 2) { state.coins += 500; b.stage = 0; tg.showAlert("+500 монет!"); } else if (b.stage === 3) { b.stage = 0; } saveGame(); updateUI(); }
         function switchShopTab(tab, btn) { document.querySelectorAll('#screen-shop .tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.getElementById('shop-grid').style.display = tab === 'items' ? 'grid' : 'none'; document.getElementById('shop-frames-grid').style.display = tab === 'items' ? 'grid' : 'none'; document.getElementById('gems-grid').style.display = tab === 'gems' ? 'grid' : 'none'; }
-        
-        // ИЗМЕНЕННАЯ ФУНКЦИЯ ПОКУПКИ ГЕМОВ
-        function buyGems(starsPrice) { 
-            const gemsAmount = starsPrice * 2;
-            tg.showAlert("Создаем счет...");
-            fetch(`${API_URL}/api/create_invoice`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: myId, stars: starsPrice, gems: gemsAmount })
-            }).then(res => res.json()).then(data => {
-                if (data.ok) {
-                    tg.close();
-                } else {
-                    tg.showAlert("Ошибка при создании счета. Попробуйте позже.");
-                }
-            }).catch(e => tg.showAlert("Ошибка сети. Проверьте подключение."));
-        }
-
+        function buyGems(starsPrice) { const gemsAmount = starsPrice * 2; tg.showAlert("Создаем счет..."); fetch(`${API_URL}/api/create_invoice`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: myId, stars: starsPrice, gems: gemsAmount }) }).then(res => res.json()).then(data => { if (data.ok) { tg.close(); } else { tg.showAlert("Ошибка при создании счета. Попробуйте позже."); } }).catch(e => tg.showAlert("Ошибка сети. Проверьте подключение.")); }
         function spinWheel() { const now = Date.now(); if (now - state.lastWheel < 24 * 60 * 60 * 1000 && !state.isAdmin) { tg.showAlert("Завтра!"); return; } state.lastWheel = now; const wheel = document.getElementById('wheel-icon'); const deg = Math.floor(Math.random() * 360) + 1440; wheel.style.transform = `rotate(${deg}deg)`; setTimeout(() => { const win = [100, 500, 1000, 5000, 10000, 50000][Math.floor(Math.random() * 6)]; state.coins += win; tg.showAlert(`🎉 Выигрыш: ${win} монет!`); closeModal('wheel-modal'); updateUI(); }, 4000); }
         let miniActive = false; function startMiniGame() { if (Date.now() - state.lastMiniGame < 5 * 60 * 1000 && !state.isAdmin) return; state.lastMiniGame = Date.now(); updateUI(); const area = document.getElementById('game-area-mini'); area.innerHTML = ''; miniActive = true; let score = 0; document.getElementById('mini-score').innerText = score; const interval = setInterval(() => { if (!miniActive) return; const item = document.createElement('div'); item.className = 'falling-item'; item.innerText = ['🎋', '🍎', '🍔'][Math.floor(Math.random()*3)]; item.style.left = Math.random() * 80 + 10 + '%'; item.style.animationDuration = (Math.random() * 1.5 + 1) + 's'; item.onclick = () => { if (miniActive) { score++; document.getElementById('mini-score').innerText = score; item.remove(); } }; area.appendChild(item); setTimeout(() => item.remove(), 2500); }, 300); setTimeout(() => { miniActive = false; clearInterval(interval); state.coins += score * 100; tg.showAlert(`Игра окончена! +${score * 100} монет.`); updateUI(); }, 10000); }
         function updateUI() { if(document.getElementById('coins')) document.getElementById('coins').innerText = Math.floor(state.coins).toLocaleString(); if(document.getElementById('gems')) document.getElementById('gems').innerText = Math.floor(state.gems).toLocaleString(); if(document.getElementById('energy')) document.getElementById('energy').innerText = Math.floor(state.energy); if(document.getElementById('max-energy')) document.getElementById('max-energy').innerText = state.maxEnergy; if(document.getElementById('energy-fill')) document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%'; if(document.getElementById('streak-badge')) document.getElementById('streak-badge').innerText = `🔥 Серия: ${state.streakDays}`; checkUnlocks(); renderProfile(); renderFarm(); renderShop(); renderDuo(); const bellyNormal = document.querySelector('.belly-normal'); const bellyPregnant = document.querySelector('.belly-pregnant'); if (bellyNormal && bellyPregnant) { if (state.isPregnant) { bellyNormal.style.display = 'none'; bellyPregnant.style.display = 'block'; if (Date.now() >= state.pregnancyEnd) { state.isPregnant = false; state.hasBaby = true; bellyNormal.style.display = 'block'; bellyPregnant.style.display = 'none'; tg.showAlert("🎉 Родился малыш!"); } } else { bellyNormal.style.display = 'block'; bellyPregnant.style.display = 'none'; } } saveGame(); }
@@ -460,4 +436,195 @@ HTML_CONTENT = """
 async def serve_game():
     return HTMLResponse(content=HTML_CONTENT)
 
-# ... остальной код websocket и API (без изменений) ...
+@app.websocket("/ws/{room_id}/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
+    await websocket.accept()
+    active_connections[user_id] = websocket
+    if "_" in room_id: room_id = room_id.split("_")[0]
+    if user_id not in players_db: players_db[user_id] = {"name": f"Panda_{user_id[:4]}", "coins": 0, "gems": 0, "gender": "male", "last_active": time.time(), "friends": [], "friend_requests": [], "gifts": 0, "gift_history": [], "verified": True if user_id == '6877882967' else False, "avatar": "", "frame": "default", "medal": "none", "nick_style": "nick-default"}
+    else:
+        players_db[user_id]["last_active"] = time.time()
+        if "friend_requests" not in players_db[user_id]: players_db[user_id]["friend_requests"] = []
+    if "game_id" not in players_db[user_id]: players_db[user_id]["game_id"] = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    save_player(user_id, players_db[user_id])
+    await websocket.send_text(json.dumps({"type": "init_data", "game_id": players_db[user_id]["game_id"]}))
+    if room_id not in rooms: rooms[room_id] = {"players": {}, "joint_progress": 0}
+    for existing_uid in rooms[room_id]["players"].keys():
+        if existing_uid != user_id:
+            if existing_uid not in players_db[user_id]["friends"]: players_db[user_id]["friends"].append(existing_uid)
+            if user_id not in players_db[existing_uid]["friends"]: players_db[existing_uid]["friends"].append(user_id)
+            save_player(user_id, players_db[user_id])
+            save_player(existing_uid, players_db[existing_uid])
+    rooms[room_id]["players"][user_id] = websocket
+    await broadcast_room_state(room_id)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            if message.get("type") == "ping":
+                players_db[user_id]["last_active"] = time.time()
+                await websocket.send_text(json.dumps({"type": "pong"}))
+                continue
+            if message.get("type") == "set_name":
+                new_name = message.get("name", "")
+                if new_name and len(new_name) <= 15:
+                    players_db[user_id]["name"] = new_name
+                    save_player(user_id, players_db[user_id])
+                    await broadcast_room_state(room_id)
+                continue
+            if message.get("type") == "set_gender":
+                players_db[user_id]["gender"] = message.get("gender", "male")
+                save_player(user_id, players_db[user_id])
+                await broadcast_room_state(room_id)
+                continue
+            if message.get("type") == "update_stats":
+                players_db[user_id]["coins"] = message.get("coins", 0)
+                players_db[user_id]["gems"] = message.get("gems", 0)
+                players_db[user_id]["avatar"] = message.get("avatar", "")
+                players_db[user_id]["frame"] = message.get("frame", "default")
+                players_db[user_id]["medal"] = message.get("medal", "none")
+                players_db[user_id]["nick_style"] = message.get("nick_style", "nick-default")
+                players_db[user_id]["last_active"] = time.time()
+                save_player(user_id, players_db[user_id])
+                continue
+            if message.get("type") == "get_friend_requests":
+                reqs = []
+                for req_id in players_db[user_id].get("friend_requests", []):
+                    if req_id in players_db: reqs.append({"id": req_id, "name": players_db[req_id]["name"], "avatar": players_db[req_id].get("avatar", "")})
+                await websocket.send_text(json.dumps({"type": "friend_requests_list", "requests": reqs}))
+                continue
+            if message.get("type") == "send_friend_request":
+                target_id = message.get("target_id")
+                if target_id in players_db and target_id != user_id:
+                    if "friend_requests" not in players_db[target_id]: players_db[target_id]["friend_requests"] = []
+                    if user_id not in players_db[target_id]["friend_requests"] and user_id not in players_db[target_id]["friends"]:
+                        players_db[target_id]["friend_requests"].append(user_id)
+                        save_player(target_id, players_db[target_id])
+                        if target_id in active_connections:
+                            try: await active_connections[target_id].send_text(json.dumps({"type": "new_friend_request", "from_name": players_db[user_id]["name"], "from_id": user_id}))
+                            except: pass
+                continue
+            if message.get("type") == "accept_friend_request":
+                sender_id = message.get("sender_id")
+                if sender_id in players_db:
+                    if "friend_requests" in players_db[user_id] and sender_id in players_db[user_id]["friend_requests"]: players_db[user_id]["friend_requests"].remove(sender_id)
+                    if sender_id not in players_db[user_id]["friends"]: players_db[user_id]["friends"].append(sender_id)
+                    if user_id not in players_db[sender_id]["friends"]: players_db[sender_id]["friends"].append(user_id)
+                    save_player(user_id, players_db[user_id])
+                    save_player(sender_id, players_db[sender_id])
+                    if sender_id in active_connections:
+                        try: await active_connections[sender_id].send_text(json.dumps({"type": "friend_added", "friend_name": players_db[user_id]["name"]}))
+                        except: pass
+                    await websocket.send_text(json.dumps({"type": "friend_added", "friend_name": players_db[sender_id]["name"]}))
+                    reqs = []
+                    for req_id in players_db[user_id].get("friend_requests", []):
+                        if req_id in players_db: reqs.append({"id": req_id, "name": players_db[req_id]["name"], "avatar": players_db[req_id].get("avatar", "")})
+                    await websocket.send_text(json.dumps({"type": "friend_requests_list", "requests": reqs}))
+                continue
+            if message.get("type") == "decline_friend_request":
+                sender_id = message.get("sender_id")
+                if "friend_requests" in players_db[user_id] and sender_id in players_db[user_id]["friend_requests"]:
+                    players_db[user_id]["friend_requests"].remove(sender_id)
+                    save_player(user_id, players_db[user_id])
+                    reqs = []
+                    for req_id in players_db[user_id].get("friend_requests", []):
+                        if req_id in players_db: reqs.append({"id": req_id, "name": players_db[req_id]["name"], "avatar": players_db[req_id].get("avatar", "")})
+                    await websocket.send_text(json.dumps({"type": "friend_requests_list", "requests": reqs}))
+                continue
+            if message.get("type") == "add_friend":
+                inviter_id = message.get("inviter_id")
+                if inviter_id and "_" in inviter_id: inviter_id = inviter_id.split("_")[0]
+                if inviter_id in players_db and inviter_id != user_id:
+                    if inviter_id not in players_db[user_id]["friends"]: players_db[user_id]["friends"].append(inviter_id)
+                    if user_id not in players_db[inviter_id]["friends"]: players_db[inviter_id]["friends"].append(user_id)
+                    save_player(user_id, players_db[user_id])
+                    save_player(inviter_id, players_db[inviter_id])
+                    await websocket.send_text(json.dumps({"type": "friend_added", "friend_name": players_db[inviter_id]["name"]}))
+                    if inviter_id in active_connections:
+                        try: await active_connections[inviter_id].send_text(json.dumps({"type": "friend_added", "friend_name": players_db[user_id]["name"]}))
+                        except: pass
+                continue
+            if message.get("type") == "hug_partner":
+                if len(rooms[room_id]["players"]) > 1:
+                    other_id = [uid for uid in rooms[room_id]["players"].keys() if uid != user_id][0]
+                    players_db[user_id]["coins"] += 1000
+                    players_db[other_id]["coins"] += 1000
+                    save_player(user_id, players_db[user_id])
+                    save_player(other_id, players_db[other_id])
+                    await websocket.send_text(json.dumps({"type": "update_stats", "gems": players_db[user_id]["gems"], "coins": players_db[user_id]["coins"]}))
+                    if other_id in active_connections:
+                        try: await active_connections[other_id].send_text(json.dumps({"type": "hug_received", "from_name": players_db[user_id]["name"]}))
+                        except: pass
+                continue
+            if message.get("type") == "send_gift":
+                target_id = message.get("to")
+                gift_type = message.get("gift")
+                from_name = message.get("from_name", "Друг")
+                cost = message.get("cost", 0)
+                if target_id in players_db:
+                    if players_db[user_id]["gems"] >= cost:
+                        players_db[user_id]["gems"] -= cost 
+                        players_db[target_id]["gifts"] += 1
+                        if "gift_history" not in players_db[target_id]: players_db[target_id]["gift_history"] = []
+                        players_db[target_id]["gift_history"].append({"from": from_name, "gift": gift_type, "time": time.time()})
+                        save_player(user_id, players_db[user_id])
+                        save_player(target_id, players_db[target_id])
+                        await websocket.send_text(json.dumps({"type": "gift_sent_success", "message": f"🎁 Ты подарил {gift_type}!"}))
+                        await websocket.send_text(json.dumps({"type": "update_stats", "gems": players_db[user_id]["gems"], "coins": players_db[user_id]["coins"]}))
+                        if target_id in active_connections:
+                            try: await active_connections[target_id].send_text(json.dumps({"type": "gift_received", "gift": gift_type, "from_name": from_name}))
+                            except: pass
+                    else:
+                        await websocket.send_text(json.dumps({"type": "error", "message": "Недостаточно гемов! 💎"}))
+                continue
+            if message.get("type") == "tap":
+                if len(rooms[room_id]["players"]) > 1:
+                    rooms[room_id]["joint_progress"] += 0.5
+                    if rooms[room_id]["joint_progress"] >= 100: rooms[room_id]["joint_progress"] = 0
+                    await broadcast(room_id, {"type": "joint_progress", "progress": rooms[room_id]["joint_progress"]})
+                await broadcast(room_id, {"type": "player_tapped", "user_id": user_id, "power": message.get("power", 1)}, exclude_user=user_id)
+    except WebSocketDisconnect:
+        if user_id in active_connections: del active_connections[user_id]
+        if user_id in rooms[room_id]["players"]: del rooms[room_id]["players"][user_id]
+        if len(rooms[room_id]["players"]) == 0: del rooms[room_id]
+        else: await broadcast_room_state(room_id)
+
+@app.get("/api/leaderboard")
+async def get_leaderboard():
+    sorted_players = sorted(players_db.items(), key=lambda x: x[1]["coins"], reverse=True)[:50]
+    result = []
+    for uid, data in sorted_players:
+        is_online = (time.time() - data["last_active"]) < 120
+        result.append({"id": uid, "name": data["name"], "coins": data["coins"], "online": is_online, "gifts": data.get("gifts", 0), "gift_history": data.get("gift_history", []), "verified": data.get("verified", False), "avatar": data.get("avatar", ""), "frame": data.get("frame", "default"), "medal": data.get("medal", "none"), "nick_style": data.get("nick_style", "nick-default")})
+    return result
+
+@app.get("/api/friends/{user_id}")
+async def get_friends(user_id: str):
+    if user_id not in players_db: return []
+    friends_list = []
+    for f_id in players_db[user_id]["friends"]:
+        if f_id in players_db:
+            f_data = players_db[f_id]
+            is_online = (time.time() - f_data["last_active"]) < 120
+            friends_list.append({"id": f_id, "name": f_data["name"], "coins": f_data["coins"], "online": is_online, "gifts": f_data.get("gifts", 0), "gift_history": f_data.get("gift_history", []), "verified": f_data.get("verified", False), "avatar": f_data.get("avatar", ""), "frame": f_data.get("frame", "default"), "medal": f_data.get("medal", "none"), "nick_style": f_data.get("nick_style", "nick-default")})
+    return friends_list
+
+async def broadcast_room_state(room_id: str):
+    if room_id in rooms:
+        players_list = []
+        for uid in rooms[room_id]["players"].keys():
+            if uid in players_db: players_list.append({"id": uid, "name": players_db[uid]["name"], "gender": players_db[uid]["gender"]})
+            else: players_list.append({"id": uid, "name": f"Panda_{uid[:4]}", "gender": "male"})
+        await broadcast(room_id, {"type": "room_state", "players": players_list})
+
+async def broadcast(room_id: str, message: dict, exclude_user: str = None):
+    if room_id in rooms:
+        for uid, connection in list(rooms[room_id]["players"].items()):
+            if uid != exclude_user:
+                try: await connection.send_text(json.dumps(message))
+                except: pass
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
