@@ -1,4 +1,5 @@
-﻿fastapi
+fastapi
 uvicorn
-websockets
 psycopg2-binary
+aiohttp
+pydantic
