@@ -67,6 +67,14 @@ def load_players():
             if "gifts" not in p_data: p_data["gifts"] = 0
             if "gift_history" not in p_data: p_data["gift_history"] = []
             
+            # Новые поля для семьи
+            if "gender" not in p_data: p_data["gender"] = random.choice(["male", "female"])
+            if "house_level" not in p_data: p_data["house_level"] = 1
+            if "is_pregnant" not in p_data: p_data["is_pregnant"] = False
+            if "pregnancy_end" not in p_data: p_data["pregnancy_end"] = 0
+            if "has_baby" not in p_data: p_data["has_baby"] = False
+            if "baby_hunger" not in p_data: p_data["baby_hunger"] = 100
+            
             if uid == ADMIN_ID:
                 p_data["verified"] = True
                 p_data["unlockedMedals"] = ['bronze', 'silver', 'gold', 'epic', 'mythic']
@@ -142,20 +150,6 @@ async def search_players(q: str, my_id: str):
             if len(results) >= 15: break
     return results
 
-@app.get("/api/leaderboard")
-async def get_leaderboard():
-    sorted_players = sorted(players_db.items(), key=lambda x: x[1]["coins"], reverse=True)[:50]
-    result = []
-    for uid, data in sorted_players:
-        result.append({
-            "id": uid, "name": data["name"], "coins": data["coins"], "gems": data["gems"],
-            "avatar": data.get("avatar", ""), "frame": data.get("selectedFrame", "default"),
-            "medal": data.get("selectedMedal", "none"), "nick_style": data.get("selectedNickAnim", "nick-default"),
-            "verified": data.get("verified", False), "gifts": data.get("gifts", 0), "gift_history": data.get("gift_history", []),
-            "online": (time.time() - data["last_active"]) < 120
-        })
-    return result
-
 @app.get("/api/friends/{user_id}")
 async def get_friends(user_id: str):
     if user_id not in players_db: return []
@@ -178,7 +172,7 @@ HTML_CONTENT = r"""
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 38.2</title>
+    <title>Panda Game 39.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -296,12 +290,26 @@ HTML_CONTENT = r"""
         .gift-history-icon { font-size: 20px; }
 
         /* Lobby Styles */
-        .lobby-active-view { display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; width: 100%; }
-        .duo-pandas { display: flex; gap: 20px; align-items: flex-end; justify-content: center; margin-top: 20px; }
-        .duo-panda { position: relative; text-align: center; }
-        .duo-panda .avatar-wrap { width: 80px; height: 80px; margin: 0 auto 10px; }
-        .duo-panda .profile-avatar-mini { font-size: 40px; }
-        .duo-name { font-size: 14px; font-weight: 900; }
+        .lobby-active-view { display: none; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; width: 100%; height: 100%;}
+        
+        /* House Levels */
+        .house-bg-1 { background: linear-gradient(180deg, #2c3e50 0%, #000000 100%); }
+        .house-bg-2 { background: linear-gradient(180deg, #4e342e 0%, #1e1e1e 100%); border: 2px solid #8d6e63; }
+        .house-bg-3 { background: linear-gradient(180deg, #1a237e 0%, #000000 100%); border: 2px solid #ffd700; box-shadow: inset 0 0 20px #ffd700; }
+        
+        .room-container { width: 100%; height: 250px; border-radius: 15px; position: relative; margin-top: 10px; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 20px; gap: 20px; transition: all 0.5s; }
+        
+        .duo-panda { position: relative; text-align: center; transition: transform 0.3s; }
+        .duo-panda.baby { transform: scale(0.6); transform-origin: bottom center; }
+        .duo-panda .avatar-wrap { width: 70px; height: 70px; margin: 0 auto 5px; }
+        .duo-panda .profile-avatar-mini { font-size: 30px; }
+        .duo-name { font-size: 12px; font-weight: 900; }
+        
+        .baby-stats { width: 100%; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px; margin-top: 15px; border: 1px solid #ff9800;}
+        .baby-bar-bg { width: 100%; height: 10px; background: #333; border-radius: 5px; overflow: hidden; margin-top: 5px; }
+        .baby-bar-fill { height: 100%; background: #ff9800; width: 100%; transition: width 0.3s; }
+        
+        .pregnancy-alert { background: rgba(255, 182, 193, 0.2); border: 1px solid #ff69b4; padding: 10px; border-radius: 10px; margin-top: 10px; color: #ff69b4; font-weight: 900; }
     </style>
 </head>
 <body>
@@ -384,29 +392,55 @@ HTML_CONTENT = r"""
 
                 <!-- Lobby Active View -->
                 <div id="lobby-active-view" class="lobby-active-view">
-                    <div class="section-title" style="color:#ffd700; margin-bottom:5px;">Совместное Лобби 🏠</div>
-                    <p style="font-size:12px; color:#aaa; margin-bottom:20px;">Вы вместе! Зарабатывайте монеты и заботьтесь друг о друге.</p>
+                    <div class="section-title" style="color:#ffd700; margin-bottom:0;">Наше Лобби 🏠</div>
+                    <p style="font-size:12px; color:#aaa;">Уровень Дома: <span id="house-level-text">1</span></p>
                     
-                    <div class="duo-pandas">
-                        <div class="duo-panda">
+                    <div id="room-bg" class="room-container house-bg-1">
+                        <div class="duo-panda" id="duo-me">
                             <div class="avatar-wrap">
                                 <div class="avatar-frame default" id="lobby-my-frame"></div>
                                 <div class="profile-avatar-mini" id="lobby-my-avatar">🐼</div>
                             </div>
                             <div class="duo-name" id="lobby-my-name">Ты</div>
                         </div>
-                        <div class="duo-panda">
+                        <div class="duo-panda" id="duo-partner">
                             <div class="avatar-wrap">
                                 <div class="avatar-frame default" id="lobby-partner-frame"></div>
                                 <div class="profile-avatar-mini" id="lobby-partner-avatar">🐼</div>
                             </div>
                             <div class="duo-name" id="lobby-partner-name">Партнер</div>
                         </div>
+                        <!-- Baby will be inserted here -->
+                        <div class="duo-panda baby" id="duo-baby" style="display:none;">
+                            <div class="avatar-wrap">
+                                <div class="avatar-frame default"></div>
+                                <div class="profile-avatar-mini">🐼</div>
+                            </div>
+                            <div class="duo-name">Малыш</div>
+                        </div>
                     </div>
 
-                    <div class="card" style="width: 100%; margin-top: 30px;">
-                        <div class="card-title" style="font-size: 16px; margin-bottom: 10px;">Действия</div>
-                        <button class="card-price" style="background:#ff9800; color:#fff; margin-bottom:10px;" onclick="hugPartner()">Обнять 🤗 (Бонус: +1000 монет)</button>
+                    <div id="pregnancy-alert" class="pregnancy-alert" style="display:none;">
+                        🤰 Панда беременна! Осталось: <span id="preg-time">0</span> сек.
+                    </div>
+
+                    <div class="baby-stats" id="baby-care" style="display:none;">
+                        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:900;">
+                            <span>Сытость малыша</span>
+                            <span id="baby-hunger-text">100%</span>
+                        </div>
+                        <div class="baby-bar-bg"><div class="baby-bar-fill" id="baby-hunger-bar"></div></div>
+                    </div>
+
+                    <div class="card" style="width: 100%; margin-top: 15px; padding: 10px;">
+                        <button class="card-price" style="background:#ff9800; color:#fff; margin-bottom:8px;" onclick="hugPartner()">Обнять 🤗 (+1000)</button>
+                        
+                        <button id="btn-upgrade-house" class="card-price" style="background:#2196f3; color:#fff; margin-bottom:8px;" onclick="upgradeHouse()">Улучшить Дом (50,000)</button>
+                        
+                        <button id="btn-make-baby" class="card-price" style="background:#ff69b4; color:#fff; margin-bottom:8px; display:none;" onclick="makePregnant()">Забеременеть 🤰</button>
+                        
+                        <button id="btn-feed-baby" class="card-price" style="background:#4caf50; color:#fff; margin-bottom:8px; display:none;" onclick="feedBaby()">Покормить (10,000)</button>
+
                         <button class="card-price" style="background:#e53935; color:#fff;" onclick="leaveLobby()">Выйти из лобби</button>
                     </div>
                 </div>
@@ -462,7 +496,12 @@ HTML_CONTENT = r"""
                     </div>
                     <div id="my-name-profile" class="nick-default" style="font-size: 22px; font-weight: 900; margin-bottom: 5px; z-index: 2;">Загрузка...</div>
                     <div style="font-size:16px; font-weight:900; margin-bottom:5px; z-index:2;">ID: <span id="my-game-id" onclick="copyId()" style="color:#00e5ff; text-decoration:underline; cursor:pointer;">...</span></div>
-                    <div style="display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; width: 100%;">
+                    
+                    <div style="margin-top:10px; margin-bottom:10px;">
+                        <button class="card-price" style="width:auto; padding:5px 15px; background:#555;" onclick="toggleGender()">Сменить пол (Текущий: <span id="my-gender">...</span>)</button>
+                    </div>
+
+                    <div style="display: flex; justify-content: center; gap: 20px; margin-top: 10px; font-size: 12px; color: #aaa; width: 100%;">
                         <div>Монеты <span id="stat-coins" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
                         <div>Гемы <span id="stat-gems" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
                         <div>Подарки <span id="stat-gifts" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
@@ -558,7 +597,7 @@ HTML_CONTENT = r"""
         const myId = String(tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 10000));
         const WS_URL = window.location.origin.replace('https://', 'wss://');
         let ws;
-        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [], lobby_partner: null, lobby_partner_name: null, gifts: 0, gift_history: [] };
+        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [], lobby_partner: null, lobby_partner_name: null, gifts: 0, gift_history: [], gender: 'male', house_level: 1, is_pregnant: false, pregnancy_end: 0, has_baby: false, baby_hunger: 100 };
         
         let currentBet = 10000;
         let isSpinning = false;
@@ -659,6 +698,7 @@ HTML_CONTENT = r"""
             if(document.getElementById('my-name-profile')) { document.getElementById('my-name-profile').className = `${animCss}`; document.getElementById('my-name-profile').innerText = state.nickname; }
             
             if(document.getElementById('my-game-id')) document.getElementById('my-game-id').innerText = state.gameId || '...';
+            if(document.getElementById('my-gender')) document.getElementById('my-gender').innerText = state.gender === 'male' ? 'Мужской 👦' : 'Женский 👧';
             
             const med = allMedals.find(m => m.id === state.selectedMedal);
             if(document.getElementById('header-medal')) {
@@ -735,14 +775,63 @@ HTML_CONTENT = r"""
                 
                 document.getElementById('lobby-my-name').innerText = state.nickname;
                 document.getElementById('lobby-partner-name').innerText = state.lobby_partner_name || 'Партнер';
-                
-                // Заглушка для аватарки партнера, если нет в базе (для простоты)
                 document.getElementById('lobby-partner-avatar').innerHTML = '🐼'; 
                 
                 const frame = allFrames.find(f => f.id === state.selectedFrame)?.cssClass || 'default';
                 document.getElementById('lobby-my-frame').className = `avatar-frame ${frame}`;
-                // Партнерская рамка (пока дефолт)
                 document.getElementById('lobby-partner-frame').className = `avatar-frame default`;
+
+                // House BG
+                const roomBg = document.getElementById('room-bg');
+                roomBg.className = `room-container house-bg-${state.house_level}`;
+                document.getElementById('house-level-text').innerText = state.house_level;
+
+                // Upgrade btn
+                const upgBtn = document.getElementById('btn-upgrade-house');
+                if(state.house_level >= 3) {
+                    upgBtn.style.display = 'none';
+                } else {
+                    upgBtn.style.display = 'block';
+                    upgBtn.innerText = `Улучшить Дом (${(state.house_level * 50000).toLocaleString()})`;
+                }
+
+                // Pregnancy & Baby
+                const pregAlert = document.getElementById('pregnancy-alert');
+                const babyCare = document.getElementById('baby-care');
+                const babyVisual = document.getElementById('duo-baby');
+                const btnMakeBaby = document.getElementById('btn-make-baby');
+                const btnFeedBaby = document.getElementById('btn-feed-baby');
+
+                if (state.has_baby) {
+                    babyVisual.style.display = 'block';
+                    babyCare.style.display = 'block';
+                    pregAlert.style.display = 'none';
+                    btnMakeBaby.style.display = 'none';
+                    btnFeedBaby.style.display = 'block';
+                    
+                    document.getElementById('baby-hunger-text').innerText = state.baby_hunger + '%';
+                    document.getElementById('baby-hunger-bar').style.width = state.baby_hunger + '%';
+                } else if (state.is_pregnant) {
+                    babyVisual.style.display = 'none';
+                    babyCare.style.display = 'none';
+                    btnMakeBaby.style.display = 'none';
+                    btnFeedBaby.style.display = 'none';
+                    
+                    pregAlert.style.display = 'block';
+                    const left = Math.max(0, Math.floor((state.pregnancy_end - Date.now())/1000));
+                    document.getElementById('preg-time').innerText = left;
+                    if(left === 0) {
+                        // Если время вышло, через секунду дернем обновление (сервер сам разрулит)
+                        if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "check_baby" }));
+                    }
+                } else {
+                    babyVisual.style.display = 'none';
+                    babyCare.style.display = 'none';
+                    pregAlert.style.display = 'none';
+                    btnMakeBaby.style.display = 'block';
+                    btnFeedBaby.style.display = 'none';
+                }
+
             } else {
                 document.getElementById('default-friends-view').style.display = 'block';
                 document.getElementById('lobby-active-view').style.display = 'none';
@@ -835,6 +924,10 @@ HTML_CONTENT = r"""
             if(type==='NickAnim') state.selectedNickAnim = id;
             updateUI();
             if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "equip", category: type, item_id: id }));
+        }
+
+        function toggleGender() {
+            if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "toggle_gender" }));
         }
 
         function setBet(amount) {
@@ -1028,6 +1121,24 @@ HTML_CONTENT = r"""
             }
         }
 
+        function upgradeHouse() {
+            if(ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "upgrade_house" }));
+            }
+        }
+
+        function makePregnant() {
+            if(ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "make_pregnant" }));
+            }
+        }
+
+        function feedBaby() {
+            if(ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "feed_baby" }));
+            }
+        }
+
         setInterval(() => {
             if (state.energy < state.maxEnergy) {
                 state.energy = Math.min(state.maxEnergy, state.energy + state.regen);
@@ -1036,6 +1147,10 @@ HTML_CONTENT = r"""
             }
             if (document.getElementById('screen-farm').classList.contains('active')) {
                 renderFarm();
+            }
+            if (state.is_pregnant) {
+                const left = Math.max(0, Math.floor((state.pregnancy_end - Date.now())/1000));
+                if(document.getElementById('preg-time')) document.getElementById('preg-time').innerText = left;
             }
         }, 1000);
 
@@ -1058,7 +1173,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             "selectedMedal": "none", "selectedFrame": "default", "selectedNickAnim": "default",
             "unlockedMedals": [], "unlockedFrames": ["default"], "unlockedAnims": ["default"],
             "friends": [], "verified": True if user_id == ADMIN_ID else False, "last_active": time.time(), 
-            "lobby_partner": None, "lobby_partner_name": None, "gifts": 0, "gift_history": []
+            "lobby_partner": None, "lobby_partner_name": None, "gifts": 0, "gift_history": [],
+            "gender": random.choice(["male", "female"]), "house_level": 1, "is_pregnant": False, "pregnancy_end": 0, "has_baby": False, "baby_hunger": 100
         }
     if "game_id" not in players_db[user_id]: 
         players_db[user_id]["game_id"] = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -1185,12 +1301,14 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     save_player(user_id, players_db[user_id])
                     save_player(inviter_id, players_db[inviter_id])
                     
-                    # Синхронизируем обоих
                     sync_u = players_db[user_id]; sync_u["gameId"] = players_db[user_id]["game_id"]
                     sync_i = players_db[inviter_id]; sync_i["gameId"] = players_db[inviter_id]["game_id"]
                     
+                    await websocket.send_text(json.dumps({"type": "sync", "data": sync_u}))
                     await websocket.send_text(json.dumps({"type": "lobby_joined", "partner_id": inviter_id, "partner_name": players_db[inviter_id]["name"]}))
-                    try: await active_connections[inviter_id].send_text(json.dumps({"type": "lobby_joined", "partner_id": user_id, "partner_name": players_db[user_id]["name"]}))
+                    try: 
+                        await active_connections[inviter_id].send_text(json.dumps({"type": "sync", "data": sync_i}))
+                        await active_connections[inviter_id].send_text(json.dumps({"type": "lobby_joined", "partner_id": user_id, "partner_name": players_db[user_id]["name"]}))
                     except: pass
 
             elif msg.get("type") == "hug_partner":
@@ -1220,8 +1338,66 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                         try: await active_connections[partner_id].send_text(json.dumps({"type": "sync", "data": players_db[partner_id]}))
                         except: pass
 
+            elif msg.get("type") == "toggle_gender":
+                players_db[user_id]["gender"] = "female" if players_db[user_id]["gender"] == "male" else "male"
+                save_player(user_id, players_db[user_id])
+                await websocket.send_text(json.dumps({"type": "sync", "data": players_db[user_id]}))
+
+            elif msg.get("type") == "upgrade_house":
+                h_level = players_db[user_id].get("house_level", 1)
+                cost = h_level * 50000
+                if h_level < 3 and players_db[user_id]["coins"] >= cost:
+                    players_db[user_id]["coins"] -= cost
+                    players_db[user_id]["house_level"] += 1
+                    save_player(user_id, players_db[user_id])
+                    await websocket.send_text(json.dumps({"type": "sync", "data": players_db[user_id]}))
+                else:
+                    await websocket.send_text(json.dumps({"type": "error", "message": "Недостаточно монет или максимальный уровень!"}))
+
+            elif msg.get("type") == "make_pregnant":
+                if not players_db[user_id].get("is_pregnant") and not players_db[user_id].get("has_baby"):
+                    players_db[user_id]["is_pregnant"] = True
+                    # Тестовое время: 3 минуты (180 сек)
+                    players_db[user_id]["pregnancy_end"] = int(time.time() * 1000) + 180000
+                    save_player(user_id, players_db[user_id])
+                    
+                    partner_id = players_db[user_id].get("lobby_partner")
+                    await websocket.send_text(json.dumps({"type": "sync", "data": players_db[user_id]}))
+                    if partner_id and partner_id in active_connections:
+                        try: await active_connections[partner_id].send_text(json.dumps({"type": "sync", "data": players_db[partner_id]}))
+                        except: pass
+
+            elif msg.get("type") == "check_baby":
+                if players_db[user_id].get("is_pregnant"):
+                    if int(time.time() * 1000) >= players_db[user_id]["pregnancy_end"]:
+                        players_db[user_id]["is_pregnant"] = False
+                        players_db[user_id]["has_baby"] = True
+                        players_db[user_id]["baby_hunger"] = 100
+                        save_player(user_id, players_db[user_id])
+                        await websocket.send_text(json.dumps({"type": "sync", "data": players_db[user_id]}))
+                        await websocket.send_text(json.dumps({"type": "error", "message": "🎉 У вас родился малыш!"}))
+                        
+                        partner_id = players_db[user_id].get("lobby_partner")
+                        if partner_id and partner_id in players_db:
+                            players_db[partner_id]["is_pregnant"] = False
+                            players_db[partner_id]["has_baby"] = True
+                            players_db[partner_id]["baby_hunger"] = 100
+                            save_player(partner_id, players_db[partner_id])
+                            if partner_id in active_connections:
+                                try: await active_connections[partner_id].send_text(json.dumps({"type": "sync", "data": players_db[partner_id]}))
+                                except: pass
+
+            elif msg.get("type") == "feed_baby":
+                if players_db[user_id].get("has_baby"):
+                    if players_db[user_id]["coins"] >= 10000:
+                        players_db[user_id]["coins"] -= 10000
+                        players_db[user_id]["baby_hunger"] = min(100, players_db[user_id].get("baby_hunger", 0) + 20)
+                        save_player(user_id, players_db[user_id])
+                        await websocket.send_text(json.dumps({"type": "sync", "data": players_db[user_id]}))
+                    else:
+                        await websocket.send_text(json.dumps({"type": "error", "message": "Нужно 10,000 монет!"}))
+
     except WebSocketDisconnect:
-        # Если игрок выходит, принудительно разрываем лобби
         partner_id = players_db[user_id].get("lobby_partner")
         if partner_id and partner_id in players_db:
             players_db[partner_id]["lobby_partner"] = None
