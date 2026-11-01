@@ -52,6 +52,8 @@ def load_players():
         for row in c.fetchall():
             uid = row['id']
             p_data = json.loads(row['data'])
+            
+            # Восстановление недостающих полей
             if "upgrades" not in p_data: p_data["upgrades"] = {"tap": 0, "max_energy": 0, "regen": 0}
             if "selectedMedal" not in p_data: p_data["selectedMedal"] = "none"
             if "selectedFrame" not in p_data: p_data["selectedFrame"] = "default"
@@ -62,6 +64,8 @@ def load_players():
             if "friends" not in p_data: p_data["friends"] = []
             if "bamboos" not in p_data: p_data["bamboos"] = [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}]
             if "lobby_partner" not in p_data: p_data["lobby_partner"] = None
+            if "gifts" not in p_data: p_data["gifts"] = 0
+            if "gift_history" not in p_data: p_data["gift_history"] = []
             
             if uid == ADMIN_ID:
                 p_data["verified"] = True
@@ -147,7 +151,7 @@ async def get_leaderboard():
             "id": uid, "name": data["name"], "coins": data["coins"], "gems": data["gems"],
             "avatar": data.get("avatar", ""), "frame": data.get("selectedFrame", "default"),
             "medal": data.get("selectedMedal", "none"), "nick_style": data.get("selectedNickAnim", "nick-default"),
-            "verified": data.get("verified", False),
+            "verified": data.get("verified", False), "gifts": data.get("gifts", 0), "gift_history": data.get("gift_history", []),
             "online": (time.time() - data["last_active"]) < 120
         })
     return result
@@ -163,7 +167,7 @@ async def get_friends(user_id: str):
                 "id": f_id, "name": f_data["name"], "avatar": f_data.get("avatar", ""),
                 "coins": f_data["coins"], "gems": f_data["gems"], "frame": f_data.get("selectedFrame", "default"),
                 "medal": f_data.get("selectedMedal", "none"), "nick_style": f_data.get("selectedNickAnim", "nick-default"),
-                "verified": f_data.get("verified", False),
+                "verified": f_data.get("verified", False), "gifts": f_data.get("gifts", 0), "gift_history": f_data.get("gift_history", []),
                 "online": (time.time() - f_data["last_active"]) < 120
             })
     return friends_list
@@ -174,7 +178,7 @@ HTML_CONTENT = r"""
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 38.0</title>
+    <title>Panda Game 38.1</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -212,7 +216,6 @@ HTML_CONTENT = r"""
         .name-row { display: flex; align-items: center; gap: 5px; }
         .header-nick { font-size: 16px; font-weight: 900; text-shadow: 2px 2px 0 #000; }
         
-        /* FIX: display inline-block for gradients to work in lists */
         .nick-default { color: #fff; display: inline-block; }
         .nick-gold { background: linear-gradient(90deg, #ffd700, #ff8c00, #ffd700); background-size: 200% auto; color: transparent; -webkit-background-clip: text; background-clip: text; animation: goldShine 3s linear infinite; filter: drop-shadow(0 0 2px rgba(255,215,0,0.5)); display: inline-block; }
         .nick-fire { color: #ff4500; text-shadow: 0 0 5px #ff4500, 0 0 15px #ff0000; animation: fireFlicker 1.5s infinite alternate; display: inline-block; }
@@ -288,6 +291,9 @@ HTML_CONTENT = r"""
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; backdrop-filter: blur(5px); }
         .modal.active { display: flex; }
         .modal-box { background: #1a2e22; border: 2px solid #4caf50; border-radius: 20px; padding: 25px; width: 90%; max-width: 350px; position: relative; }
+        
+        .gift-history-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; margin-bottom: 5px; font-size: 12px; text-align: left; }
+        .gift-history-icon { font-size: 20px; }
     </style>
 </head>
 <body>
@@ -423,6 +429,7 @@ HTML_CONTENT = r"""
                     <div style="display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; width: 100%;">
                         <div>Монеты <span id="stat-coins" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
                         <div>Гемы <span id="stat-gems" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
+                        <div>Подарки <span id="stat-gifts" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
                     </div>
                 </div>
                 <div class="section-title">Стиль ника</div>
@@ -458,10 +465,44 @@ HTML_CONTENT = r"""
             <div style="display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; width: 100%; margin-bottom: 15px;">
                 <div>Монеты <span id="vp-coins" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
                 <div>Гемы <span id="vp-gems" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
+                <div>Подарки <span id="vp-gifts" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
             </div>
             
-            <button class="card-price" style="background:#ff9800; color:#fff; margin-bottom:10px;" onclick="inviteToLobby()">Пригласить в Лобби</button>
+            <button class="card-price" style="background:#ff9800; color:#fff; margin-bottom:10px;" onclick="openGiftModal()">Подарить 🎁</button>
+            <button class="card-price" style="background:#2196f3; color:#fff; margin-bottom:10px;" onclick="showGiftHistory()">История подарков</button>
+            <button class="card-price" style="background:#4caf50; color:#fff; margin-bottom:10px;" onclick="inviteToLobby()">Пригласить в Лобби</button>
             <button class="card-price" style="background:#555; color:#fff;" onclick="document.getElementById('view-profile-modal').classList.remove('active')">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Gift Selection Modal -->
+    <div class="modal" id="gift-modal">
+        <div class="modal-box" style="text-align:center;">
+            <h2 style="color:#ffd700; margin-bottom:15px;">Подарить подарок</h2>
+            <div style="display:flex; justify-content:space-around; margin-bottom:20px;">
+                <div onclick="sendGift('🌹', 10)" style="cursor:pointer; text-align:center;">
+                    <div style="font-size:30px;">🌹</div><div style="font-size:10px; color:#00e5ff;">10 💎</div>
+                </div>
+                <div onclick="sendGift('🎂', 50)" style="cursor:pointer; text-align:center;">
+                    <div style="font-size:30px;">🎂</div><div style="font-size:10px; color:#00e5ff;">50 💎</div>
+                </div>
+                <div onclick="sendGift('🧸', 100)" style="cursor:pointer; text-align:center;">
+                    <div style="font-size:30px;">🧸</div><div style="font-size:10px; color:#00e5ff;">100 💎</div>
+                </div>
+                <div onclick="sendGift('👑', 500)" style="cursor:pointer; text-align:center;">
+                    <div style="font-size:30px;">👑</div><div style="font-size:10px; color:#00e5ff;">500 💎</div>
+                </div>
+            </div>
+            <button class="card-price" style="background:#555; color:#fff;" onclick="document.getElementById('gift-modal').classList.remove('active')">Отмена</button>
+        </div>
+    </div>
+
+    <!-- Gift History Modal -->
+    <div class="modal" id="gift-history-modal">
+        <div class="modal-box">
+            <h2 style="color:#ffd700; margin-bottom:15px;">История подарков</h2>
+            <div id="gift-history-list" style="max-height:200px; overflow-y:auto; text-align:left; margin-bottom:15px;"></div>
+            <button class="card-price" style="background:#555; color:#fff;" onclick="document.getElementById('gift-history-modal').classList.remove('active')">Закрыть</button>
         </div>
     </div>
 
@@ -481,12 +522,13 @@ HTML_CONTENT = r"""
         const myId = String(tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 10000));
         const WS_URL = window.location.origin.replace('https://', 'wss://');
         let ws;
-        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [], lobby_partner: null };
+        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [], lobby_partner: null, gifts: 0, gift_history: [] };
         
         let currentBet = 10000;
         let isSpinning = false;
         let currentViewPlayerId = null;
         let currentInviterId = null;
+        let currentFriendProfileData = null;
 
         const allMedals = [{ id: 'bronze', name: 'Бронза', req: 30, emoji: '🥉' }, { id: 'silver', name: 'Серебро', req: 90, emoji: '🥈' }, { id: 'gold', name: 'Золото', req: 180, emoji: '🥇' }, { id: 'epic', name: 'Эпик', req: 365, emoji: '💎' }, { id: 'mythic', name: 'Мифик', req: 730, emoji: '👑' }];
         const allFrames = [{ id: 'default', name: 'Новичок', cssClass: 'default', price: 0 }, { id: 'millionaire', name: 'Богач', cssClass: 'millionaire', price: 0 }, { id: 'legend', name: 'Легенда', cssClass: 'legend', price: 0 }, { id: 'neon', name: 'Неон', cssClass: 'neon', price: 50000 }, { id: 'nature', name: 'Природа', cssClass: 'nature', price: 75000 }, { id: 'fire', name: 'Огонь', cssClass: 'fire', price: 100000 }];
@@ -542,6 +584,8 @@ HTML_CONTENT = r"""
                     document.getElementById('lobby-text').innerText = "Вы в совместном лобби!";
                     tg.showAlert(`Вы в лобби с ${data.partner_name}!`);
                     switchTab('friends', document.querySelectorAll('.nav-btn')[1]);
+                } else if (data.type === 'gift_received') {
+                    tg.showAlert(`🎁 Тебе подарили ${data.gift} от ${data.from_name}!`);
                 }
             };
             ws.onclose = () => { document.getElementById('conn-status').innerText = "🔴 Оффлайн"; setTimeout(connectWS, 2000); };
@@ -592,6 +636,7 @@ HTML_CONTENT = r"""
 
             if(document.getElementById('stat-coins')) document.getElementById('stat-coins').innerText = Math.floor(state.coins).toLocaleString();
             if(document.getElementById('stat-gems')) document.getElementById('stat-gems').innerText = Math.floor(state.gems).toLocaleString();
+            if(document.getElementById('stat-gifts')) document.getElementById('stat-gifts').innerText = state.gifts || 0;
 
             const u = state.upgrades || {tap:0, max_energy:0, regen:0};
             const shopHTML = `
@@ -839,14 +884,17 @@ HTML_CONTENT = r"""
         }
 
         function viewFriendProfile(id) {
-            const friend = state.friends.find(f => f.id === id);
+            const friend = state.friends.find(f => f.id === id) || window.leaderboardData?.find(p => p.id === id);
             if(!friend) return;
             currentViewPlayerId = id;
+            currentFriendProfileData = friend;
+            
             document.getElementById('vp-name').innerText = friend.name;
             document.getElementById('vp-name').className = `${friend.nick_style}`;
-            document.getElementById('vp-id').innerText = friend.id; // Here we might need the actual game ID, but we only have the telegram ID
+            document.getElementById('vp-id').innerText = friend.id;
             document.getElementById('vp-coins').innerText = friend.coins.toLocaleString();
             document.getElementById('vp-gems').innerText = friend.gems ? friend.gems.toLocaleString() : '0';
+            document.getElementById('vp-gifts').innerText = friend.gifts || 0;
             
             const frameData = allFrames.find(fr => fr.id === friend.frame) || allFrames[0];
             document.getElementById('vp-frame').className = `avatar-frame ${frameData.cssClass}`;
@@ -859,6 +907,30 @@ HTML_CONTENT = r"""
             else document.getElementById('vp-avatar').innerText = '🐼';
             
             document.getElementById('view-profile-modal').classList.add('active');
+        }
+
+        function openGiftModal() {
+            document.getElementById('gift-modal').classList.add('active');
+        }
+
+        function sendGift(emoji, price) {
+            if(ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "send_gift", target_id: currentViewPlayerId, gift: emoji, cost: price }));
+                document.getElementById('gift-modal').classList.remove('active');
+                tg.showAlert("Подарок отправлен!");
+            }
+        }
+
+        function showGiftHistory() {
+            if(!currentFriendProfileData) return;
+            const history = currentFriendProfileData.gift_history || [];
+            const listEl = document.getElementById('gift-history-list');
+            if (history.length === 0) {
+                listEl.innerHTML = '<div style="color:#888; text-align:center;">Подарков пока нет</div>';
+            } else {
+                listEl.innerHTML = history.map(g => `<div class="gift-history-item"><span class="gift-history-icon">${g.gift}</span> <span>от <b>${g.from}</b></span></div>`).join('');
+            }
+            document.getElementById('gift-history-modal').classList.add('active');
         }
 
         function inviteToLobby() {
@@ -905,7 +977,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             "bamboos": [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}],
             "selectedMedal": "none", "selectedFrame": "default", "selectedNickAnim": "default",
             "unlockedMedals": [], "unlockedFrames": ["default"], "unlockedAnims": ["default"],
-            "friends": [], "verified": True if user_id == ADMIN_ID else False, "last_active": time.time(), "lobby_partner": None
+            "friends": [], "verified": True if user_id == ADMIN_ID else False, "last_active": time.time(), "lobby_partner": None,
+            "gifts": 0, "gift_history": []
         }
     if "game_id" not in players_db[user_id]: 
         players_db[user_id]["game_id"] = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -993,6 +1066,28 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     players_db[user_id]["friends"].append(fid)
                     save_player(user_id, players_db[user_id])
                     
+            elif msg.get("type") == "send_gift":
+                target_id = msg.get("target_id")
+                gift = msg.get("gift")
+                cost = int(msg.get("cost"))
+                if target_id in players_db and players_db[user_id]["gems"] >= cost:
+                    players_db[user_id]["gems"] -= cost
+                    players_db[target_id]["gifts"] = players_db[target_id].get("gifts", 0) + 1
+                    if "gift_history" not in players_db[target_id]: players_db[target_id]["gift_history"] = []
+                    players_db[target_id]["gift_history"].append({"from": players_db[user_id]["name"], "gift": gift, "time": time.time()})
+                    
+                    save_player(user_id, players_db[user_id])
+                    save_player(target_id, players_db[target_id])
+                    
+                    sync_data = players_db[user_id]; sync_data["gameId"] = players_db[user_id]["game_id"]
+                    await websocket.send_text(json.dumps({"type": "sync", "data": sync_data}))
+                    
+                    if target_id in active_connections:
+                        try: await active_connections[target_id].send_text(json.dumps({"type": "gift_received", "from_name": players_db[user_id]["name"], "gift": gift}))
+                        except: pass
+                else:
+                    await websocket.send_text(json.dumps({"type": "error", "message": "Недостаточно гемов!"}))
+                    
             elif msg.get("type") == "invite_lobby":
                 fid = msg.get("friend_id")
                 if fid in active_connections:
@@ -1002,13 +1097,11 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             elif msg.get("type") == "accept_lobby":
                 inviter_id = msg.get("inviter_id")
                 if inviter_id in players_db and inviter_id in active_connections:
-                    # Создаем связь
                     players_db[user_id]["lobby_partner"] = inviter_id
                     players_db[inviter_id]["lobby_partner"] = user_id
                     save_player(user_id, players_db[user_id])
                     save_player(inviter_id, players_db[inviter_id])
                     
-                    # Уведомляем обоих
                     await websocket.send_text(json.dumps({"type": "lobby_joined", "partner_name": players_db[inviter_id]["name"]}))
                     try: await active_connections[inviter_id].send_text(json.dumps({"type": "lobby_joined", "partner_name": players_db[user_id]["name"]}))
                     except: pass
