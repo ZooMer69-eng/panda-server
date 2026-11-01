@@ -8,6 +8,7 @@ import os
 import time
 import random
 import string
+import math
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import aiohttp
@@ -51,7 +52,6 @@ def load_players():
         c.execute("SELECT id, data FROM players")
         for row in c.fetchall():
             p_data = json.loads(row['data'])
-            # Восстанавливаем старые данные, если их нет
             if "upgrades" not in p_data: p_data["upgrades"] = {"tap": 0, "max_energy": 0, "regen": 0}
             if "selectedMedal" not in p_data: p_data["selectedMedal"] = "none"
             if "selectedFrame" not in p_data: p_data["selectedFrame"] = "default"
@@ -149,8 +149,6 @@ HTML_CONTENT = r"""
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: #0a120e; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-        
-        /* Background */
         .bg-container { position: absolute; inset: 0; z-index: 1; overflow: hidden; }
         .bg-base { background: linear-gradient(180deg, #0f172a 0%, #1e293b 40%, #334155 70%, #475569 100%); }
         .bg-moon { position: absolute; top: 10%; right: 15%; width: 80px; height: 80px; background: radial-gradient(circle, #fef08a 10%, #fde047 40%, transparent 70%); border-radius: 50%; filter: blur(2px); box-shadow: 0 0 40px rgba(253, 224, 71, 0.4); }
@@ -161,7 +159,6 @@ HTML_CONTENT = r"""
         .stalk::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(180deg, transparent 0 100px, #022c22 100px 106px); border-radius: 10px; }
         .bg-ground { position: absolute; bottom: 0; left: 0; width: 100%; height: 25%; background: linear-gradient(to top, #022c22 0%, #064e3b 100%); z-index: 3; box-shadow: inset 0 10px 30px rgba(0,0,0,0.5); }
         
-        /* Header */
         .header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: flex-start; z-index: 10; position: relative; }
         .user-info-block { display: flex; align-items: center; gap: 10px; }
         .avatar-wrap { position: relative; width: 50px; height: 50px; cursor: pointer; }
@@ -198,14 +195,12 @@ HTML_CONTENT = r"""
         .energy-bar { width: 70px; height: 8px; background: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; border: 1px solid rgba(255,255,255,0.4); margin-top: 3px; }
         .energy-fill { height: 100%; background: linear-gradient(90deg, #00e5ff, #007bff); width: 100%; transition: width 0.3s; }
 
-        /* Screens & Tabs */
         .screens { flex: 1; position: relative; z-index: 5; overflow: hidden; }
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; }
         .screen.active { display: flex; }
         .content { flex: 1; padding: 15px; overflow-y: auto; background: rgba(10, 18, 14, 0.85); backdrop-filter: blur(5px); z-index: 20; }
         .section-title { font-size: 18px; font-weight: 900; margin-bottom: 15px; color: #fff; text-align: center; }
         
-        /* Tap Area */
         .tap-area { flex: 1; display: flex; justify-content: center; align-items: flex-end; gap: 20px; position: relative; padding-bottom: 10px; z-index: 5; }
         .panda-wrapper { position: relative; width: 190px; height: 210px; transform-origin: center bottom; cursor: pointer; transition: transform 1s ease-in-out; z-index: 10; }
         .panda-wrapper:active { transform: scale(0.95); }
@@ -214,7 +209,6 @@ HTML_CONTENT = r"""
         .particle-coin { position: absolute; font-size: 24px; font-weight: 900; color: #ffd700; pointer-events: none; animation: popCoin 0.9s ease-out forwards; z-index: 20; text-shadow: 0 0 10px #ffd700; }
         @keyframes popCoin { 0% { transform: translateY(0) scale(0.4); opacity: 1; } 100% { transform: translateY(-100px) scale(1.2); opacity: 0; } }
         
-        /* Grid & Cards */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: 15px; padding: 12px; display: flex; flex-direction: column; align-items: center; text-align: center; }
         .card-icon { font-size: 32px; margin-bottom: 6px; }
@@ -222,9 +216,7 @@ HTML_CONTENT = r"""
         .card-desc { font-size: 11px; color: #8892b0; margin-bottom: 8px; }
         .card-price { background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 900; width: 100%; color: #ffd700; border: 1px solid rgba(255,215,0,0.3); cursor: pointer; }
         .card-price:active { background: rgba(255,215,0,0.2); }
-        .card-price.owned { background: rgba(76, 175, 80, 0.2); color: #4caf50; border-color: #4caf50; }
         
-        /* Profile Customization */
         .inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; margin-bottom: 20px; }
         .inv-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; text-align: center; border: 2px solid transparent; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .inv-item.selected { border-color: #4caf50; background: rgba(76, 175, 80, 0.2); box-shadow: 0 0 10px #4caf50; }
@@ -232,30 +224,21 @@ HTML_CONTENT = r"""
         .inv-item.owned .inv-icon { filter: none; }
         .medal-emoji { font-size: 18px; }
         
-        /* Casino */
         .casino-box { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 20px; }
         .wheel-container { position: relative; width: 220px; height: 220px; }
         .wheel-pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 40px; z-index: 10; text-shadow: 0 2px 5px #000; }
         .wheel { width: 100%; height: 100%; border-radius: 50%; border: 6px solid #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.4); transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); overflow: hidden; position: relative; background: conic-gradient(#e53935 0deg 60deg, #1e88e5 60deg 120deg, #43a047 120deg 180deg, #fdd835 180deg 240deg, #8e24aa 240deg 300deg, #fb8c00 300deg 360deg); }
-        .wheel-segment-text { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-weight: 900; color: #fff; text-shadow: 1px 1px 2px #000; font-size: 14px; }
         .bet-buttons { display: flex; gap: 10px; margin-top: 20px; }
         .bet-btn { background: #333; padding: 10px 15px; border-radius: 8px; border: 1px solid #555; font-weight: 900; cursor: pointer; color: #fff; }
         .bet-btn.active { background: #4caf50; border-color: #81c784; }
 
-        /* Lobby */
         .lobby-card { background: rgba(0,0,0,0.6); border: 2px solid #4caf50; border-radius: 20px; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center;}
         
-        /* Nav */
         .bottom-nav { background: rgba(10, 18, 14, 0.98); border-top: 1px solid rgba(46, 125, 50, 0.4); padding: 8px 5px 22px 5px; display: flex; justify-content: space-around; z-index: 30; position: relative; }
         .nav-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: #666; font-size: 9px; font-weight: 900; cursor: pointer; width: 16.6%; transition: 0.2s; }
         .nav-btn.active { color: #81c784; }
         .nav-btn span { font-size: 22px; margin-bottom: 2px; filter: grayscale(1); transition: 0.2s; }
         .nav-btn.active span { filter: drop-shadow(0 0 6px #81c784) grayscale(0); }
-        
-        /* Modals */
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; backdrop-filter: blur(5px); }
-        .modal.active { display: flex; }
-        .modal-box { background: #1a2e22; border: 2px solid #4caf50; border-radius: 20px; padding: 25px; width: 90%; max-width: 350px; position: relative; }
     </style>
 </head>
 <body>
@@ -287,7 +270,6 @@ HTML_CONTENT = r"""
     </div>
 
     <div class="screens">
-        <!-- TAP -->
         <div class="screen active" id="screen-tap">
             <div class="tap-area">
                 <div style="text-align: center; position: relative;">
@@ -309,7 +291,6 @@ HTML_CONTENT = r"""
             </div>
         </div>
 
-        <!-- FRIENDS / LOBBY -->
         <div class="screen" id="screen-friends">
             <div class="content">
                 <div class="section-title">Друзья 👥</div>
@@ -327,7 +308,6 @@ HTML_CONTENT = r"""
             </div>
         </div>
 
-        <!-- FARM -->
         <div class="screen" id="screen-farm">
             <div class="content">
                 <div class="section-title">Ферма бамбука 🎋</div>
@@ -335,7 +315,6 @@ HTML_CONTENT = r"""
             </div>
         </div>
 
-        <!-- CASINO -->
         <div class="screen" id="screen-casino">
             <div class="content">
                 <div class="section-title">Казино 🎰</div>
@@ -362,7 +341,6 @@ HTML_CONTENT = r"""
             </div>
         </div>
 
-        <!-- SHOP -->
         <div class="screen" id="screen-shop">
             <div class="content">
                 <div class="section-title">Магазин 🛍️</div>
@@ -377,7 +355,6 @@ HTML_CONTENT = r"""
             </div>
         </div>
 
-        <!-- PROFILE -->
         <div class="screen" id="screen-profile">
             <div class="content">
                 <div class="profile-card" style="background: rgba(0,0,0,0.6); border-radius: 15px; padding: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center;">
@@ -433,7 +410,6 @@ HTML_CONTENT = r"""
         const allFrames = [{ id: 'default', name: 'Новичок', cssClass: 'default', price: 0 }, { id: 'millionaire', name: 'Богач', cssClass: 'millionaire', price: 0 }, { id: 'legend', name: 'Легенда', cssClass: 'legend', price: 0 }, { id: 'neon', name: 'Неон', cssClass: 'neon', price: 50000 }, { id: 'nature', name: 'Природа', cssClass: 'nature', price: 75000 }, { id: 'fire', name: 'Огонь', cssClass: 'fire', price: 100000 }];
         const allAnims = [{ id: 'default', name: 'Обычный', cssClass: 'nick-default' }, { id: 'gold', name: 'Золото', cssClass: 'nick-gold' }, { id: 'fire', name: 'Огонь', cssClass: 'nick-fire' }, { id: 'rainbow', name: 'Радуга', cssClass: 'nick-rainbow' }];
 
-        // WebSocket Init
         function connectWS() {
             ws = new WebSocket(`${WS_URL}/ws/main/${myId}`);
             ws.onopen = () => { document.getElementById('conn-status').innerText = "🟢 Онлайн"; ws.send(JSON.stringify({ type: "init" })); };
@@ -459,7 +435,6 @@ HTML_CONTENT = r"""
             ws.onclose = () => { document.getElementById('conn-status').innerText = "🔴 Оффлайн"; setTimeout(connectWS, 2000); };
         }
 
-        // Tap
         document.getElementById('panda-wrapper').addEventListener('pointerdown', (e) => {
             if (state.energy <= 0) return;
             state.energy -= 1;
@@ -478,7 +453,6 @@ HTML_CONTENT = r"""
             updateUI();
         });
 
-        // UI Updates
         function updateUI() {
             if(document.getElementById('coins')) document.getElementById('coins').innerText = Math.floor(state.coins).toLocaleString();
             if(document.getElementById('gems')) document.getElementById('gems').innerText = Math.floor(state.gems).toLocaleString();
@@ -486,7 +460,6 @@ HTML_CONTENT = r"""
             if(document.getElementById('max-energy')) document.getElementById('max-energy').innerText = state.maxEnergy;
             if(document.getElementById('energy-fill')) document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%';
             
-            // Profile Customization
             const frame = allFrames.find(f => f.id === state.selectedFrame)?.cssClass || 'default';
             const animCss = allAnims.find(a => a.id === state.selectedNickAnim)?.cssClass || 'nick-default';
             
@@ -496,20 +469,17 @@ HTML_CONTENT = r"""
             if(document.getElementById('my-name-profile')) { document.getElementById('my-name-profile').className = `profile-name ${animCss}`; document.getElementById('my-name-profile').innerText = state.nickname; }
             if(document.getElementById('my-game-id')) document.getElementById('my-game-id').innerText = state.gameId || '...';
             
-            // Medals
             const med = allMedals.find(m => m.id === state.selectedMedal);
             if(document.getElementById('header-medal')) {
                 if (med) { document.getElementById('header-medal').style.display = 'inline-flex'; document.getElementById('header-medal').innerText = med.emoji; } 
                 else document.getElementById('header-medal').style.display = 'none'; 
             }
             
-            // Avatars
             if (state.avatarUrl) {
                 if(document.getElementById('mini-avatar')) document.getElementById('mini-avatar').innerHTML = `<img src="${state.avatarUrl}">`;
                 if(document.getElementById('my-avatar-large')) document.getElementById('my-avatar-large').innerHTML = `<img src="${state.avatarUrl}">`;
             }
 
-            // Upgrades
             const u = state.upgrades || {tap:0, max_energy:0, regen:0};
             const shopHTML = `
                 <div class="card">
@@ -527,7 +497,6 @@ HTML_CONTENT = r"""
             `;
             if(document.getElementById('upgrades-grid')) document.getElementById('upgrades-grid').innerHTML = shopHTML;
 
-            // Render Profile Grids
             if(document.getElementById('medals-grid')) {
                 let mHtml = '';
                 allMedals.forEach(m => {
@@ -548,7 +517,6 @@ HTML_CONTENT = r"""
             }
         }
 
-        // Tabs
         function switchTab(tabId, btn) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('screen-' + tabId).classList.add('active');
@@ -557,7 +525,6 @@ HTML_CONTENT = r"""
             if (tabId === 'friends') fetchFriends();
         }
 
-        // Actions
         function buyUpgrade(type) {
             if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "buy_upgrade", upgrade: type }));
             else tg.showAlert("Нет соединения с сервером. Подождите...");
@@ -576,14 +543,14 @@ HTML_CONTENT = r"""
             
             isSpinning = true;
             const wheel = document.getElementById('casino-wheel');
-            const deg = Math.floor(Math.random() * 360) + 1800; // 5 оборотов + случайный угол
+            const deg = Math.floor(Math.random() * 360) + 1800;
             wheel.style.transform = `rotate(${deg}deg)`;
             document.getElementById('casino-result').innerText = "Крутим...";
             document.getElementById('casino-result').style.color = "#fff";
 
             setTimeout(() => {
                 ws.send(JSON.stringify({ type: "casino", bet: currentBet }));
-            }, 4000); // Ждем окончания анимации CSS (4 секунды)
+            }, 4000);
         }
 
         function equip(type, id) {
@@ -624,7 +591,6 @@ HTML_CONTENT = r"""
             } catch(e) {}
         }
 
-        // Energy Loop
         setInterval(() => {
             if (state.energy < state.maxEnergy) {
                 state.energy = Math.min(state.maxEnergy, state.energy + state.regen);
@@ -644,7 +610,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     await websocket.accept()
     active_connections[user_id] = websocket
     
-    # Init Player with everything
     if user_id not in players_db:
         players_db[user_id] = {
             "name": f"Panda_{user_id[:4]}", "coins": 500, "gems": 0, 
@@ -659,7 +624,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     
     save_player(user_id, players_db[user_id])
     
-    # Отправляем синхронизацию
     sync_data = players_db[user_id]
     sync_data["gameId"] = players_db[user_id]["game_id"]
     await websocket.send_text(json.dumps({"type": "sync", "data": sync_data}))
@@ -677,7 +641,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 players_db[user_id]["coins"] += msg.get("power", 1)
                 players_db[user_id]["energy"] = max(0, players_db[user_id]["energy"] - 1)
                 players_db[user_id]["last_active"] = time.time()
-                # Сохраняем в БД часто, чтобы не сбрасывалось
                 if random.random() < 0.2: save_player(user_id, players_db[user_id])
                 
             elif msg.get("type") == "buy_upgrade":
@@ -705,7 +668,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 bet = int(msg.get("bet"))
                 if players_db[user_id]["coins"] >= bet:
                     players_db[user_id]["coins"] -= bet
-                    # Шансы: 50% ноль, 25% x1.5, 15% x2, 9% x5, 1% x10
                     roll = random.random()
                     if roll < 0.5: multiplier = 0
                     elif roll < 0.75: multiplier = 1.5
@@ -716,7 +678,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     winAmount = int(bet * multiplier)
                     players_db[user_id]["coins"] += winAmount
                     
-                    # Начисляем гемы за x10
                     if multiplier == 10:
                         players_db[user_id]["gems"] += 1
                     
@@ -759,3 +720,8 @@ async def get_friends(user_id: str):
         if f_id in players_db:
             friends_list.append({"id": f_id, "name": players_db[f_id]["name"], "avatar": players_db[f_id].get("avatar", "")})
     return friends_list
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
