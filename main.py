@@ -61,8 +61,8 @@ def load_players():
             if "unlockedAnims" not in p_data: p_data["unlockedAnims"] = ["default"]
             if "friends" not in p_data: p_data["friends"] = []
             if "bamboos" not in p_data: p_data["bamboos"] = [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}]
+            if "lobby_partner" not in p_data: p_data["lobby_partner"] = None
             
-            # Восстанавливаем админа
             if uid == ADMIN_ID:
                 p_data["verified"] = True
                 p_data["unlockedMedals"] = ['bronze', 'silver', 'gold', 'epic', 'mythic']
@@ -144,7 +144,7 @@ async def get_leaderboard():
     result = []
     for uid, data in sorted_players:
         result.append({
-            "id": uid, "name": data["name"], "coins": data["coins"], 
+            "id": uid, "name": data["name"], "coins": data["coins"], "gems": data["gems"],
             "avatar": data.get("avatar", ""), "frame": data.get("selectedFrame", "default"),
             "medal": data.get("selectedMedal", "none"), "nick_style": data.get("selectedNickAnim", "nick-default"),
             "verified": data.get("verified", False),
@@ -161,7 +161,7 @@ async def get_friends(user_id: str):
             f_data = players_db[f_id]
             friends_list.append({
                 "id": f_id, "name": f_data["name"], "avatar": f_data.get("avatar", ""),
-                "coins": f_data["coins"], "frame": f_data.get("selectedFrame", "default"),
+                "coins": f_data["coins"], "gems": f_data["gems"], "frame": f_data.get("selectedFrame", "default"),
                 "medal": f_data.get("selectedMedal", "none"), "nick_style": f_data.get("selectedNickAnim", "nick-default"),
                 "verified": f_data.get("verified", False),
                 "online": (time.time() - f_data["last_active"]) < 120
@@ -174,7 +174,7 @@ HTML_CONTENT = r"""
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 37.1</title>
+    <title>Panda Game 38.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -212,10 +212,11 @@ HTML_CONTENT = r"""
         .name-row { display: flex; align-items: center; gap: 5px; }
         .header-nick { font-size: 16px; font-weight: 900; text-shadow: 2px 2px 0 #000; }
         
-        .nick-default { color: #fff; }
-        .nick-gold { background: linear-gradient(90deg, #ffd700, #ff8c00, #ffd700); background-size: 200% auto; color: transparent; -webkit-background-clip: text; background-clip: text; animation: goldShine 3s linear infinite; filter: drop-shadow(0 0 2px rgba(255,215,0,0.5)); }
-        .nick-fire { color: #ff4500; text-shadow: 0 0 5px #ff4500, 0 0 15px #ff0000; animation: fireFlicker 1.5s infinite alternate; }
-        .nick-rainbow { background: linear-gradient(90deg, #ff0000, #ff8c00, #ffff00, #00ff00, #00e5ff, #0000ff, #ff00ff); background-size: 200% auto; color: transparent; -webkit-background-clip: text; background-clip: text; animation: rainbowMove 3s linear infinite; filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)); }
+        /* FIX: display inline-block for gradients to work in lists */
+        .nick-default { color: #fff; display: inline-block; }
+        .nick-gold { background: linear-gradient(90deg, #ffd700, #ff8c00, #ffd700); background-size: 200% auto; color: transparent; -webkit-background-clip: text; background-clip: text; animation: goldShine 3s linear infinite; filter: drop-shadow(0 0 2px rgba(255,215,0,0.5)); display: inline-block; }
+        .nick-fire { color: #ff4500; text-shadow: 0 0 5px #ff4500, 0 0 15px #ff0000; animation: fireFlicker 1.5s infinite alternate; display: inline-block; }
+        .nick-rainbow { background: linear-gradient(90deg, #ff0000, #ff8c00, #ffff00, #00ff00, #00e5ff, #0000ff, #ff00ff); background-size: 200% auto; color: transparent; -webkit-background-clip: text; background-clip: text; animation: rainbowMove 3s linear infinite; filter: drop-shadow(0 0 2px rgba(255,255,255,0.3)); display: inline-block; }
         @keyframes goldShine { to { background-position: 200% center; } }
         @keyframes rainbowMove { to { background-position: 200% center; } }
         
@@ -331,11 +332,9 @@ HTML_CONTENT = r"""
                             <ellipse cx="70" cy="85" rx="18" ry="23" fill="#111" /><ellipse cx="130" cy="85" rx="18" ry="23" fill="#111" />
                             <circle cx="70" cy="85" r="9" fill="#fff" /><circle cx="70" cy="85" r="6" fill="#111" />
                             <circle cx="130" cy="85" r="9" fill="#fff" /><circle cx="130" cy="85" r="6" fill="#111" />
-                            
                             <ellipse cx="45" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />
                             <ellipse cx="155" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />
                             <path id="mouth-path" d="M 92 112 Q 100 118 108 112" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" />
-                            
                             <ellipse cx="100" cy="105" rx="8" ry="5" fill="#111" />
                             <ellipse cx="45" cy="145" rx="18" ry="22" fill="#1a1a1a" /><ellipse cx="155" cy="145" rx="18" ry="22" fill="#1a1a1a" />
                         </svg>
@@ -361,8 +360,8 @@ HTML_CONTENT = r"""
                     <div id="search-results" class="friend-list"></div>
                     <div style="margin-top:20px; background: rgba(255,215,0,0.1); border: 1px solid #ffd700; padding: 15px; border-radius: 12px;">
                         <div class="section-title" style="font-size:16px; margin-bottom:10px;">Совместное Лобби (Семья/Братаны)</div>
-                        <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Пригласите друга, чтобы создать семью!</p>
-                        <div style="font-weight:900; color:#4caf50; font-size:18px; text-align:center;">Вы один</div>
+                        <p id="lobby-text" style="font-size:12px; color:#aaa; margin-bottom:10px;">Пригласите друга, чтобы создать семью!</p>
+                        <div id="lobby-status" style="font-weight:900; color:#4caf50; font-size:18px; text-align:center;">Вы один</div>
                     </div>
                     <div class="friend-list" id="friends-list" style="margin-top:20px;"><p style="text-align:center; color:#888;">Загрузка...</p></div>
                 </div>
@@ -445,7 +444,7 @@ HTML_CONTENT = r"""
         <button class="nav-btn" onclick="switchTab('profile', this)"><span>👤</span>Профиль</button>
     </div>
 
-    <!-- Modal for viewing friend profile -->
+    <!-- View Profile Modal -->
     <div class="modal" id="view-profile-modal">
         <div class="modal-box" style="text-align:center;">
             <div style="position: relative; width: 90px; height: 90px; display: flex; justify-content: center; align-items: center; margin:0 auto 10px;">
@@ -453,11 +452,26 @@ HTML_CONTENT = r"""
                 <div class="profile-avatar-large" id="vp-avatar">🐼</div>
             </div>
             <div class="profile-name" id="vp-name" style="font-size:22px; font-weight:900; margin-bottom:5px;">Ник</div>
+            <div style="font-size:16px; font-weight:900; margin-bottom:5px;">ID: <span id="vp-id" style="color:#00e5ff;">...</span></div>
             <div class="medal-emoji large" id="vp-medal" style="display:none; margin:0 auto 10px;"></div>
-            <div style="font-size:16px; font-weight:900; margin-bottom:15px;">Монеты: <span id="vp-coins">0</span> $</div>
+            
+            <div style="display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; width: 100%; margin-bottom: 15px;">
+                <div>Монеты <span id="vp-coins" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
+                <div>Гемы <span id="vp-gems" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
+            </div>
             
             <button class="card-price" style="background:#ff9800; color:#fff; margin-bottom:10px;" onclick="inviteToLobby()">Пригласить в Лобби</button>
             <button class="card-price" style="background:#555; color:#fff;" onclick="document.getElementById('view-profile-modal').classList.remove('active')">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Lobby Invite Modal -->
+    <div class="modal" id="invite-modal">
+        <div class="modal-box">
+            <h2 style="color:#ffd700; margin-bottom:15px;">Приглашение в Лобби</h2>
+            <p id="invite-text" style="margin-bottom:20px; font-size:16px;">Игрок приглашает вас!</p>
+            <button class="card-price" style="background:#4caf50; color:#fff; margin-bottom:10px;" onclick="acceptInvite()">Принять</button>
+            <button class="card-price" style="background:#e53935; color:#fff;" onclick="document.getElementById('invite-modal').classList.remove('active')">Отклонить</button>
         </div>
     </div>
 
@@ -467,11 +481,12 @@ HTML_CONTENT = r"""
         const myId = String(tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 10000));
         const WS_URL = window.location.origin.replace('https://', 'wss://');
         let ws;
-        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [] };
+        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [], lobby_partner: null };
         
         let currentBet = 10000;
         let isSpinning = false;
         let currentViewPlayerId = null;
+        let currentInviterId = null;
 
         const allMedals = [{ id: 'bronze', name: 'Бронза', req: 30, emoji: '🥉' }, { id: 'silver', name: 'Серебро', req: 90, emoji: '🥈' }, { id: 'gold', name: 'Золото', req: 180, emoji: '🥇' }, { id: 'epic', name: 'Эпик', req: 365, emoji: '💎' }, { id: 'mythic', name: 'Мифик', req: 730, emoji: '👑' }];
         const allFrames = [{ id: 'default', name: 'Новичок', cssClass: 'default', price: 0 }, { id: 'millionaire', name: 'Богач', cssClass: 'millionaire', price: 0 }, { id: 'legend', name: 'Легенда', cssClass: 'legend', price: 0 }, { id: 'neon', name: 'Неон', cssClass: 'neon', price: 50000 }, { id: 'nature', name: 'Природа', cssClass: 'nature', price: 75000 }, { id: 'fire', name: 'Огонь', cssClass: 'fire', price: 100000 }];
@@ -517,6 +532,16 @@ HTML_CONTENT = r"""
                     document.getElementById('spin-btn').classList.remove('disabled');
                     document.getElementById('bet-buttons').classList.remove('disabled');
                     tg.showAlert(data.message);
+                } else if (data.type === 'lobby_invite') {
+                    currentInviterId = data.from_id;
+                    document.getElementById('invite-text').innerText = `${data.from_name} приглашает вас в лобби!`;
+                    document.getElementById('invite-modal').classList.add('active');
+                } else if (data.type === 'lobby_joined') {
+                    state.lobby_partner = data.partner_name;
+                    document.getElementById('lobby-status').innerText = `Семья: ${data.partner_name}`;
+                    document.getElementById('lobby-text').innerText = "Вы в совместном лобби!";
+                    tg.showAlert(`Вы в лобби с ${data.partner_name}!`);
+                    switchTab('friends', document.querySelectorAll('.nav-btn')[1]);
                 }
             };
             ws.onclose = () => { document.getElementById('conn-status').innerText = "🔴 Оффлайн"; setTimeout(connectWS, 2000); };
@@ -818,9 +843,21 @@ HTML_CONTENT = r"""
             if(!friend) return;
             currentViewPlayerId = id;
             document.getElementById('vp-name').innerText = friend.name;
+            document.getElementById('vp-name').className = `${friend.nick_style}`;
+            document.getElementById('vp-id').innerText = friend.id; // Here we might need the actual game ID, but we only have the telegram ID
             document.getElementById('vp-coins').innerText = friend.coins.toLocaleString();
+            document.getElementById('vp-gems').innerText = friend.gems ? friend.gems.toLocaleString() : '0';
+            
+            const frameData = allFrames.find(fr => fr.id === friend.frame) || allFrames[0];
+            document.getElementById('vp-frame').className = `avatar-frame ${frameData.cssClass}`;
+            
+            const medData = allMedals.find(m => m.id === friend.medal);
+            if(medData) { document.getElementById('vp-medal').style.display = 'block'; document.getElementById('vp-medal').innerText = medData.emoji; }
+            else document.getElementById('vp-medal').style.display = 'none';
+
             if (friend.avatar) document.getElementById('vp-avatar').innerHTML = `<img src="${friend.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
             else document.getElementById('vp-avatar').innerText = '🐼';
+            
             document.getElementById('view-profile-modal').classList.add('active');
         }
 
@@ -829,6 +866,13 @@ HTML_CONTENT = r"""
                 ws.send(JSON.stringify({ type: "invite_lobby", friend_id: currentViewPlayerId }));
                 document.getElementById('view-profile-modal').classList.remove('active');
                 tg.showAlert("Приглашение отправлено! Ждем ответа...");
+            }
+        }
+
+        function acceptInvite() {
+            document.getElementById('invite-modal').classList.remove('active');
+            if(ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "accept_lobby", inviter_id: currentInviterId }));
             }
         }
 
@@ -861,7 +905,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             "bamboos": [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}],
             "selectedMedal": "none", "selectedFrame": "default", "selectedNickAnim": "default",
             "unlockedMedals": [], "unlockedFrames": ["default"], "unlockedAnims": ["default"],
-            "friends": [], "verified": True if user_id == ADMIN_ID else False, "last_active": time.time()
+            "friends": [], "verified": True if user_id == ADMIN_ID else False, "last_active": time.time(), "lobby_partner": None
         }
     if "game_id" not in players_db[user_id]: 
         players_db[user_id]["game_id"] = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -952,7 +996,21 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             elif msg.get("type") == "invite_lobby":
                 fid = msg.get("friend_id")
                 if fid in active_connections:
-                    try: await active_connections[fid].send_text(json.dumps({"type": "lobby_invite", "from_name": players_db[user_id]["name"]}))
+                    try: await active_connections[fid].send_text(json.dumps({"type": "lobby_invite", "from_id": user_id, "from_name": players_db[user_id]["name"]}))
+                    except: pass
+                    
+            elif msg.get("type") == "accept_lobby":
+                inviter_id = msg.get("inviter_id")
+                if inviter_id in players_db and inviter_id in active_connections:
+                    # Создаем связь
+                    players_db[user_id]["lobby_partner"] = inviter_id
+                    players_db[inviter_id]["lobby_partner"] = user_id
+                    save_player(user_id, players_db[user_id])
+                    save_player(inviter_id, players_db[inviter_id])
+                    
+                    # Уведомляем обоих
+                    await websocket.send_text(json.dumps({"type": "lobby_joined", "partner_name": players_db[inviter_id]["name"]}))
+                    try: await active_connections[inviter_id].send_text(json.dumps({"type": "lobby_joined", "partner_name": players_db[user_id]["name"]}))
                     except: pass
 
     except WebSocketDisconnect:
