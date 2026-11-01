@@ -23,6 +23,7 @@ app.add_middleware(
 
 BOT_TOKEN = "9244645218:AAFopJ-hOND0D5dQx9qzZurAUTbAWQpKs3A"
 DATABASE_URL = os.environ.get("DATABASE_URL")
+ADMIN_ID = "6877882967"
 
 def get_db():
     try:
@@ -49,6 +50,7 @@ def load_players():
         c = conn.cursor()
         c.execute("SELECT id, data FROM players")
         for row in c.fetchall():
+            uid = row['id']
             p_data = json.loads(row['data'])
             if "upgrades" not in p_data: p_data["upgrades"] = {"tap": 0, "max_energy": 0, "regen": 0}
             if "selectedMedal" not in p_data: p_data["selectedMedal"] = "none"
@@ -59,7 +61,15 @@ def load_players():
             if "unlockedAnims" not in p_data: p_data["unlockedAnims"] = ["default"]
             if "friends" not in p_data: p_data["friends"] = []
             if "bamboos" not in p_data: p_data["bamboos"] = [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}]
-            players[row['id']] = p_data
+            
+            # Восстанавливаем админа
+            if uid == ADMIN_ID:
+                p_data["verified"] = True
+                p_data["unlockedMedals"] = ['bronze', 'silver', 'gold', 'epic', 'mythic']
+                p_data["unlockedFrames"] = ['default', 'millionaire', 'legend', 'neon', 'nature', 'fire']
+                p_data["unlockedAnims"] = ['default', 'gold', 'fire', 'rainbow']
+            
+            players[uid] = p_data
         conn.close()
     except Exception as e: print(f"DB Load Error: {e}")
     return players
@@ -137,6 +147,7 @@ async def get_leaderboard():
             "id": uid, "name": data["name"], "coins": data["coins"], 
             "avatar": data.get("avatar", ""), "frame": data.get("selectedFrame", "default"),
             "medal": data.get("selectedMedal", "none"), "nick_style": data.get("selectedNickAnim", "nick-default"),
+            "verified": data.get("verified", False),
             "online": (time.time() - data["last_active"]) < 120
         })
     return result
@@ -152,6 +163,7 @@ async def get_friends(user_id: str):
                 "id": f_id, "name": f_data["name"], "avatar": f_data.get("avatar", ""),
                 "coins": f_data["coins"], "frame": f_data.get("selectedFrame", "default"),
                 "medal": f_data.get("selectedMedal", "none"), "nick_style": f_data.get("selectedNickAnim", "nick-default"),
+                "verified": f_data.get("verified", False),
                 "online": (time.time() - f_data["last_active"]) < 120
             })
     return friends_list
@@ -162,7 +174,7 @@ HTML_CONTENT = r"""
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 37.0</title>
+    <title>Panda Game 37.1</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -264,6 +276,7 @@ HTML_CONTENT = r"""
         .friend-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; margin-bottom: 10px;}
         .friend-avatar { width: 35px; height: 35px; border-radius: 50%; background: #333; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         .friend-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .verified-badge { display: inline-flex; justify-content: center; align-items: center; width: 16px; height: 16px; background: #2196f3; border-radius: 50%; color: #fff; font-size: 10px; margin-left: 5px;}
 
         .bottom-nav { background: rgba(10, 18, 14, 0.98); border-top: 1px solid rgba(46, 125, 50, 0.4); padding: 8px 5px 22px 5px; display: flex; justify-content: space-around; z-index: 30; position: relative; }
         .nav-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: #666; font-size: 9px; font-weight: 900; cursor: pointer; width: 16.6%; transition: 0.2s; }
@@ -747,7 +760,27 @@ HTML_CONTENT = r"""
                 const data = await res.json();
                 state.friends = data;
                 if(data.length > 0) {
-                    document.getElementById('friends-list').innerHTML = data.map(f => `<div class="friend-item" onclick="viewFriendProfile('${f.id}')"><div class="friend-avatar">${f.avatar ? `<img src="${f.avatar}">` : '🐼'}</div><div class="friend-name-box"><div class="friend-name-row"><span class="${f.nick_style}">${f.name}</span></div><div class="friend-sub"><span class="status-dot ${f.online ? 'status-online' : 'status-offline'}"></span> ${f.online ? 'В сети' : 'Не в сети'}</div></div><div class="friend-coins">${f.coins.toLocaleString()} <span class="icon-coin">$</span></div></div>`).join('');
+                    document.getElementById('friends-list').innerHTML = data.map(f => {
+                        const frameData = allFrames.find(fr => fr.id === f.frame) || allFrames[0];
+                        const medData = allMedals.find(m => m.id === f.medal);
+                        const verifiedIcon = f.verified ? '<span class="verified-badge">✔</span>' : '';
+                        const medalHtml = medData ? `<span class="medal-emoji" style="font-size:14px; margin-left:5px;">${medData.emoji}</span>` : '';
+                        return `
+                        <div class="friend-item" onclick="viewFriendProfile('${f.id}')">
+                            <div class="avatar-wrap" style="width:35px; height:35px; margin-right:10px;">
+                                <div class="avatar-frame ${frameData.cssClass}" style="inset:-2px; border-width:2px;"></div>
+                                <div class="profile-avatar-mini" style="border-width:1px;">${f.avatar ? `<img src="${f.avatar}">` : '🐼'}</div>
+                            </div>
+                            <div class="friend-name-box">
+                                <div class="friend-name-row">
+                                    <span class="${f.nick_style}">${f.name}</span>
+                                    ${medalHtml} ${verifiedIcon}
+                                </div>
+                                <div class="friend-sub"><span class="status-dot ${f.online ? 'status-online' : 'status-offline'}"></span> ${f.online ? 'В сети' : 'Не в сети'}</div>
+                            </div>
+                            <div class="friend-coins">${f.coins.toLocaleString()} <span class="icon-coin">$</span></div>
+                        </div>`;
+                    }).join('');
                 } else {
                     document.getElementById('friends-list').innerHTML = '<p style="text-align:center; color:#888;">Нет друзей.</p>';
                 }
@@ -758,7 +791,25 @@ HTML_CONTENT = r"""
             try {
                 const res = await fetch(`${window.location.origin}/api/leaderboard`);
                 const data = await res.json();
-                document.getElementById('leaderboard-list').innerHTML = data.map((p, i) => `<div class="friend-item" onclick="viewFriendProfile('${p.id}')"><span style="font-weight:900; color:#ffd700; width:20px;">${i+1}.</span><div class="friend-avatar">${p.avatar ? `<img src="${p.avatar}">` : '🐼'}</div><span class="${p.nick_style}" style="flex:1; margin-left:10px;">${p.name}</span><span style="color:#ffd700; font-weight:900;">${p.coins.toLocaleString()} $</span></div>`).join('');
+                document.getElementById('leaderboard-list').innerHTML = data.map((p, i) => {
+                    const frameData = allFrames.find(fr => fr.id === p.frame) || allFrames[0];
+                    const medData = allMedals.find(m => m.id === p.medal);
+                    const verifiedIcon = p.verified ? '<span class="verified-badge">✔</span>' : '';
+                    const medalHtml = medData ? `<span class="medal-emoji" style="font-size:14px; margin-left:5px;">${medData.emoji}</span>` : '';
+                    return `
+                    <div class="friend-item" onclick="viewFriendProfile('${p.id}')">
+                        <span style="font-weight:900; color:#ffd700; width:20px;">${i+1}.</span>
+                        <div class="avatar-wrap" style="width:35px; height:35px; margin-right:10px;">
+                            <div class="avatar-frame ${frameData.cssClass}" style="inset:-2px; border-width:2px;"></div>
+                            <div class="profile-avatar-mini" style="border-width:1px;">${p.avatar ? `<img src="${p.avatar}">` : '🐼'}</div>
+                        </div>
+                        <div class="friend-name-row" style="flex:1;">
+                            <span class="${p.nick_style}">${p.name}</span>
+                            ${medalHtml} ${verifiedIcon}
+                        </div>
+                        <span style="color:#ffd700; font-weight:900;">${p.coins.toLocaleString()} $</span>
+                    </div>`;
+                }).join('');
             } catch(e) {}
         }
 
@@ -810,7 +861,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             "bamboos": [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}],
             "selectedMedal": "none", "selectedFrame": "default", "selectedNickAnim": "default",
             "unlockedMedals": [], "unlockedFrames": ["default"], "unlockedAnims": ["default"],
-            "friends": [], "last_active": time.time()
+            "friends": [], "verified": True if user_id == ADMIN_ID else False, "last_active": time.time()
         }
     if "game_id" not in players_db[user_id]: 
         players_db[user_id]["game_id"] = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -840,7 +891,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 for b in players_db[user_id]["bamboos"]:
                     if b["id"] == b_id:
                         if b["stage"] == 0: b["planted"] = time.time(); b["stage"] = 1
-                        elif b["stage"] == 2: b["stage"] = 0 # Монеты уже начислены локально
+                        elif b["stage"] == 2: b["stage"] = 0
                         elif b["stage"] == 3: b["stage"] = 0
                         break
                 save_player(user_id, players_db[user_id])
