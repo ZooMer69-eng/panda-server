@@ -1,14 +1,13 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from typing import Dict, List
+from typing import Dict
 from pydantic import BaseModel
 import json
 import os
 import time
 import random
 import string
-import math
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import aiohttp
@@ -27,8 +26,7 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db():
     try:
-        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor, sslmode='require')
-        return conn
+        return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor, sslmode='require')
     except Exception as e:
         print(f"DB CONNECTION ERROR: {e}")
         return None
@@ -52,11 +50,7 @@ def load_players():
         c.execute("SELECT id, data FROM players")
         for row in c.fetchall():
             p_data = json.loads(row['data'])
-            # Восстанавливаем старые данные
             if "upgrades" not in p_data: p_data["upgrades"] = {"tap": 0, "max_energy": 0, "regen": 0}
-            if "tap" not in p_data["upgrades"]: p_data["upgrades"]["tap"] = 0
-            if "max_energy" not in p_data["upgrades"]: p_data["upgrades"]["max_energy"] = 0
-            if "regen" not in p_data["upgrades"]: p_data["upgrades"]["regen"] = 0
             if "selectedMedal" not in p_data: p_data["selectedMedal"] = "none"
             if "selectedFrame" not in p_data: p_data["selectedFrame"] = "default"
             if "selectedNickAnim" not in p_data: p_data["selectedNickAnim"] = "default"
@@ -107,25 +101,19 @@ async def add_gems(data: GemPurchase):
 async def create_invoice(req: InvoiceRequest):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendInvoice"
     payload = {
-        "chat_id": req.user_id,
-        "title": f"Покупка {req.gems} гемов 💎",
+        "chat_id": req.user_id, "title": f"Покупка {req.gems} гемов 💎",
         "description": "Пополнение баланса игры Panda Game",
-        "payload": f"gems_{req.gems}",
-        "provider_token": "",
-        "currency": "XTR",
+        "payload": f"gems_{req.gems}", "provider_token": "", "currency": "XTR",
         "prices": [{"label": f"{req.gems} гемов", "amount": req.stars}]
     }
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=payload) as resp:
-            return await resp.json()
+        async with session.post(url, json=payload) as resp: return await resp.json()
 
 @app.api_route("/", methods=["GET", "HEAD"])
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def serve_game():
     response = HTMLResponse(content=HTML_CONTENT)
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return response
 
 @app.get("/api/search_players")
@@ -139,37 +127,19 @@ async def search_players(q: str, my_id: str):
             if len(results) >= 15: break
     return results
 
-@app.get("/api/leaderboard")
-async def get_leaderboard():
-    sorted_players = sorted(players_db.items(), key=lambda x: x[1]["coins"], reverse=True)[:50]
-    result = []
-    for uid, data in sorted_players:
-        is_online = (time.time() - data["last_active"]) < 120
-        result.append({"id": uid, "name": data["name"], "coins": data["coins"], "online": is_online, "avatar": data.get("avatar", ""), "frame": data.get("selectedFrame", "default"), "medal": data.get("selectedMedal", "none"), "nick_style": data.get("selectedNickAnim", "nick-default")})
-    return result
-
-@app.get("/api/friends/{user_id}")
-async def get_friends(user_id: str):
-    if user_id not in players_db: return []
-    friends_list = []
-    for f_id in players_db[user_id].get("friends", []):
-        if f_id in players_db:
-            f_data = players_db[f_id]
-            friends_list.append({"id": f_id, "name": f_data["name"], "coins": f_data["coins"], "online": (time.time() - f_data["last_active"]) < 120, "avatar": f_data.get("avatar", ""), "frame": f_data.get("selectedFrame", "default"), "medal": f_data.get("selectedMedal", "none"), "nick_style": f_data.get("selectedNickAnim", "nick-default")})
-    return friends_list
-
 HTML_CONTENT = r"""
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 38.0</title>
+    <title>Panda Game 36.2</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: #0a120e; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        
         .bg-container { position: absolute; inset: 0; z-index: 1; overflow: hidden; }
         .bg-base { background: linear-gradient(180deg, #0f172a 0%, #1e293b 40%, #334155 70%, #475569 100%); }
         .bg-moon { position: absolute; top: 10%; right: 15%; width: 80px; height: 80px; background: radial-gradient(circle, #fef08a 10%, #fde047 40%, transparent 70%); border-radius: 50%; filter: blur(2px); box-shadow: 0 0 40px rgba(253, 224, 71, 0.4); }
@@ -184,7 +154,8 @@ HTML_CONTENT = r"""
         .user-info-block { display: flex; align-items: center; gap: 10px; }
         .avatar-wrap { position: relative; width: 50px; height: 50px; cursor: pointer; }
         .profile-avatar-mini { width: 100%; height: 100%; border-radius: 50%; background: #333; display: flex; justify-content: center; align-items: center; font-size: 24px; overflow: hidden; border: 2px solid #fff; z-index: 2; position: relative; }
-        .profile-avatar-mini img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-avatar-mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        
         .avatar-frame { position: absolute; inset: -4px; border-radius: 50%; z-index: 1; border: 3px solid transparent; }
         .avatar-frame.default { border-color: #fff; }
         .avatar-frame.millionaire { border-color: #ffd700; box-shadow: 0 0 10px #ffd700; }
@@ -199,6 +170,7 @@ HTML_CONTENT = r"""
         .name-medal-block { display: flex; flex-direction: column; cursor: pointer; }
         .name-row { display: flex; align-items: center; gap: 5px; }
         .header-nick { font-size: 16px; font-weight: 900; text-shadow: 2px 2px 0 #000; }
+        
         .nick-default { color: #fff; }
         .nick-gold { background: linear-gradient(90deg, #ffd700, #ff8c00, #ffd700); background-size: 200% auto; color: transparent; -webkit-background-clip: text; background-clip: text; animation: goldShine 3s linear infinite; filter: drop-shadow(0 0 2px rgba(255,215,0,0.5)); }
         .nick-fire { color: #ff4500; text-shadow: 0 0 5px #ff4500, 0 0 15px #ff0000; animation: fireFlicker 1.5s infinite alternate; }
@@ -206,7 +178,6 @@ HTML_CONTENT = r"""
         @keyframes goldShine { to { background-position: 200% center; } }
         @keyframes rainbowMove { to { background-position: 200% center; } }
         
-        .streak-badge { font-size: 10px; color: #ff6b00; font-weight: 900; margin-top: 2px; }
         .res-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
         .coins-box { font-size: 18px; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 3px; }
         .gems-box { font-size: 14px; font-weight: 900; color: #00e5ff; display: flex; align-items: center; gap: 3px; cursor: pointer; }
@@ -219,7 +190,7 @@ HTML_CONTENT = r"""
         .screens { flex: 1; position: relative; z-index: 5; overflow: hidden; }
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; }
         .screen.active { display: flex; }
-        .content { flex: 1; padding: 15px; overflow-y: auto; background: rgba(10, 18, 14, 0.85); backdrop-filter: blur(5px); z-index: 20; }
+        .content { flex: 1; padding: 15px; overflow-y: auto; background: rgba(10, 18, 14, 0.95); backdrop-filter: blur(10px); z-index: 20; }
         .section-title { font-size: 18px; font-weight: 900; margin-bottom: 15px; color: #fff; text-align: center; }
         
         .tap-area { flex: 1; display: flex; justify-content: center; align-items: flex-end; gap: 20px; position: relative; padding-bottom: 10px; z-index: 5; }
@@ -238,6 +209,11 @@ HTML_CONTENT = r"""
         .card-price { background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 900; width: 100%; color: #ffd700; border: 1px solid rgba(255,215,0,0.3); cursor: pointer; }
         .card-price:active { background: rgba(255,215,0,0.2); }
         
+        /* Profile Card Fixes */
+        .profile-card { background: #1a2e22; border-radius: 15px; padding: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; }
+        .profile-avatar-large { width: 80px; height: 80px; border-radius: 50%; background: #333; display: flex; justify-content: center; align-items: center; font-size: 40px; position: relative; overflow: hidden; border: 2px solid #fff; z-index: 2; flex-shrink: 0; }
+        .profile-avatar-large img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        
         .inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; margin-bottom: 20px; }
         .inv-item { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px; text-align: center; border: 2px solid transparent; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .inv-item.selected { border-color: #4caf50; background: rgba(76, 175, 80, 0.2); box-shadow: 0 0 10px #4caf50; }
@@ -252,12 +228,8 @@ HTML_CONTENT = r"""
         .bet-buttons { display: flex; gap: 10px; margin-top: 20px; }
         .bet-btn { background: #333; padding: 10px 15px; border-radius: 8px; border: 1px solid #555; font-weight: 900; cursor: pointer; color: #fff; }
         .bet-btn.active { background: #4caf50; border-color: #81c784; }
+        .bet-btn.disabled { opacity: 0.5; pointer-events: none; }
 
-        .tabs-sub { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
-        .tab-btn { flex: 1; background: rgba(255,255,255,0.1); border: none; color: #aaa; padding: 8px; border-radius: 8px; font-weight: 900; cursor: pointer; }
-        .tab-btn.active { background: #4caf50; color: #fff; }
-        .leaderboard-item { display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 14px; cursor: pointer; align-items: center; }
-        
         .bottom-nav { background: rgba(10, 18, 14, 0.98); border-top: 1px solid rgba(46, 125, 50, 0.4); padding: 8px 5px 22px 5px; display: flex; justify-content: space-around; z-index: 30; position: relative; }
         .nav-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: #666; font-size: 9px; font-weight: 900; cursor: pointer; width: 16.6%; transition: 0.2s; }
         .nav-btn.active { color: #81c784; }
@@ -282,7 +254,7 @@ HTML_CONTENT = r"""
             <div>
                 <div class="name-medal-block" onclick="switchTab('profile', document.querySelectorAll('.nav-btn')[5])">
                     <div class="name-row"><span class="header-nick nick-default" id="my-name">Ник</span><div class="header-medal" id="header-medal" style="display:none;"></div></div>
-                    <div class="streak-badge" id="streak-badge">🔥 Серия: 0</div>
+                    <div class="streak-badge" id="streak-badge" style="font-size:10px; color:#ff6b00; font-weight:900; margin-top:2px;">🔥 Серия: 0</div>
                 </div>
                 <div class="res-row">
                     <div class="coins-box"><span id="coins">0</span> <span class="icon-coin">$</span></div>
@@ -308,7 +280,6 @@ HTML_CONTENT = r"""
                             <circle cx="70" cy="85" r="9" fill="#fff" /><circle cx="70" cy="85" r="6" fill="#111" />
                             <circle cx="130" cy="85" r="9" fill="#fff" /><circle cx="130" cy="85" r="6" fill="#111" />
                             <ellipse cx="100" cy="105" rx="8" ry="5" fill="#111" />
-                            <path d="M 92 112 Q 100 118 108 112" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" />
                             <ellipse cx="45" cy="145" rx="18" ry="22" fill="#1a1a1a" /><ellipse cx="155" cy="145" rx="18" ry="22" fill="#1a1a1a" />
                         </svg>
                     </div>
@@ -319,29 +290,17 @@ HTML_CONTENT = r"""
         <div class="screen" id="screen-friends">
             <div class="content">
                 <div class="section-title">Друзья 👥</div>
-                <div class="search-container" style="display:flex; gap:10px; margin-bottom:15px;">
-                    <input type="text" id="search-input" class="search-input" placeholder="Ник или ID..." style="flex:1; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:#fff;">
-                    <button class="search-btn" onclick="searchPlayers()" style="background:#2196f3; color:#fff; border:none; padding:10px 15px; border-radius:8px; font-weight:900; cursor:pointer;">Найти</button>
+                <div style="display:flex; gap:10px; margin-bottom:15px;">
+                    <input type="text" id="search-input" placeholder="Ник или ID..." style="flex:1; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:#fff;">
+                    <button onclick="searchPlayers()" style="background:#2196f3; color:#fff; border:none; padding:10px 15px; border-radius:8px; font-weight:900; cursor:pointer;">Найти</button>
                 </div>
                 <div id="search-results" class="friend-list"></div>
-                
-                <div style="margin-top:20px; background: rgba(255,215,0,0.1); border: 1px solid #ffd700; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                <div style="margin-top:20px; background: rgba(255,215,0,0.1); border: 1px solid #ffd700; padding: 15px; border-radius: 12px;">
                     <div class="section-title" style="font-size:16px; margin-bottom:10px;">Совместное Лобби (Семья/Братаны)</div>
-                    <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Пригласите друга, чтобы создать семью или играть за братанов!</p>
-                    <button class="card-price" style="background:#ff9800; color:#fff;" onclick="tg.showAlert('Выберите друга из списка ниже, чтобы пригласить его в лобби')">Пригласить в Лобби</button>
+                    <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Здесь появится ваш общий малыш, когда вы будете играть вдвоем.</p>
+                    <div style="font-weight:900; color:#4caf50; font-size:18px; text-align:center;">Вы один</div>
                 </div>
-
-                <div class="tabs-sub">
-                    <button class="tab-btn active" onclick="switchFriendsTab('list', this)">Мои друзья</button>
-                    <button class="tab-btn" onclick="switchFriendsTab('top', this)">Топ 50</button>
-                </div>
-                
-                <div id="friends-list-container">
-                    <div class="friend-list" id="friends-list"><p style="text-align:center; color:#888;">Загрузка...</p></div>
-                </div>
-                <div id="leaderboard-container" style="display:none;">
-                    <div id="leaderboard-list"></div>
-                </div>
+                <div class="friend-list" id="friends-list" style="margin-top:20px;"><p style="text-align:center; color:#888;">Загрузка...</p></div>
             </div>
         </div>
 
@@ -358,21 +317,14 @@ HTML_CONTENT = r"""
                 <div class="casino-box">
                     <div class="wheel-container">
                         <div class="wheel-pointer">▼</div>
-                        <div class="wheel" id="casino-wheel">
-                            <div style="position:absolute; top:20px; left:50%; transform:translateX(-50%); font-weight:900; color:#fff;">x2</div>
-                            <div style="position:absolute; top:60px; right:20px; font-weight:900; color:#fff;">0</div>
-                            <div style="position:absolute; bottom:60px; right:20px; font-weight:900; color:#fff;">x1.5</div>
-                            <div style="position:absolute; bottom:20px; left:50%; transform:translateX(-50%); font-weight:900; color:#fff;">x10</div>
-                            <div style="position:absolute; bottom:60px; left:20px; font-weight:900; color:#fff;">0</div>
-                            <div style="position:absolute; top:60px; left:20px; font-weight:900; color:#fff;">x5</div>
-                        </div>
+                        <div class="wheel" id="casino-wheel"></div>
                     </div>
-                    <div class="bet-buttons">
+                    <div class="bet-buttons" id="bet-buttons">
                         <div class="bet-btn" onclick="setBet(1000)">1K</div>
                         <div class="bet-btn active" onclick="setBet(10000)">10K</div>
                         <div class="bet-btn" onclick="setBet(100000)">100K</div>
                     </div>
-                    <button class="card-price" style="background:#e53935; color:#fff; margin-top:20px; font-size:18px; padding:15px;" onclick="spinCasino()">Крутить!</button>
+                    <button class="card-price" id="spin-btn" style="background:#e53935; color:#fff; margin-top:20px; font-size:18px; padding:15px;" onclick="spinCasino()">Крутить!</button>
                     <div id="casino-result" style="margin-top: 15px; font-size: 20px; font-weight: 900; height: 24px;"></div>
                 </div>
             </div>
@@ -383,7 +335,6 @@ HTML_CONTENT = r"""
                 <div class="section-title">Магазин 🛍️</div>
                 <div class="section-title" style="font-size:14px; color:#aaa; text-align:left;">Улучшения</div>
                 <div class="grid" id="upgrades-grid"></div>
-                
                 <div class="section-title" style="font-size:14px; color:#aaa; text-align:left; margin-top:20px;">Гемы 💎</div>
                 <div class="grid">
                     <div class="card"><div class="card-icon">💎</div><div class="card-title">100 Гемов</div><button class="card-price" onclick="buyGems(50)">50 ⭐</button></div>
@@ -394,14 +345,14 @@ HTML_CONTENT = r"""
 
         <div class="screen" id="screen-profile">
             <div class="content">
-                <div class="profile-card" style="background: rgba(0,0,0,0.6); border-radius: 15px; padding: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center;">
-                    <div class="profile-frame-wrap" style="position: relative; width: 90px; height: 90px; display: flex; justify-content: center; align-items: center; margin-bottom: 10px; z-index: 2;">
+                <div class="profile-card">
+                    <div style="position: relative; width: 90px; height: 90px; display: flex; justify-content: center; align-items: center; margin-bottom: 10px;">
                         <div class="avatar-frame default" id="profile-frame"></div>
-                        <div class="profile-avatar-large" id="my-avatar-large" style="width: 80px; height: 80px; border-radius: 50%; background: #333; display: flex; justify-content: center; align-items: center; font-size: 40px; border: 2px solid #fff; z-index: 2;">🐼</div>
+                        <div id="my-avatar-large" class="profile-avatar-large">🐼</div>
                     </div>
-                    <div class="profile-name" id="my-name-profile" style="font-size: 22px; font-weight: 900; margin-bottom: 5px; z-index: 2;">Загрузка...</div>
-                    <div style="font-size:16px; font-weight:900; margin-bottom:5px; z-index:2;">ID: <a href="javascript:void(0);" onclick="copyId()" style="color:#00e5ff; text-decoration:underline;" id="my-game-id">...</a></div>
-                    <div class="profile-stats" style="display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; width: 100%; z-index: 2;">
+                    <div id="my-name-profile" class="nick-default" style="font-size: 22px; font-weight: 900; margin-bottom: 5px; z-index: 2;">Загрузка...</div>
+                    <div style="font-size:16px; font-weight:900; margin-bottom:5px; z-index:2;">ID: <span id="my-game-id" style="color:#00e5ff;">...</span></div>
+                    <div style="display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; width: 100%;">
                         <div>Монеты <span id="stat-coins" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
                         <div>Гемы <span id="stat-gems" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
                     </div>
@@ -425,21 +376,14 @@ HTML_CONTENT = r"""
         <button class="nav-btn" onclick="switchTab('profile', this)"><span>👤</span>Профиль</button>
     </div>
 
-    <div id="error-log" style="position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255,0,0,0.9); color: white; padding: 10px; font-size: 12px; z-index: 9999; display: none; word-break: break-all;"></div>
-
     <script>
-        window.onerror = function(msg, url, line) { if (msg.includes("Script error") || msg.includes("NetworkError") || msg.includes("Failed to fetch")) return true; document.getElementById('error-log').style.display = 'block'; document.getElementById('error-log').innerText = "Ошибка: " + msg + " | Строка: " + line; return false; };
+        window.onerror = function(msg, url, line) { return false; };
         const tg = window.Telegram.WebApp; tg.expand();
         const myId = String(tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 10000));
         const WS_URL = window.location.origin.replace('https://', 'wss://');
         let ws;
-        let state = {
-            coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1,
-            upgrades: { tap: 0, max_energy: 0, regen: 0 },
-            bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }],
-            nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: '', gameId: '',
-            unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: []
-        };
+        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'] };
+        
         let currentBet = 10000;
         let isSpinning = false;
 
@@ -447,80 +391,56 @@ HTML_CONTENT = r"""
         const allFrames = [{ id: 'default', name: 'Новичок', cssClass: 'default', price: 0 }, { id: 'millionaire', name: 'Богач', cssClass: 'millionaire', price: 0 }, { id: 'legend', name: 'Легенда', cssClass: 'legend', price: 0 }, { id: 'neon', name: 'Неон', cssClass: 'neon', price: 50000 }, { id: 'nature', name: 'Природа', cssClass: 'nature', price: 75000 }, { id: 'fire', name: 'Огонь', cssClass: 'fire', price: 100000 }];
         const allAnims = [{ id: 'default', name: 'Обычный', cssClass: 'nick-default' }, { id: 'gold', name: 'Золото', cssClass: 'nick-gold' }, { id: 'fire', name: 'Огонь', cssClass: 'nick-fire' }, { id: 'rainbow', name: 'Радуга', cssClass: 'nick-rainbow' }];
 
-        function checkUnlocks() {
-            // Если это админ (твой ID), выдаем ВСЁ
-            if (myId === '6877882967') {
-                state.unlockedMedals = allMedals.map(m => m.id);
-                state.unlockedFrames = allFrames.map(f => f.id);
-                state.unlockedAnims = allAnims.map(a => a.id);
-            }
-        }
-
         function connectWS() {
             ws = new WebSocket(`${WS_URL}/ws/main/${myId}`);
-            ws.onopen = () => { 
-                document.getElementById('conn-status').innerText = "🟢 Онлайн"; 
-                ws.send(JSON.stringify({ type: "init" })); 
-                if (tg.initDataUnsafe?.user) {
-                    ws.send(JSON.stringify({ 
-                        type: "set_user_data", 
-                        name: tg.initDataUnsafe.user.first_name, 
-                        avatar: tg.initDataUnsafe.user.photo_url || '' 
-                    }));
-                }
-            };
+            ws.onopen = () => { document.getElementById('conn-status').innerText = "🟢 Онлайн"; ws.send(JSON.stringify({ type: "init" })); };
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.type === 'sync') {
                     state = { ...state, ...data.data };
-                    // Фикс аватарки
-                    if (data.data.avatar) state.avatarUrl = data.data.avatar;
                     if (!state.nickname) state.nickname = state.name || 'Panda';
-                    checkUnlocks();
                     updateUI();
                 } else if (data.type === 'casino_result') {
                     isSpinning = false;
-                    document.getElementById('casino-result').innerText = data.text;
-                    document.getElementById('casino-result').style.color = data.win ? '#4caf50' : '#e53935';
-                    if (data.win) {
+                    document.getElementById('spin-btn').classList.remove('disabled');
+                    document.getElementById('bet-buttons').classList.remove('disabled');
+                    
+                    const wheel = document.getElementById('casino-wheel');
+                    let targetDeg = 1800; 
+                    if(data.multiplier === 0) targetDeg += 120; 
+                    if(data.multiplier === 1.5) targetDeg += 240; 
+                    if(data.multiplier === 2) targetDeg += 60; 
+                    if(data.multiplier === 5) targetDeg += 300; 
+                    if(data.multiplier === 10) targetDeg += 180; 
+                    
+                    wheel.style.transform = `rotate(${targetDeg}deg)`;
+                    
+                    setTimeout(() => {
+                        document.getElementById('casino-result').innerText = data.text;
+                        document.getElementById('casino-result').style.color = data.win ? '#4caf50' : '#e53935';
                         state.coins = data.newCoins;
                         updateUI();
-                    }
+                    }, 4000);
+                    
                 } else if (data.type === 'error') {
                     isSpinning = false;
+                    document.getElementById('spin-btn').classList.remove('disabled');
+                    document.getElementById('bet-buttons').classList.remove('disabled');
                     tg.showAlert(data.message);
                 }
             };
             ws.onclose = () => { document.getElementById('conn-status').innerText = "🔴 Оффлайн"; setTimeout(connectWS, 2000); };
         }
 
-        function copyId() {
-            if (!state.gameId) return;
-            const el = document.getElementById('my-game-id');
-            const original = state.gameId;
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(original).then(() => {
-                    el.innerText = "✅ Скопировано!";
-                    setTimeout(() => el.innerText = original, 1500);
-                });
-            }
-        }
-
         document.getElementById('panda-wrapper').addEventListener('pointerdown', (e) => {
             if (state.energy <= 0) return;
-            state.energy -= 1;
-            state.coins += state.tapPower;
-            
+            state.energy -= 1; state.coins += state.tapPower;
             const p = document.getElementById('panda-wrapper');
             p.classList.remove('hit'); void p.offsetWidth; p.classList.add('hit');
-            
             const coin = document.createElement('div'); coin.className = 'particle-coin'; coin.innerText = `+${state.tapPower}`;
             coin.style.left = (e.clientX - 15) + 'px'; coin.style.top = (e.clientY - 20) + 'px';
             document.body.appendChild(coin); setTimeout(() => coin.remove(), 900);
-            
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "tap", power: state.tapPower }));
-            }
+            if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "tap", power: state.tapPower }));
             updateUI();
         });
 
@@ -530,8 +450,6 @@ HTML_CONTENT = r"""
             if(document.getElementById('energy')) document.getElementById('energy').innerText = Math.floor(state.energy);
             if(document.getElementById('max-energy')) document.getElementById('max-energy').innerText = state.maxEnergy;
             if(document.getElementById('energy-fill')) document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%';
-            if(document.getElementById('stat-coins')) document.getElementById('stat-coins').innerText = Math.floor(state.coins).toLocaleString();
-            if(document.getElementById('stat-gems')) document.getElementById('stat-gems').innerText = Math.floor(state.gems).toLocaleString();
             
             const frame = allFrames.find(f => f.id === state.selectedFrame)?.cssClass || 'default';
             const animCss = allAnims.find(a => a.id === state.selectedNickAnim)?.cssClass || 'nick-default';
@@ -539,8 +457,8 @@ HTML_CONTENT = r"""
             if(document.getElementById('header-frame')) document.getElementById('header-frame').className = `avatar-frame ${frame}`;
             if(document.getElementById('my-name')) { document.getElementById('my-name').className = `header-nick ${animCss}`; document.getElementById('my-name').innerText = state.nickname; }
             if(document.getElementById('profile-frame')) document.getElementById('profile-frame').className = `avatar-frame ${frame}`;
-            if(document.getElementById('my-name-profile')) { document.getElementById('my-name-profile').className = `profile-name ${animCss}`; document.getElementById('my-name-profile').innerText = state.nickname; }
-            if(document.getElementById('my-game-id')) { if (document.getElementById('my-game-id').innerText !== "✅ Скопировано!") document.getElementById('my-game-id').innerText = state.gameId || '...'; }
+            if(document.getElementById('my-name-profile')) { document.getElementById('my-name-profile').className = `${animCss}`; document.getElementById('my-name-profile').innerText = state.nickname; }
+            if(document.getElementById('my-game-id')) document.getElementById('my-game-id').innerText = state.gameId || '...';
             
             const med = allMedals.find(m => m.id === state.selectedMedal);
             if(document.getElementById('header-medal')) {
@@ -549,8 +467,11 @@ HTML_CONTENT = r"""
             }
             
             if (state.avatarUrl) {
-                if(document.getElementById('mini-avatar')) document.getElementById('mini-avatar').innerHTML = `<img src="${state.avatarUrl}">`;
-                if(document.getElementById('my-avatar-large')) document.getElementById('my-avatar-large').innerHTML = `<img src="${state.avatarUrl}">`;
+                if(document.getElementById('mini-avatar')) document.getElementById('mini-avatar').innerHTML = `<img src="${state.avatarUrl}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+                if(document.getElementById('my-avatar-large')) document.getElementById('my-avatar-large').innerHTML = `<img src="${state.avatarUrl}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+            } else {
+                if(document.getElementById('mini-avatar')) document.getElementById('mini-avatar').innerHTML = `<span>🐼</span>`;
+                if(document.getElementById('my-avatar-large')) document.getElementById('my-avatar-large').innerHTML = `🐼`;
             }
 
             const u = state.upgrades || {tap:0, max_energy:0, regen:0};
@@ -570,6 +491,15 @@ HTML_CONTENT = r"""
             `;
             if(document.getElementById('upgrades-grid')) document.getElementById('upgrades-grid').innerHTML = shopHTML;
 
+            if(document.getElementById('anims-grid')) {
+                let aHtml = '';
+                allAnims.forEach(a => {
+                    const o = state.unlockedAnims.includes(a.id);
+                    const s = state.selectedNickAnim === a.id;
+                    aHtml += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('NickAnim','${a.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon ${a.cssClass}" style="font-weight:900; font-size:20px; filter:none;">Aa</div><div style="font-size:10px;">${a.name}</div></div>`;
+                });
+                document.getElementById('anims-grid').innerHTML = aHtml;
+            }
             if(document.getElementById('medals-grid')) {
                 let mHtml = '';
                 allMedals.forEach(m => {
@@ -584,32 +514,10 @@ HTML_CONTENT = r"""
                 allFrames.forEach(f => {
                     const o = state.unlockedFrames.includes(f.id);
                     const s = state.selectedFrame === f.id;
-                    fHtml += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Frame','${f.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon" style="border:4px solid #fff; border-radius:50%; width:30px; height:30px; margin:0 auto; ${f.id==='millionaire'?'border-color:#ffd700; box-shadow:0 0 10px #ffd700;':f.id==='legend'?'border-color:#00e5ff; box-shadow:0 0 15px #00e5ff;':''}"></div><div style="font-size:10px;">${f.name}</div></div>`;
+                    fHtml += `<div class="inv-item ${o?'owned':''} ${s?'selected':''}" onclick="equip('Frame','${f.id}')" style="${o?'':'opacity:0.3;'}"><div class="inv-icon" style="border:4px solid #fff; border-radius:50%; width:30px; height:30px; margin:0 auto; ${f.id==='millionaire'?'border-color:#ffd700; box-shadow:0 0 10px #ffd700;':f.id==='legend'?'border-color:#00e5ff; box-shadow:0 0 15px #00e5ff;':f.id==='neon'?'border-color:#ff00ff; box-shadow:0 0 10px #ff00ff;':f.id==='nature'?'border-color:#8bc34a; box-shadow:0 0 10px #8bc34a;':f.id==='fire'?'border-color:#ff5722; box-shadow:0 0 10px #ff5722;':''}"></div><div style="font-size:10px;">${f.name}</div></div>`;
                 });
                 document.getElementById('frames-grid').innerHTML = fHtml;
             }
-            
-            renderFarm();
-        }
-
-        function renderFarm() {
-            if(!document.getElementById('farm-grid')) return;
-            let html = '';
-            state.bamboos.forEach(b => {
-                let s = "Пусто", btn = "Посадить", icon = "🟫", dis = false;
-                if (b.stage === 1) { const t = Math.ceil((60000 - (Date.now() - b.planted)) / 1000); s = t > 0 ? `Растет... ${t}с` : "Созрел!"; btn = "Ждем"; icon = "🌱"; dis = t > 0; }
-                else if (b.stage === 2) { s = "Созрел!"; btn = "Собрать"; icon = "🎋"; }
-                else if (b.stage === 3) { s = "Сгнил!"; btn = "Убрать"; icon = "🥀"; }
-                html += `<div class="card"><div class="card-icon">${icon}</div><div class="card-title">Участок ${b.id}</div><div class="card-desc">${s}</div><button class="card-price" ${dis ? 'disabled' : ''} onclick="handleFarmClick(${b.id})">${btn}</button></div>`;
-            });
-            document.getElementById('farm-grid').innerHTML = html;
-        }
-
-        function handleFarmClick(id) {
-            const b = state.bamboos.find(x => x.id === id);
-            if (b.stage === 0) { b.planted = Date.now(); b.stage = 1; }
-            else if (b.stage === 2) { state.coins += 500; b.stage = 0; tg.showAlert("+500 монет!"); updateUI(); }
-            else if (b.stage === 3) { b.stage = 0; }
         }
 
         function switchTab(tabId, btn) {
@@ -617,22 +525,38 @@ HTML_CONTENT = r"""
             document.getElementById('screen-' + tabId).classList.add('active');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             if (btn) btn.classList.add('active');
-            if (tabId === 'friends') { fetchFriends(); fetchLeaderboard(); }
-        }
-
-        function switchFriendsTab(tab, btn) {
-            document.querySelectorAll('.tabs-sub .tab-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            if (tab === 'list') { document.getElementById('friends-list-container').style.display = 'block'; document.getElementById('leaderboard-container').style.display = 'none'; fetchFriends(); }
-            else { document.getElementById('friends-list-container').style.display = 'none'; document.getElementById('leaderboard-container').style.display = 'block'; fetchLeaderboard(); }
+            if (tabId === 'friends') fetchFriends();
         }
 
         function buyUpgrade(type) {
-            if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "buy_upgrade", upgrade: type }));
-            else tg.showAlert("Ожидание соединения...");
+            const u = state.upgrades;
+            let cost = 0;
+            if(type==='tap') cost = Math.floor(100 * Math.pow(1.5, u.tap));
+            if(type==='max_energy') cost = Math.floor(500 * Math.pow(1.6, u.max_energy));
+            if(type==='regen') cost = Math.floor(1000 * Math.pow(1.8, u.regen));
+            
+            if(state.coins >= cost) {
+                state.coins -= cost; u[type]++;
+                if(type==='tap') state.tapPower++;
+                if(type==='max_energy') state.maxEnergy += 100;
+                if(type==='regen') state.regen++;
+                updateUI();
+                if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "buy_upgrade", upgrade: type }));
+            } else {
+                tg.showAlert("Недостаточно монет!");
+            }
+        }
+
+        function equip(type, id) {
+            if(type==='Medal') state.selectedMedal = id;
+            if(type==='Frame') state.selectedFrame = id;
+            if(type==='NickAnim') state.selectedNickAnim = id;
+            updateUI();
+            if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "equip", category: type, item_id: id }));
         }
 
         function setBet(amount) {
+            if (isSpinning) return;
             currentBet = amount;
             document.querySelectorAll('.bet-btn').forEach(b => b.classList.remove('active'));
             event.target.classList.add('active');
@@ -644,19 +568,15 @@ HTML_CONTENT = r"""
             if (!ws || ws.readyState !== WebSocket.OPEN) { tg.showAlert("Ожидание соединения..."); return; }
             
             isSpinning = true;
-            const wheel = document.getElementById('casino-wheel');
-            const deg = Math.floor(Math.random() * 360) + 1800;
-            wheel.style.transform = `rotate(${deg}deg)`;
+            document.getElementById('spin-btn').classList.add('disabled');
+            document.getElementById('bet-buttons').classList.add('disabled');
             document.getElementById('casino-result').innerText = "Крутим...";
             document.getElementById('casino-result').style.color = "#fff";
 
-            setTimeout(() => { ws.send(JSON.stringify({ type: "casino", bet: currentBet })); }, 4000);
-        }
+            state.coins -= currentBet;
+            updateUI();
 
-        function equip(type, id) {
-            if (!state.unlockedFrames.includes(id) && type === 'Frame') return tg.showAlert("Эта рамка еще не разблокирована!");
-            if (!state.unlockedMedals.includes(id) && type === 'Medal') return tg.showAlert("Эта медаль еще не разблокирована!");
-            if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "equip", category: type, item_id: id }));
+            ws.send(JSON.stringify({ type: "casino", bet: currentBet }));
         }
 
         function buyGems(starsPrice) {
@@ -665,7 +585,7 @@ HTML_CONTENT = r"""
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: myId, stars: starsPrice, gems: gemsAmount })
             }).then(res => res.json()).then(data => {
-                if (data.ok) tg.close(); else tg.showAlert("Ошибка счета.");
+                if (data.ok) tg.close(); else tg.showAlert("Ошибка при создании счета.");
             }).catch(e => tg.showAlert("Ошибка сети."));
         }
         
@@ -679,7 +599,6 @@ HTML_CONTENT = r"""
                 document.getElementById('search-results').innerHTML = data.map(p => `<div style="display:flex; justify-content:space-between; background:rgba(255,255,255,0.1); padding:10px; border-radius:8px; margin-bottom:5px;"><span>${p.name}</span><button onclick="addFriend('${p.id}')" style="background:#4caf50; border:none; padding:5px 10px; border-radius:5px; color:#fff; cursor:pointer;">Добавить</button></div>`).join('');
             } catch(e) {}
         }
-        function addFriend(id) { if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "add_friend", friend_id: id })); }
         
         async function fetchFriends() {
             try {
@@ -690,14 +609,6 @@ HTML_CONTENT = r"""
                 } else {
                     document.getElementById('friends-list').innerHTML = '<p style="text-align:center; color:#888;">Нет друзей.</p>';
                 }
-            } catch(e) {}
-        }
-
-        async function fetchLeaderboard() {
-            try {
-                const res = await fetch(`${window.location.origin}/api/leaderboard`);
-                const data = await res.json();
-                document.getElementById('leaderboard-list').innerHTML = data.map((p, i) => `<div class="leaderboard-item"><span class="lb-rank">${i + 1}.</span><span class="lb-name ${p.nick_style}">${p.name}</span><span class="lb-coins">${p.coins.toLocaleString()} <span class="icon-coin">$</span></span></div>`).join('');
             } catch(e) {}
         }
 
@@ -722,30 +633,16 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     
     if user_id not in players_db:
         players_db[user_id] = {
-            "name": f"Panda_{user_id[:4]}", "coins": 500, "gems": 0, 
-            "tapPower": 1, "energy": 1000, "maxEnergy": 1000, "regen": 1,
+            "name": f"Panda_{user_id[:4]}", "coins": 500, "gems": 0, "tapPower": 1, "energy": 1000, "maxEnergy": 1000, "regen": 1,
             "upgrades": {"tap": 0, "max_energy": 0, "regen": 0},
             "selectedMedal": "none", "selectedFrame": "default", "selectedNickAnim": "default",
             "unlockedMedals": [], "unlockedFrames": ["default"], "unlockedAnims": ["default"],
-            "friends": [], "bamboos": [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}],
-            "last_active": time.time()
+            "friends": [], "last_active": time.time()
         }
-    else:
-        players_db[user_id]["last_active"] = time.time()
-        if "bamboos" not in players_db[user_id]: players_db[user_id]["bamboos"] = [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}]
-
-    # Проверка на Админа (тебя)
-    if user_id == '6877882967':
-        players_db[user_id]["unlockedMedals"] = ["bronze", "silver", "gold", "epic", "mythic"]
-        players_db[user_id]["unlockedFrames"] = ["default", "millionaire", "legend", "neon", "nature", "fire"]
-        players_db[user_id]["unlockedAnims"] = ["default", "gold", "fire", "rainbow"]
-
     if "game_id" not in players_db[user_id]: 
         players_db[user_id]["game_id"] = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
     
     save_player(user_id, players_db[user_id])
-    
-    # Сразу отправляем данные
     sync_data = players_db[user_id]
     sync_data["gameId"] = players_db[user_id]["game_id"]
     await websocket.send_text(json.dumps({"type": "sync", "data": sync_data}))
@@ -755,31 +652,19 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             data = await websocket.receive_text()
             msg = json.loads(data)
             
-            if msg.get("type") == "init":
-                sync_data = players_db[user_id]; sync_data["gameId"] = players_db[user_id]["game_id"]
-                await websocket.send_text(json.dumps({"type": "sync", "data": sync_data}))
-            
-            elif msg.get("type") == "set_user_data":
-                players_db[user_id]["name"] = msg.get("name", players_db[user_id]["name"])
-                players_db[user_id]["avatar"] = msg.get("avatar", players_db[user_id].get("avatar", ""))
-                save_player(user_id, players_db[user_id])
-                sync_data = players_db[user_id]; sync_data["gameId"] = players_db[user_id]["game_id"]
-                await websocket.send_text(json.dumps({"type": "sync", "data": sync_data}))
-                
-            elif msg.get("type") == "tap":
+            if msg.get("type") == "tap":
                 players_db[user_id]["coins"] += msg.get("power", 1)
                 players_db[user_id]["energy"] = max(0, players_db[user_id]["energy"] - 1)
                 players_db[user_id]["last_active"] = time.time()
-                if random.random() < 0.2: save_player(user_id, players_db[user_id])
+                if random.random() < 0.1: save_player(user_id, players_db[user_id])
                 
             elif msg.get("type") == "buy_upgrade":
                 upg_type = msg.get("upgrade")
                 u = players_db[user_id]["upgrades"]
-                
+                cost = 0
                 if upg_type == 'tap': cost = math.floor(100 * (1.5 ** u['tap']))
                 elif upg_type == 'max_energy': cost = math.floor(500 * (1.6 ** u['max_energy']))
                 elif upg_type == 'regen': cost = math.floor(1000 * (1.8 ** u['regen']))
-                else: cost = 999999999
                 
                 if players_db[user_id]["coins"] >= cost:
                     players_db[user_id]["coins"] -= cost
@@ -787,12 +672,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     if upg_type == 'tap': players_db[user_id]["tapPower"] += 1
                     elif upg_type == 'max_energy': players_db[user_id]["maxEnergy"] += 100
                     elif upg_type == 'regen': players_db[user_id]["regen"] += 1
-                    
                     save_player(user_id, players_db[user_id])
-                    sync_data = players_db[user_id]; sync_data["gameId"] = players_db[user_id]["game_id"]
-                    await websocket.send_text(json.dumps({"type": "sync", "data": sync_data}))
-                else:
-                    await websocket.send_text(json.dumps({"type": "error", "message": "Недостаточно монет!"}))
 
             elif msg.get("type") == "casino":
                 bet = int(msg.get("bet"))
@@ -807,28 +687,23 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     
                     winAmount = int(bet * multiplier)
                     players_db[user_id]["coins"] += winAmount
-                    
                     if multiplier == 10: players_db[user_id]["gems"] += 1
+                    
                     save_player(user_id, players_db[user_id])
                     
                     if multiplier > 0:
-                        await websocket.send_text(json.dumps({"type": "casino_result", "win": True, "text": f"ВЫИГРЫШ x{multiplier}!" + (" (+1 💎)" if multiplier==10 else ""), "newCoins": players_db[user_id]["coins"]}))
+                        await websocket.send_text(json.dumps({"type": "casino_result", "win": True, "multiplier": multiplier, "text": f"ВЫИГРЫШ x{multiplier}!" + (" (+1 💎)" if multiplier==10 else ""), "newCoins": players_db[user_id]["coins"]}))
                     else:
-                        await websocket.send_text(json.dumps({"type": "casino_result", "win": False, "text": "ПРОИГРЫШ"}))
-                    sync_data = players_db[user_id]; sync_data["gameId"] = players_db[user_id]["game_id"]
-                    await websocket.send_text(json.dumps({"type": "sync", "data": sync_data}))
+                        await websocket.send_text(json.dumps({"type": "casino_result", "win": False, "multiplier": 0, "text": "ПРОИГРЫШ", "newCoins": players_db[user_id]["coins"]}))
                 else:
                     await websocket.send_text(json.dumps({"type": "error", "message": "Недостаточно монет!"}))
 
             elif msg.get("type") == "equip":
-                cat = msg.get("category")
-                item = msg.get("item_id")
+                cat = msg.get("category"); item = msg.get("item_id")
                 if cat == 'Medal': players_db[user_id]["selectedMedal"] = item
                 elif cat == 'Frame': players_db[user_id]["selectedFrame"] = item
                 elif cat == 'NickAnim': players_db[user_id]["selectedNickAnim"] = item
                 save_player(user_id, players_db[user_id])
-                sync_data = players_db[user_id]; sync_data["gameId"] = players_db[user_id]["game_id"]
-                await websocket.send_text(json.dumps({"type": "sync", "data": sync_data}))
 
             elif msg.get("type") == "add_friend":
                 fid = msg.get("friend_id")
@@ -840,7 +715,10 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
         save_player(user_id, players_db[user_id])
         if user_id in active_connections: del active_connections[user_id]
 
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+@app.get("/api/friends/{user_id}")
+async def get_friends(user_id: str):
+    if user_id not in players_db: return []
+    friends_list = []
+    for f_id in players_db[user_id].get("friends", []):
+        if f_id in players_db: friends_list.append({"id": f_id, "name": players_db[f_id]["name"], "avatar": players_db[f_id].get("avatar", "")})
+    return friends_list
