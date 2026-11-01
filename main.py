@@ -171,7 +171,7 @@ HTML_CONTENT = r"""
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 40.0</title>
+    <title>Panda Game 41.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -188,6 +188,13 @@ HTML_CONTENT = r"""
         .stalk::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(180deg, transparent 0 100px, #022c22 100px 106px); border-radius: 10px; }
         .bg-ground { position: absolute; bottom: 0; left: 0; width: 100%; height: 25%; background: linear-gradient(to top, #022c22 0%, #064e3b 100%); z-index: 3; box-shadow: inset 0 10px 30px rgba(0,0,0,0.5); }
         
+        /* Ambient Effects */
+        .bg-effects { position: absolute; inset: 0; pointer-events: none; z-index: 4; overflow: hidden;}
+        .firefly { position: absolute; width: 4px; height: 4px; background: #ffd700; border-radius: 50%; box-shadow: 0 0 10px #ffd700, 0 0 20px #ffd700; opacity: 0; animation: fly linear infinite; }
+        @keyframes fly { 0% { transform: translate(0, 0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translate(100px, -100px); opacity: 0; } }
+        .butterfly { position: absolute; font-size: 20px; animation: flutter linear infinite; }
+        @keyframes flutter { 0% { transform: translate(0, 0) rotate(0deg); opacity: 0; } 10% { opacity: 1; } 50% { transform: translate(150px, -50px) rotate(20deg); } 90% { opacity: 1; } 100% { transform: translate(300px, -100px) rotate(-20deg); opacity: 0; } }
+
         .header { padding: 12px 15px; display: flex; justify-content: space-between; align-items: flex-start; z-index: 10; position: relative; }
         .user-info-block { display: flex; align-items: center; gap: 10px; }
         .avatar-wrap { position: relative; width: 50px; height: 50px; cursor: pointer; }
@@ -236,9 +243,12 @@ HTML_CONTENT = r"""
         .panda-wrapper:active { transform: scale(0.95); }
         .panda-wrapper.hit { animation: jump 0.25s ease-out; }
         @keyframes jump { 0% { transform: translateY(0); } 30% { transform: translateY(-15px) scale(1.05); } 100% { transform: translateY(0); } }
+        
         .particle-coin { position: absolute; font-size: 24px; font-weight: 900; color: #ffd700; pointer-events: none; animation: popCoin 0.9s ease-out forwards; z-index: 20; text-shadow: 0 0 10px #ffd700; }
         @keyframes popCoin { 0% { transform: translateY(0) scale(0.4); opacity: 1; } 100% { transform: translateY(-100px) scale(1.2); opacity: 0; } }
-        
+        .particle-heart { position: absolute; font-size: 24px; pointer-events: none; animation: popHeart 1s ease-out forwards; z-index: 20; }
+        @keyframes popHeart { 0% { transform: translateY(0) scale(0.4); opacity: 1; } 50% { transform: translateY(-50px) scale(1.2); opacity: 1; } 100% { transform: translateY(-100px) scale(1); opacity: 0; } }
+
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: 15px; padding: 12px; display: flex; flex-direction: column; align-items: center; text-align: center; }
         .card-icon { font-size: 32px; margin-bottom: 6px; }
@@ -289,16 +299,18 @@ HTML_CONTENT = r"""
         .gift-history-icon { font-size: 20px; }
 
         /* Lobby Styles */
-        .lobby-active-view { display: none; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; width: 100%; height: 100%;}
+        .lobby-active-view { display: none; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; width: 100%; height: 100%; position: relative;}
         
-        /* House BG levels - overriding the main background */
         .house-bg-1 { background: transparent; }
         .house-bg-2 { background: rgba(78, 52, 46, 0.4); border: 2px solid #8d6e63; border-radius: 15px; }
         .house-bg-3 { background: rgba(26, 35, 126, 0.4); border: 2px solid #ffd700; box-shadow: inset 0 0 20px #ffd700; border-radius: 15px; }
         
         .room-container { width: 100%; height: 280px; position: relative; margin-top: 10px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 20px; gap: 15px; transition: all 0.5s; }
         
-        .duo-panda { position: relative; text-align: center; transition: transform 0.3s; display: flex; flex-direction: column; align-items: center;}
+        .duo-panda { position: relative; text-align: center; transition: transform 0.3s; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .duo-panda:active { transform: scale(0.95) !important; }
+        .duo-panda.hit { animation: jump 0.25s ease-out; }
+        
         .duo-panda.baby { transform: scale(0.65); transform-origin: bottom center; margin-left:-10px; margin-right:-10px;}
         .duo-panda svg { width: 110px; height: 120px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)); }
         .duo-name { font-size: 14px; font-weight: 900; text-shadow: 2px 2px 0 #000; margin-top: -10px; z-index: 2; position: relative;}
@@ -308,6 +320,8 @@ HTML_CONTENT = r"""
         .baby-bar-fill { height: 100%; background: #ff9800; width: 100%; transition: width 0.3s; }
         
         .pregnancy-alert { background: rgba(255, 182, 193, 0.2); border: 1px solid #ff69b4; padding: 10px; border-radius: 10px; margin-top: 10px; color: #ff69b4; font-weight: 900; }
+        .baby-mood { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 30px; animation: float 2s infinite alternate; }
+        @keyframes float { 0% { transform: translate(-50%, 0); } 100% { transform: translate(-50%, -10px); } }
     </style>
 </head>
 <body>
@@ -316,6 +330,7 @@ HTML_CONTENT = r"""
         <div class="bg-mountains"><svg viewBox="0 0 400 200" preserveAspectRatio="none"><path d="M0,200 L50,80 L120,120 L180,40 L260,90 L340,60 L400,150 L400,200 Z" fill="#1e293b"/><path d="M0,200 L70,110 L150,150 L240,80 L320,130 L400,200 Z" fill="#334155"/></svg></div>
         <div class="bg-bamboo"><div class="stalk" style="height: 70%; left: 5%;"></div><div class="stalk" style="height: 90%; left: 20%;"></div><div class="stalk" style="height: 60%; right: 15%;"></div><div class="stalk" style="height: 80%; right: 5%;"></div></div>
         <div class="bg-ground"></div>
+        <div class="bg-effects" id="ambient-effects"></div>
     </div>
 
     <div class="header">
@@ -394,16 +409,17 @@ HTML_CONTENT = r"""
                     <p style="font-size:12px; color:#ddd; text-shadow: 1px 1px 2px #000;">Уровень Дома: <span id="house-level-text">1</span></p>
                     
                     <div id="room-bg" class="room-container house-bg-1">
-                        <div class="duo-panda" id="duo-me">
+                        <div class="duo-panda" id="duo-me" onclick="lobbyTap('me', event)">
                             <div id="lobby-my-svg"></div>
                             <div class="duo-name" id="lobby-my-name">Ты</div>
                         </div>
-                        <div class="duo-panda" id="duo-partner">
+                        <div class="duo-panda" id="duo-partner" onclick="lobbyTap('partner', event)">
                             <div id="lobby-partner-svg"></div>
                             <div class="duo-name" id="lobby-partner-name">Партнер</div>
                         </div>
                         <!-- Baby will be inserted here -->
-                        <div class="duo-panda baby" id="duo-baby" style="display:none;">
+                        <div class="duo-panda baby" id="duo-baby" style="display:none;" onclick="lobbyTap('baby', event)">
+                            <div class="baby-mood" id="baby-mood-icon" style="display:none;">😭</div>
                             <div id="lobby-baby-svg"></div>
                             <div class="duo-name">Малыш</div>
                         </div>
@@ -524,7 +540,7 @@ HTML_CONTENT = r"""
         <button class="nav-btn" onclick="switchTab('profile', this)"><span>👤</span>Профиль</button>
     </div>
 
-    <!-- View Profile Modal -->
+    <!-- Modals ... (same as previous) -->
     <div class="modal" id="view-profile-modal">
         <div class="modal-box" style="text-align:center;">
             <div style="position: relative; width: 90px; height: 90px; display: flex; justify-content: center; align-items: center; margin:0 auto 10px;">
@@ -548,29 +564,19 @@ HTML_CONTENT = r"""
         </div>
     </div>
 
-    <!-- Gift Selection Modal -->
     <div class="modal" id="gift-modal">
         <div class="modal-box" style="text-align:center;">
             <h2 style="color:#ffd700; margin-bottom:15px;">Подарить подарок</h2>
             <div style="display:flex; justify-content:space-around; margin-bottom:20px;">
-                <div onclick="sendGift('🌹', 10)" style="cursor:pointer; text-align:center;">
-                    <div style="font-size:30px;">🌹</div><div style="font-size:10px; color:#00e5ff;">10 💎</div>
-                </div>
-                <div onclick="sendGift('🎂', 50)" style="cursor:pointer; text-align:center;">
-                    <div style="font-size:30px;">🎂</div><div style="font-size:10px; color:#00e5ff;">50 💎</div>
-                </div>
-                <div onclick="sendGift('🧸', 100)" style="cursor:pointer; text-align:center;">
-                    <div style="font-size:30px;">🧸</div><div style="font-size:10px; color:#00e5ff;">100 💎</div>
-                </div>
-                <div onclick="sendGift('👑', 500)" style="cursor:pointer; text-align:center;">
-                    <div style="font-size:30px;">👑</div><div style="font-size:10px; color:#00e5ff;">500 💎</div>
-                </div>
+                <div onclick="sendGift('🌹', 10)" style="cursor:pointer; text-align:center;"><div style="font-size:30px;">🌹</div><div style="font-size:10px; color:#00e5ff;">10 💎</div></div>
+                <div onclick="sendGift('🎂', 50)" style="cursor:pointer; text-align:center;"><div style="font-size:30px;">🎂</div><div style="font-size:10px; color:#00e5ff;">50 💎</div></div>
+                <div onclick="sendGift('🧸', 100)" style="cursor:pointer; text-align:center;"><div style="font-size:30px;">🧸</div><div style="font-size:10px; color:#00e5ff;">100 💎</div></div>
+                <div onclick="sendGift('👑', 500)" style="cursor:pointer; text-align:center;"><div style="font-size:30px;">👑</div><div style="font-size:10px; color:#00e5ff;">500 💎</div></div>
             </div>
             <button class="card-price" style="background:#555; color:#fff;" onclick="document.getElementById('gift-modal').classList.remove('active')">Отмена</button>
         </div>
     </div>
 
-    <!-- Gift History Modal -->
     <div class="modal" id="gift-history-modal">
         <div class="modal-box">
             <h2 style="color:#ffd700; margin-bottom:15px;">История подарков</h2>
@@ -579,7 +585,6 @@ HTML_CONTENT = r"""
         </div>
     </div>
 
-    <!-- Lobby Invite Modal -->
     <div class="modal" id="invite-modal">
         <div class="modal-box">
             <h2 style="color:#ffd700; margin-bottom:15px;">Приглашение в Лобби</h2>
@@ -623,6 +628,29 @@ HTML_CONTENT = r"""
         const allMedals = [{ id: 'bronze', name: 'Бронза', req: 30, emoji: '🥉' }, { id: 'silver', name: 'Серебро', req: 90, emoji: '🥈' }, { id: 'gold', name: 'Золото', req: 180, emoji: '🥇' }, { id: 'epic', name: 'Эпик', req: 365, emoji: '💎' }, { id: 'mythic', name: 'Мифик', req: 730, emoji: '👑' }];
         const allFrames = [{ id: 'default', name: 'Новичок', cssClass: 'default', price: 0 }, { id: 'millionaire', name: 'Богач', cssClass: 'millionaire', price: 0 }, { id: 'legend', name: 'Легенда', cssClass: 'legend', price: 0 }, { id: 'neon', name: 'Неон', cssClass: 'neon', price: 50000 }, { id: 'nature', name: 'Природа', cssClass: 'nature', price: 75000 }, { id: 'fire', name: 'Огонь', cssClass: 'fire', price: 100000 }];
         const allAnims = [{ id: 'default', name: 'Обычный', cssClass: 'nick-default' }, { id: 'gold', name: 'Золото', cssClass: 'nick-gold' }, { id: 'fire', name: 'Огонь', cssClass: 'nick-fire' }, { id: 'rainbow', name: 'Радуга', cssClass: 'nick-rainbow' }];
+
+        function spawnAmbient() {
+            const container = document.getElementById('ambient-effects');
+            if(!container) return;
+            setInterval(() => {
+                const isFirefly = Math.random() > 0.5;
+                const el = document.createElement('div');
+                if (isFirefly) {
+                    el.className = 'firefly';
+                    el.style.left = Math.random() * 100 + '%';
+                    el.style.top = Math.random() * 100 + '%';
+                    el.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                } else {
+                    el.className = 'butterfly';
+                    el.innerText = ['🦋', '🦋', '🌸'][Math.floor(Math.random() * 3)];
+                    el.style.left = '-50px';
+                    el.style.top = Math.random() * 80 + 10 + '%';
+                    el.style.animationDuration = (Math.random() * 5 + 4) + 's';
+                }
+                container.appendChild(el);
+                setTimeout(() => el.remove(), isFirefly ? 5000 : 9000);
+            }, 1500);
+        }
 
         function connectWS() {
             ws = new WebSocket(`${WS_URL}/ws/main/${myId}`);
@@ -696,6 +724,19 @@ HTML_CONTENT = r"""
             if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "tap", power: state.tapPower }));
             updateUI();
         });
+
+        function lobbyTap(who, e) {
+            const p = e.currentTarget;
+            p.classList.remove('hit'); void p.offsetWidth; p.classList.add('hit');
+            
+            const particle = document.createElement('div');
+            particle.className = 'particle-heart';
+            particle.innerText = who === 'baby' ? '🍼' : '❤️';
+            particle.style.left = (e.clientX - 15) + 'px'; 
+            particle.style.top = (e.clientY - 20) + 'px';
+            document.body.appendChild(particle); 
+            setTimeout(() => particle.remove(), 1000);
+        }
 
         function updateUI() {
             if(document.getElementById('coins')) document.getElementById('coins').innerText = Math.floor(state.coins).toLocaleString();
@@ -809,31 +850,23 @@ HTML_CONTENT = r"""
                 document.getElementById('lobby-my-name').innerText = state.nickname;
                 document.getElementById('lobby-partner-name').innerText = state.lobby_partner_name || 'Партнер';
                 
-                // Inject SVGs
-                if (!document.getElementById('lobby-my-svg').hasChildNodes()) {
-                    document.getElementById('lobby-my-svg').innerHTML = pandaSVG;
-                }
-                if (!document.getElementById('lobby-partner-svg').hasChildNodes()) {
-                    document.getElementById('lobby-partner-svg').innerHTML = pandaSVG;
-                }
-                if (!document.getElementById('lobby-baby-svg').hasChildNodes()) {
-                    document.getElementById('lobby-baby-svg').innerHTML = pandaSVG;
-                }
+                if (!document.getElementById('lobby-my-svg').hasChildNodes()) document.getElementById('lobby-my-svg').innerHTML = pandaSVG;
+                if (!document.getElementById('lobby-partner-svg').hasChildNodes()) document.getElementById('lobby-partner-svg').innerHTML = pandaSVG;
+                if (!document.getElementById('lobby-baby-svg').hasChildNodes()) document.getElementById('lobby-baby-svg').innerHTML = pandaSVG;
 
-                // House BG
                 const roomBg = document.getElementById('room-bg');
                 roomBg.className = `room-container house-bg-${state.house_level}`;
                 document.getElementById('house-level-text').innerText = state.house_level;
 
-                // Pregnancy & Baby
                 const pregAlert = document.getElementById('pregnancy-alert');
                 const babyCare = document.getElementById('baby-care');
                 const babyVisual = document.getElementById('duo-baby');
                 const btnMakeBaby = document.getElementById('btn-make-baby');
                 const btnFeedBaby = document.getElementById('btn-feed-baby');
+                const babyMoodIcon = document.getElementById('baby-mood-icon');
 
                 if (state.has_baby) {
-                    babyVisual.style.display = 'block';
+                    babyVisual.style.display = 'flex';
                     babyCare.style.display = 'block';
                     pregAlert.style.display = 'none';
                     btnMakeBaby.style.display = 'none';
@@ -841,6 +874,13 @@ HTML_CONTENT = r"""
                     
                     document.getElementById('baby-hunger-text').innerText = state.baby_hunger + '%';
                     document.getElementById('baby-hunger-bar').style.width = state.baby_hunger + '%';
+                    
+                    if (state.baby_hunger < 30) {
+                        babyMoodIcon.style.display = 'block';
+                        babyMoodIcon.innerText = '😭';
+                    } else {
+                        babyMoodIcon.style.display = 'none';
+                    }
                 } else if (state.is_pregnant) {
                     babyVisual.style.display = 'none';
                     babyCare.style.display = 'none';
@@ -858,7 +898,6 @@ HTML_CONTENT = r"""
                     babyCare.style.display = 'none';
                     pregAlert.style.display = 'none';
                     
-                    // Show button ONLY for females
                     if (state.gender === 'female') {
                         btnMakeBaby.style.display = 'block';
                         btnMakeBaby.innerText = "Забеременеть 🤰";
@@ -1197,6 +1236,7 @@ HTML_CONTENT = r"""
             }
         }, 1000);
 
+        spawnAmbient();
         connectWS();
     </script>
 </body>
