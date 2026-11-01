@@ -64,6 +64,7 @@ def load_players():
             if "bamboos" not in p_data: p_data["bamboos"] = [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}]
             if "lobby_partner" not in p_data: p_data["lobby_partner"] = None
             if "lobby_partner_name" not in p_data: p_data["lobby_partner_name"] = None
+            if "lobby_partner_gender" not in p_data: p_data["lobby_partner_gender"] = None
             if "gifts" not in p_data: p_data["gifts"] = 0
             if "gift_history" not in p_data: p_data["gift_history"] = []
             
@@ -165,13 +166,32 @@ async def get_friends(user_id: str):
             })
     return friends_list
 
+# НОВЫЙ ЭНДПОИНТ ДЛЯ ТОП-50
+@app.get("/api/leaderboard")
+async def get_leaderboard():
+    # Сортируем всех игроков по монетам (по убыванию) и берем топ-50
+    sorted_players = sorted(players_db.items(), key=lambda x: x[1].get("coins", 0), reverse=True)[:50]
+    result = []
+    for uid, data in sorted_players:
+        result.append({
+            "id": uid,
+            "name": data.get("name", "Unknown"),
+            "avatar": data.get("avatar", ""),
+            "coins": data.get("coins", 0),
+            "frame": data.get("selectedFrame", "default"),
+            "medal": data.get("selectedMedal", "none"),
+            "nick_style": data.get("selectedNickAnim", "nick-default"),
+            "verified": data.get("verified", False)
+        })
+    return result
+
 HTML_CONTENT = r"""
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 41.0</title>
+    <title>Panda Game 42.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -188,7 +208,6 @@ HTML_CONTENT = r"""
         .stalk::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(180deg, transparent 0 100px, #022c22 100px 106px); border-radius: 10px; }
         .bg-ground { position: absolute; bottom: 0; left: 0; width: 100%; height: 25%; background: linear-gradient(to top, #022c22 0%, #064e3b 100%); z-index: 3; box-shadow: inset 0 10px 30px rgba(0,0,0,0.5); }
         
-        /* Ambient Effects */
         .bg-effects { position: absolute; inset: 0; pointer-events: none; z-index: 4; overflow: hidden;}
         .firefly { position: absolute; width: 4px; height: 4px; background: #ffd700; border-radius: 50%; box-shadow: 0 0 10px #ffd700, 0 0 20px #ffd700; opacity: 0; animation: fly linear infinite; }
         @keyframes fly { 0% { transform: translate(0, 0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translate(100px, -100px); opacity: 0; } }
@@ -298,7 +317,6 @@ HTML_CONTENT = r"""
         .gift-history-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; margin-bottom: 5px; font-size: 12px; text-align: left; }
         .gift-history-icon { font-size: 20px; }
 
-        /* Lobby Styles */
         .lobby-active-view { display: none; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; width: 100%; height: 100%; position: relative;}
         
         .house-bg-1 { background: transparent; }
@@ -357,23 +375,7 @@ HTML_CONTENT = r"""
         <div class="screen active" id="screen-tap">
             <div class="tap-area">
                 <div style="text-align: center; position: relative;">
-                    <div class="panda-wrapper" id="panda-wrapper">
-                        <svg viewBox="0 0 200 220" style="width:100%; height:100%; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));">
-                            <ellipse cx="100" cy="205" rx="75" ry="15" fill="rgba(0,0,0,0.35)" />
-                            <ellipse cx="55" cy="175" rx="24" ry="18" fill="#1a1a1a" /><ellipse cx="145" cy="175" rx="24" ry="18" fill="#1a1a1a" />
-                            <ellipse cx="100" cy="140" rx="62" ry="55" fill="#fff" />
-                            <circle cx="45" cy="45" r="20" fill="#1a1a1a" /><circle cx="155" cy="45" r="20" fill="#1a1a1a" />
-                            <ellipse cx="100" cy="90" rx="65" ry="58" fill="#fff" />
-                            <ellipse cx="70" cy="85" rx="18" ry="23" fill="#111" /><ellipse cx="130" cy="85" rx="18" ry="23" fill="#111" />
-                            <circle cx="70" cy="85" r="9" fill="#fff" /><circle cx="70" cy="85" r="6" fill="#111" />
-                            <circle cx="130" cy="85" r="9" fill="#fff" /><circle cx="130" cy="85" r="6" fill="#111" />
-                            <ellipse cx="45" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />
-                            <ellipse cx="155" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />
-                            <path id="mouth-path" d="M 92 112 Q 100 118 108 112" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" />
-                            <ellipse cx="100" cy="105" rx="8" ry="5" fill="#111" />
-                            <ellipse cx="45" cy="145" rx="18" ry="22" fill="#1a1a1a" /><ellipse cx="155" cy="145" rx="18" ry="22" fill="#1a1a1a" />
-                        </svg>
-                    </div>
+                    <div class="panda-wrapper" id="panda-wrapper"></div>
                 </div>
             </div>
         </div>
@@ -540,7 +542,7 @@ HTML_CONTENT = r"""
         <button class="nav-btn" onclick="switchTab('profile', this)"><span>👤</span>Профиль</button>
     </div>
 
-    <!-- Modals ... (same as previous) -->
+    <!-- Modals -->
     <div class="modal" id="view-profile-modal">
         <div class="modal-box" style="text-align:center;">
             <div style="position: relative; width: 90px; height: 90px; display: flex; justify-content: center; align-items: center; margin:0 auto 10px;">
@@ -600,30 +602,56 @@ HTML_CONTENT = r"""
         const myId = String(tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 10000));
         const WS_URL = window.location.origin.replace('https://', 'wss://');
         
-        const pandaSVG = `<svg viewBox="0 0 200 220" style="width:100%; height:100%; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));">
-            <ellipse cx="100" cy="205" rx="75" ry="15" fill="rgba(0,0,0,0.35)" />
-            <ellipse cx="55" cy="175" rx="24" ry="18" fill="#1a1a1a" /><ellipse cx="145" cy="175" rx="24" ry="18" fill="#1a1a1a" />
-            <ellipse cx="100" cy="140" rx="62" ry="55" fill="#fff" />
-            <circle cx="45" cy="45" r="20" fill="#1a1a1a" /><circle cx="155" cy="45" r="20" fill="#1a1a1a" />
-            <ellipse cx="100" cy="90" rx="65" ry="58" fill="#fff" />
-            <ellipse cx="70" cy="85" rx="18" ry="23" fill="#111" /><ellipse cx="130" cy="85" rx="18" ry="23" fill="#111" />
-            <circle cx="70" cy="85" r="9" fill="#fff" /><circle cx="70" cy="85" r="6" fill="#111" />
-            <circle cx="130" cy="85" r="9" fill="#fff" /><circle cx="130" cy="85" r="6" fill="#111" />
-            <ellipse cx="45" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />
-            <ellipse cx="155" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />
-            <path id="mouth-path" d="M 92 112 Q 100 118 108 112" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" />
-            <ellipse cx="100" cy="105" rx="8" ry="5" fill="#111" />
-            <ellipse cx="45" cy="145" rx="18" ry="22" fill="#1a1a1a" /><ellipse cx="155" cy="145" rx="18" ry="22" fill="#1a1a1a" />
-        </svg>`;
+        function getPandaSVG(gender, isBaby, isLobby=false) {
+            let blush = (gender === 'female' || isBaby) ? `<ellipse cx="45" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" /><ellipse cx="155" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />` : '';
+            let accessory = '';
+            if (gender === 'female' && !isBaby) accessory = `<g transform="translate(120, 20) scale(0.6)"><path d="M 0 0 L 20 -10 L 20 10 Z" fill="#ff69b4" /><path d="M 30 0 L 10 -10 L 10 10 Z" fill="#ff69b4" /><circle cx="15" cy="0" r="6" fill="#ff1493" /></g>`;
+            if (gender === 'male' && !isBaby) accessory = `<polygon points="85,135 115,135 100,150" fill="#f44336"/><polygon points="85,135 100,135 100,150" fill="#d32f2f"/>`;
+            if (isBaby) accessory = `<circle cx="100" cy="115" r="8" fill="#ff69b4" /><path d="M 94 115 L 106 115" stroke="#ff1493" stroke-width="2"/><ellipse cx="100" cy="118" rx="4" ry="2" fill="#fff"/>`;
+
+            let eyeClass = isLobby ? 'class="eye-lobby"' : 'class="eye" id="eye-L"';
+            let eyeClassR = isLobby ? 'class="eye-lobby"' : 'class="eye" id="eye-R"';
+
+            let style = isLobby ? `<style>
+                @keyframes blink { 0%, 90%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+                @keyframes earTwitch { 0%, 90%, 100% { transform: rotate(0deg); } 95% { transform: rotate(5deg); } }
+                .eye-lobby { animation: blink 4s infinite; transform-origin: center; }
+                .ear-l { animation: earTwitch 5s infinite; transform-origin: 45px 45px; }
+                .ear-r { animation: earTwitch 6s infinite; transform-origin: 155px 45px; }
+            </style>` : `<style>
+                .ear-l { animation: earTwitch 5s infinite; transform-origin: 45px 45px; }
+                .ear-r { animation: earTwitch 6s infinite; transform-origin: 155px 45px; }
+                @keyframes earTwitch { 0%, 90%, 100% { transform: rotate(0deg); } 95% { transform: rotate(5deg); } }
+            </style>`;
+
+            return `<svg viewBox="0 0 200 220" style="width:100%; height:100%; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));">
+                ${style}
+                <ellipse cx="100" cy="205" rx="75" ry="15" fill="rgba(0,0,0,0.35)" />
+                <g class="ear-l"><circle cx="45" cy="45" r="20" fill="#1a1a1a" /><circle cx="45" cy="45" r="10" fill="#333" /></g>
+                <g class="ear-r"><circle cx="155" cy="45" r="20" fill="#1a1a1a" /><circle cx="155" cy="45" r="10" fill="#333" /></g>
+                <ellipse cx="55" cy="175" rx="24" ry="18" fill="#1a1a1a" /><ellipse cx="145" cy="175" rx="24" ry="18" fill="#1a1a1a" />
+                <ellipse cx="100" cy="140" rx="62" ry="55" fill="#fff" />
+                <ellipse cx="100" cy="90" rx="65" ry="58" fill="#fff" />
+                <ellipse cx="70" cy="85" rx="18" ry="23" fill="#111" /><ellipse cx="130" cy="85" rx="18" ry="23" fill="#111" />
+                <g ${eyeClass}><circle cx="70" cy="85" r="9" fill="#fff" /><circle cx="70" cy="85" r="6" fill="#111" /><circle cx="67.5" cy="82.5" r="2.5" fill="#fff" /></g>
+                <g ${eyeClassR}><circle cx="130" cy="85" r="9" fill="#fff" /><circle cx="130" cy="85" r="6" fill="#111" /><circle cx="127.5" cy="82.5" r="2.5" fill="#fff" /></g>
+                ${blush}
+                <ellipse cx="100" cy="105" rx="8" ry="5" fill="#111" />
+                <path d="M 92 112 Q 100 118 108 112" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" />
+                <ellipse cx="45" cy="145" rx="18" ry="22" fill="#1a1a1a" /><ellipse cx="155" cy="145" rx="18" ry="22" fill="#1a1a1a" />
+                ${accessory}
+            </svg>`;
+        }
 
         let ws;
-        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [], lobby_partner: null, lobby_partner_name: null, gifts: 0, gift_history: [], gender: 'male', house_level: 1, is_pregnant: false, pregnancy_end: 0, has_baby: false, baby_hunger: 100 };
+        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [], lobby_partner: null, lobby_partner_name: null, lobby_partner_gender: null, gifts: 0, gift_history: [], gender: 'male', house_level: 1, is_pregnant: false, pregnancy_end: 0, has_baby: false, baby_hunger: 100 };
         
         let currentBet = 10000;
         let isSpinning = false;
         let currentViewPlayerId = null;
         let currentInviterId = null;
         let currentFriendProfileData = null;
+        let renderedGender = null;
 
         const allMedals = [{ id: 'bronze', name: 'Бронза', req: 30, emoji: '🥉' }, { id: 'silver', name: 'Серебро', req: 90, emoji: '🥈' }, { id: 'gold', name: 'Золото', req: 180, emoji: '🥇' }, { id: 'epic', name: 'Эпик', req: 365, emoji: '💎' }, { id: 'mythic', name: 'Мифик', req: 730, emoji: '👑' }];
         const allFrames = [{ id: 'default', name: 'Новичок', cssClass: 'default', price: 0 }, { id: 'millionaire', name: 'Богач', cssClass: 'millionaire', price: 0 }, { id: 'legend', name: 'Легенда', cssClass: 'legend', price: 0 }, { id: 'neon', name: 'Неон', cssClass: 'neon', price: 50000 }, { id: 'nature', name: 'Природа', cssClass: 'nature', price: 75000 }, { id: 'fire', name: 'Огонь', cssClass: 'fire', price: 100000 }];
@@ -699,6 +727,7 @@ HTML_CONTENT = r"""
                 } else if (data.type === 'lobby_joined') {
                     state.lobby_partner = data.partner_id;
                     state.lobby_partner_name = data.partner_name;
+                    state.lobby_partner_gender = data.partner_gender;
                     tg.showAlert(`Вы в лобби с ${data.partner_name}!`);
                     updateUI();
                     switchTab('friends', document.querySelectorAll('.nav-btn')[1]);
@@ -721,6 +750,14 @@ HTML_CONTENT = r"""
             const coin = document.createElement('div'); coin.className = 'particle-coin'; coin.innerText = `+${state.tapPower}`;
             coin.style.left = (e.clientX - 15) + 'px'; coin.style.top = (e.clientY - 20) + 'px';
             document.body.appendChild(coin); setTimeout(() => coin.remove(), 900);
+            
+            const eyeL = document.getElementById('eye-L');
+            const eyeR = document.getElementById('eye-R');
+            if (eyeL && eyeR) {
+                eyeL.classList.add('closed'); eyeR.classList.add('closed');
+                setTimeout(() => { eyeL.classList.remove('closed'); eyeR.classList.remove('closed'); }, 300);
+            }
+            
             if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "tap", power: state.tapPower }));
             updateUI();
         });
@@ -770,6 +807,12 @@ HTML_CONTENT = r"""
                 if(document.getElementById('my-avatar-large')) document.getElementById('my-avatar-large').innerHTML = `🐼`;
             }
 
+            // Inject Main Panda with animations
+            if (!document.getElementById('panda-wrapper').hasChildNodes() || renderedGender !== state.gender) {
+                document.getElementById('panda-wrapper').innerHTML = getPandaSVG(state.gender, false, false);
+                renderedGender = state.gender;
+            }
+
             if(document.getElementById('stat-coins')) document.getElementById('stat-coins').innerText = Math.floor(state.coins).toLocaleString();
             if(document.getElementById('stat-gems')) document.getElementById('stat-gems').innerText = Math.floor(state.gems).toLocaleString();
             if(document.getElementById('stat-gifts')) document.getElementById('stat-gifts').innerText = state.gifts || 0;
@@ -791,7 +834,6 @@ HTML_CONTENT = r"""
             `;
             if(document.getElementById('upgrades-grid')) document.getElementById('upgrades-grid').innerHTML = shopHTML;
 
-            // House in Shop
             if(document.getElementById('shop-house-level')) document.getElementById('shop-house-level').innerText = state.house_level;
             const shopHouseBtn = document.getElementById('shop-btn-upgrade-house');
             if (shopHouseBtn) {
@@ -850,9 +892,9 @@ HTML_CONTENT = r"""
                 document.getElementById('lobby-my-name').innerText = state.nickname;
                 document.getElementById('lobby-partner-name').innerText = state.lobby_partner_name || 'Партнер';
                 
-                if (!document.getElementById('lobby-my-svg').hasChildNodes()) document.getElementById('lobby-my-svg').innerHTML = pandaSVG;
-                if (!document.getElementById('lobby-partner-svg').hasChildNodes()) document.getElementById('lobby-partner-svg').innerHTML = pandaSVG;
-                if (!document.getElementById('lobby-baby-svg').hasChildNodes()) document.getElementById('lobby-baby-svg').innerHTML = pandaSVG;
+                document.getElementById('lobby-my-svg').innerHTML = getPandaSVG(state.gender, false, true);
+                document.getElementById('lobby-partner-svg').innerHTML = getPandaSVG(state.lobby_partner_gender || 'male', false, true);
+                document.getElementById('lobby-baby-svg').innerHTML = getPandaSVG('female', true, true);
 
                 const roomBg = document.getElementById('room-bg');
                 roomBg.className = `room-container house-bg-${state.house_level}`;
@@ -1101,6 +1143,7 @@ HTML_CONTENT = r"""
             try {
                 const res = await fetch(`${window.location.origin}/api/leaderboard`);
                 const data = await res.json();
+                window.leaderboardData = data; // ВАЖНО: сохраняем данные для просмотра профиля
                 document.getElementById('leaderboard-list').innerHTML = data.map((p, i) => {
                     const frameData = allFrames.find(fr => fr.id === p.frame) || allFrames[0];
                     const medData = allMedals.find(m => m.id === p.medal);
@@ -1124,7 +1167,7 @@ HTML_CONTENT = r"""
         }
 
         function viewFriendProfile(id) {
-            const friend = state.friends.find(f => f.id === id) || window.leaderboardData?.find(p => p.id === id);
+            const friend = state.friends.find(f => f.id === id) || (window.leaderboardData && window.leaderboardData.find(p => p.id === id));
             if(!friend) return;
             currentViewPlayerId = id;
             currentFriendProfileData = friend;
@@ -1199,6 +1242,7 @@ HTML_CONTENT = r"""
                 ws.send(JSON.stringify({ type: "leave_lobby" }));
                 state.lobby_partner = null;
                 state.lobby_partner_name = null;
+                state.lobby_partner_gender = null;
                 updateUI();
             }
         }
@@ -1256,7 +1300,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             "selectedMedal": "none", "selectedFrame": "default", "selectedNickAnim": "default",
             "unlockedMedals": [], "unlockedFrames": ["default"], "unlockedAnims": ["default"],
             "friends": [], "verified": True if user_id == ADMIN_ID else False, "last_active": time.time(), 
-            "lobby_partner": None, "lobby_partner_name": None, "lobby_partner_avatar": "", "gifts": 0, "gift_history": [],
+            "lobby_partner": None, "lobby_partner_name": None, "lobby_partner_gender": None, "gifts": 0, "gift_history": [],
             "gender": random.choice(["male", "female"]), "house_level": 1, "is_pregnant": False, "pregnancy_end": 0, "has_baby": False, "baby_hunger": 100
         }
     if "game_id" not in players_db[user_id]: 
@@ -1378,8 +1422,11 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 if inviter_id in players_db and inviter_id in active_connections:
                     players_db[user_id]["lobby_partner"] = inviter_id
                     players_db[user_id]["lobby_partner_name"] = players_db[inviter_id]["name"]
+                    players_db[user_id]["lobby_partner_gender"] = players_db[inviter_id].get("gender", "male")
+                    
                     players_db[inviter_id]["lobby_partner"] = user_id
                     players_db[inviter_id]["lobby_partner_name"] = players_db[user_id]["name"]
+                    players_db[inviter_id]["lobby_partner_gender"] = players_db[user_id].get("gender", "male")
                     
                     save_player(user_id, players_db[user_id])
                     save_player(inviter_id, players_db[inviter_id])
@@ -1388,10 +1435,11 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     sync_i = players_db[inviter_id]; sync_i["gameId"] = players_db[inviter_id]["game_id"]
                     
                     await websocket.send_text(json.dumps({"type": "sync", "data": sync_u}))
-                    await websocket.send_text(json.dumps({"type": "lobby_joined", "partner_id": inviter_id, "partner_name": players_db[inviter_id]["name"]}))
+                    await websocket.send_text(json.dumps({"type": "lobby_joined", "partner_id": inviter_id, "partner_name": players_db[inviter_id]["name"], "partner_gender": players_db[inviter_id].get("gender", "male")}))
+                    
                     try: 
                         await active_connections[inviter_id].send_text(json.dumps({"type": "sync", "data": sync_i}))
-                        await active_connections[inviter_id].send_text(json.dumps({"type": "lobby_joined", "partner_id": user_id, "partner_name": players_db[user_id]["name"]}))
+                        await active_connections[inviter_id].send_text(json.dumps({"type": "lobby_joined", "partner_id": user_id, "partner_name": players_db[user_id]["name"], "partner_gender": players_db[user_id].get("gender", "male")}))
                     except: pass
 
             elif msg.get("type") == "hug_partner":
@@ -1411,11 +1459,13 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 partner_id = players_db[user_id].get("lobby_partner")
                 players_db[user_id]["lobby_partner"] = None
                 players_db[user_id]["lobby_partner_name"] = None
+                players_db[user_id]["lobby_partner_gender"] = None
                 save_player(user_id, players_db[user_id])
                 
                 if partner_id and partner_id in players_db:
                     players_db[partner_id]["lobby_partner"] = None
                     players_db[partner_id]["lobby_partner_name"] = None
+                    players_db[partner_id]["lobby_partner_gender"] = None
                     save_player(partner_id, players_db[partner_id])
                     if partner_id in active_connections:
                         try: await active_connections[partner_id].send_text(json.dumps({"type": "sync", "data": players_db[partner_id]}))
@@ -1425,6 +1475,15 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 players_db[user_id]["gender"] = "female" if players_db[user_id]["gender"] == "male" else "male"
                 save_player(user_id, players_db[user_id])
                 await websocket.send_text(json.dumps({"type": "sync", "data": players_db[user_id]}))
+                
+                # Обновляем пол в лобби у партнера, если мы в лобби
+                partner_id = players_db[user_id].get("lobby_partner")
+                if partner_id and partner_id in players_db:
+                    players_db[partner_id]["lobby_partner_gender"] = players_db[user_id]["gender"]
+                    save_player(partner_id, players_db[partner_id])
+                    if partner_id in active_connections:
+                        try: await active_connections[partner_id].send_text(json.dumps({"type": "sync", "data": players_db[partner_id]}))
+                        except: pass
 
             elif msg.get("type") == "upgrade_house":
                 h_level = players_db[user_id].get("house_level", 1)
@@ -1484,6 +1543,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
         if partner_id and partner_id in players_db:
             players_db[partner_id]["lobby_partner"] = None
             players_db[partner_id]["lobby_partner_name"] = None
+            players_db[partner_id]["lobby_partner_gender"] = None
             save_player(partner_id, players_db[partner_id])
             if partner_id in active_connections:
                 try: await active_connections[partner_id].send_text(json.dumps({"type": "sync", "data": players_db[partner_id]}))
@@ -1491,6 +1551,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 
         players_db[user_id]["lobby_partner"] = None
         players_db[user_id]["lobby_partner_name"] = None
+        players_db[user_id]["lobby_partner_gender"] = None
         save_player(user_id, players_db[user_id])
         
         if user_id in active_connections: del active_connections[user_id]
