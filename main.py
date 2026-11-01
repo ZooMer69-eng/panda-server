@@ -60,7 +60,6 @@ def load_players():
             if "unlockedFrames" not in p_data: p_data["unlockedFrames"] = ["default"]
             if "unlockedAnims" not in p_data: p_data["unlockedAnims"] = ["default"]
             if "friends" not in p_data: p_data["friends"] = []
-            if "friend_requests" not in p_data: p_data["friend_requests"] = []
             players[row['id']] = p_data
         conn.close()
     except Exception as e: print(f"DB Load Error: {e}")
@@ -78,7 +77,6 @@ def save_player(user_id, data):
 
 init_db()
 players_db: Dict[str, dict] = load_players()
-rooms: Dict[str, dict] = {}
 active_connections: Dict[str, WebSocket] = {}
 
 class GemPurchase(BaseModel):
@@ -137,13 +135,32 @@ async def search_players(q: str, my_id: str):
             if len(results) >= 15: break
     return results
 
+@app.get("/api/leaderboard")
+async def get_leaderboard():
+    sorted_players = sorted(players_db.items(), key=lambda x: x[1]["coins"], reverse=True)[:50]
+    result = []
+    for uid, data in sorted_players:
+        is_online = (time.time() - data["last_active"]) < 120
+        result.append({"id": uid, "name": data["name"], "coins": data["coins"], "online": is_online, "avatar": data.get("avatar", ""), "frame": data.get("frame", "default"), "medal": data.get("medal", "none"), "nick_style": data.get("nick_style", "nick-default")})
+    return result
+
+@app.get("/api/friends/{user_id}")
+async def get_friends(user_id: str):
+    if user_id not in players_db: return []
+    friends_list = []
+    for f_id in players_db[user_id].get("friends", []):
+        if f_id in players_db:
+            f_data = players_db[f_id]
+            friends_list.append({"id": f_id, "name": f_data["name"], "coins": f_data["coins"], "online": (time.time() - f_data["last_active"]) < 120, "avatar": f_data.get("avatar", ""), "frame": f_data.get("frame", "default"), "medal": f_data.get("medal", "none"), "nick_style": f_data.get("nick_style", "nick-default")})
+    return friends_list
+
 HTML_CONTENT = r"""
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 36.0</title>
+    <title>Panda Game 37.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -232,7 +249,10 @@ HTML_CONTENT = r"""
         .bet-btn { background: #333; padding: 10px 15px; border-radius: 8px; border: 1px solid #555; font-weight: 900; cursor: pointer; color: #fff; }
         .bet-btn.active { background: #4caf50; border-color: #81c784; }
 
-        .lobby-card { background: rgba(0,0,0,0.6); border: 2px solid #4caf50; border-radius: 20px; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center;}
+        .tabs-sub { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
+        .tab-btn { flex: 1; background: rgba(255,255,255,0.1); border: none; color: #aaa; padding: 8px; border-radius: 8px; font-weight: 900; cursor: pointer; }
+        .tab-btn.active { background: #4caf50; color: #fff; }
+        .leaderboard-item { display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 14px; cursor: pointer; align-items: center; }
         
         .bottom-nav { background: rgba(10, 18, 14, 0.98); border-top: 1px solid rgba(46, 125, 50, 0.4); padding: 8px 5px 22px 5px; display: flex; justify-content: space-around; z-index: 30; position: relative; }
         .nav-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: #666; font-size: 9px; font-weight: 900; cursor: pointer; width: 16.6%; transition: 0.2s; }
@@ -284,6 +304,7 @@ HTML_CONTENT = r"""
                             <circle cx="70" cy="85" r="9" fill="#fff" /><circle cx="70" cy="85" r="6" fill="#111" />
                             <circle cx="130" cy="85" r="9" fill="#fff" /><circle cx="130" cy="85" r="6" fill="#111" />
                             <ellipse cx="100" cy="105" rx="8" ry="5" fill="#111" />
+                            <path d="M 92 112 Q 100 118 108 112" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" />
                             <ellipse cx="45" cy="145" rx="18" ry="22" fill="#1a1a1a" /><ellipse cx="155" cy="145" rx="18" ry="22" fill="#1a1a1a" />
                         </svg>
                     </div>
@@ -299,12 +320,24 @@ HTML_CONTENT = r"""
                     <button class="search-btn" onclick="searchPlayers()" style="background:#2196f3; color:#fff; border:none; padding:10px 15px; border-radius:8px; font-weight:900; cursor:pointer;">Найти</button>
                 </div>
                 <div id="search-results" class="friend-list"></div>
-                <div style="margin-top:20px; background: rgba(255,215,0,0.1); border: 1px solid #ffd700; padding: 15px; border-radius: 12px;">
+                
+                <div style="margin-top:20px; background: rgba(255,215,0,0.1); border: 1px solid #ffd700; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
                     <div class="section-title" style="font-size:16px; margin-bottom:10px;">Совместное Лобби (Семья/Братаны)</div>
                     <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Здесь появится ваш общий малыш, когда вы будете играть вдвоем.</p>
                     <div id="lobby-status" style="font-weight:900; color:#4caf50; font-size:18px; text-align:center;">Вы один</div>
                 </div>
-                <div class="friend-list" id="friends-list" style="margin-top:20px;"><p style="text-align:center; color:#888;">Загрузка...</p></div>
+
+                <div class="tabs-sub">
+                    <button class="tab-btn active" onclick="switchFriendsTab('list', this)">Мои друзья</button>
+                    <button class="tab-btn" onclick="switchFriendsTab('top', this)">Топ 50</button>
+                </div>
+                
+                <div id="friends-list-container">
+                    <div class="friend-list" id="friends-list"><p style="text-align:center; color:#888;">Загрузка...</p></div>
+                </div>
+                <div id="leaderboard-container" style="display:none;">
+                    <div id="leaderboard-list"></div>
+                </div>
             </div>
         </div>
 
@@ -399,8 +432,8 @@ HTML_CONTENT = r"""
         let state = {
             coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1,
             upgrades: { tap: 0, max_energy: 0, regen: 0 },
-            inventory: {}, equipped: {}, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }],
-            nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '',
+            bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }],
+            nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: '', gameId: '',
             unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: []
         };
         let currentBet = 10000;
@@ -412,7 +445,18 @@ HTML_CONTENT = r"""
 
         function connectWS() {
             ws = new WebSocket(`${WS_URL}/ws/main/${myId}`);
-            ws.onopen = () => { document.getElementById('conn-status').innerText = "🟢 Онлайн"; ws.send(JSON.stringify({ type: "init" })); };
+            ws.onopen = () => { 
+                document.getElementById('conn-status').innerText = "🟢 Онлайн"; 
+                ws.send(JSON.stringify({ type: "init" })); 
+                // Отправляем данные от Telegram, чтобы сервер их сохранил
+                if (tg.initDataUnsafe?.user) {
+                    ws.send(JSON.stringify({ 
+                        type: "set_user_data", 
+                        name: tg.initDataUnsafe.user.first_name, 
+                        avatar: tg.initDataUnsafe.user.photo_url || '' 
+                    }));
+                }
+            };
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.type === 'sync') {
@@ -459,6 +503,8 @@ HTML_CONTENT = r"""
             if(document.getElementById('energy')) document.getElementById('energy').innerText = Math.floor(state.energy);
             if(document.getElementById('max-energy')) document.getElementById('max-energy').innerText = state.maxEnergy;
             if(document.getElementById('energy-fill')) document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%';
+            if(document.getElementById('stat-coins')) document.getElementById('stat-coins').innerText = Math.floor(state.coins).toLocaleString();
+            if(document.getElementById('stat-gems')) document.getElementById('stat-gems').innerText = Math.floor(state.gems).toLocaleString();
             
             const frame = allFrames.find(f => f.id === state.selectedFrame)?.cssClass || 'default';
             const animCss = allAnims.find(a => a.id === state.selectedNickAnim)?.cssClass || 'nick-default';
@@ -515,6 +561,28 @@ HTML_CONTENT = r"""
                 });
                 document.getElementById('frames-grid').innerHTML = fHtml;
             }
+            
+            renderFarm();
+        }
+
+        function renderFarm() {
+            if(!document.getElementById('farm-grid')) return;
+            let html = '';
+            state.bamboos.forEach(b => {
+                let s = "Пусто", btn = "Посадить", icon = "🟫", dis = false;
+                if (b.stage === 1) { const t = Math.ceil((60000 - (Date.now() - b.planted)) / 1000); s = t > 0 ? `Растет... ${t}с` : "Созрел!"; btn = "Ждем"; icon = "🌱"; dis = t > 0; }
+                else if (b.stage === 2) { s = "Созрел!"; btn = "Собрать"; icon = "🎋"; }
+                else if (b.stage === 3) { s = "Сгнил!"; btn = "Убрать"; icon = "🥀"; }
+                html += `<div class="card"><div class="card-icon">${icon}</div><div class="card-title">Участок ${b.id}</div><div class="card-desc">${s}</div><button class="card-price" ${dis ? 'disabled' : ''} onclick="handleFarmClick(${b.id})">${btn}</button></div>`;
+            });
+            document.getElementById('farm-grid').innerHTML = html;
+        }
+
+        function handleFarmClick(id) {
+            const b = state.bamboos.find(x => x.id === id);
+            if (b.stage === 0) { b.planted = Date.now(); b.stage = 1; }
+            else if (b.stage === 2) { state.coins += 500; b.stage = 0; tg.showAlert("+500 монет!"); updateUI(); }
+            else if (b.stage === 3) { b.stage = 0; }
         }
 
         function switchTab(tabId, btn) {
@@ -522,12 +590,19 @@ HTML_CONTENT = r"""
             document.getElementById('screen-' + tabId).classList.add('active');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             if (btn) btn.classList.add('active');
-            if (tabId === 'friends') fetchFriends();
+            if (tabId === 'friends') { fetchFriends(); fetchLeaderboard(); }
+        }
+
+        function switchFriendsTab(tab, btn) {
+            document.querySelectorAll('.tabs-sub .tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (tab === 'list') { document.getElementById('friends-list-container').style.display = 'block'; document.getElementById('leaderboard-container').style.display = 'none'; fetchFriends(); }
+            else { document.getElementById('friends-list-container').style.display = 'none'; document.getElementById('leaderboard-container').style.display = 'block'; fetchLeaderboard(); }
         }
 
         function buyUpgrade(type) {
             if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "buy_upgrade", upgrade: type }));
-            else tg.showAlert("Нет соединения с сервером. Подождите...");
+            else tg.showAlert("Нет соединения.");
         }
 
         function setBet(amount) {
@@ -548,9 +623,7 @@ HTML_CONTENT = r"""
             document.getElementById('casino-result').innerText = "Крутим...";
             document.getElementById('casino-result').style.color = "#fff";
 
-            setTimeout(() => {
-                ws.send(JSON.stringify({ type: "casino", bet: currentBet }));
-            }, 4000);
+            setTimeout(() => { ws.send(JSON.stringify({ type: "casino", bet: currentBet })); }, 4000);
         }
 
         function equip(type, id) {
@@ -563,7 +636,7 @@ HTML_CONTENT = r"""
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: myId, stars: starsPrice, gems: gemsAmount })
             }).then(res => res.json()).then(data => {
-                if (data.ok) tg.close(); else tg.showAlert("Ошибка при создании счета.");
+                if (data.ok) tg.close(); else tg.showAlert("Ошибка счета.");
             }).catch(e => tg.showAlert("Ошибка сети."));
         }
         
@@ -588,6 +661,14 @@ HTML_CONTENT = r"""
                 } else {
                     document.getElementById('friends-list').innerHTML = '<p style="text-align:center; color:#888;">Нет друзей.</p>';
                 }
+            } catch(e) {}
+        }
+
+        async function fetchLeaderboard() {
+            try {
+                const res = await fetch(`${window.location.origin}/api/leaderboard`);
+                const data = await res.json();
+                document.getElementById('leaderboard-list').innerHTML = data.map((p, i) => `<div class="leaderboard-item"><span class="lb-rank">${i + 1}.</span><span class="lb-name ${p.nick_style}">${p.name}</span><span class="lb-coins">${p.coins.toLocaleString()} <span class="icon-coin">$</span></span></div>`).join('');
             } catch(e) {}
         }
 
@@ -617,8 +698,13 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             "upgrades": {"tap": 0, "max_energy": 0, "regen": 0},
             "selectedMedal": "none", "selectedFrame": "default", "selectedNickAnim": "default",
             "unlockedMedals": [], "unlockedFrames": ["default"], "unlockedAnims": ["default"],
-            "friends": [], "last_active": time.time()
+            "friends": [], "bamboos": [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}],
+            "last_active": time.time()
         }
+    else:
+        players_db[user_id]["last_active"] = time.time()
+        if "bamboos" not in players_db[user_id]: players_db[user_id]["bamboos"] = [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}]
+
     if "game_id" not in players_db[user_id]: 
         players_db[user_id]["game_id"] = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
     
@@ -634,6 +720,13 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             msg = json.loads(data)
             
             if msg.get("type") == "init":
+                sync_data = players_db[user_id]; sync_data["gameId"] = players_db[user_id]["game_id"]
+                await websocket.send_text(json.dumps({"type": "sync", "data": sync_data}))
+            
+            elif msg.get("type") == "set_user_data":
+                players_db[user_id]["name"] = msg.get("name", players_db[user_id]["name"])
+                players_db[user_id]["avatar"] = msg.get("avatar", players_db[user_id].get("avatar", ""))
+                save_player(user_id, players_db[user_id])
                 sync_data = players_db[user_id]; sync_data["gameId"] = players_db[user_id]["game_id"]
                 await websocket.send_text(json.dumps({"type": "sync", "data": sync_data}))
                 
@@ -711,15 +804,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     except WebSocketDisconnect:
         save_player(user_id, players_db[user_id])
         if user_id in active_connections: del active_connections[user_id]
-
-@app.get("/api/friends/{user_id}")
-async def get_friends(user_id: str):
-    if user_id not in players_db: return []
-    friends_list = []
-    for f_id in players_db[user_id].get("friends", []):
-        if f_id in players_db:
-            friends_list.append({"id": f_id, "name": players_db[f_id]["name"], "avatar": players_db[f_id].get("avatar", "")})
-    return friends_list
 
 if __name__ == "__main__":
     import uvicorn
