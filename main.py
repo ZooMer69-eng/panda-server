@@ -133,7 +133,7 @@ HTML_CONTENT = r"""
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 36.2</title>
+    <title>Panda Game 36.3</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -662,9 +662,9 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 upg_type = msg.get("upgrade")
                 u = players_db[user_id]["upgrades"]
                 cost = 0
-                if upg_type == 'tap': cost = math.floor(100 * (1.5 ** u['tap']))
-                elif upg_type == 'max_energy': cost = math.floor(500 * (1.6 ** u['max_energy']))
-                elif upg_type == 'regen': cost = math.floor(1000 * (1.8 ** u['regen']))
+                if upg_type == 'tap': cost = int(100 * (1.5 ** u['tap']))
+                elif upg_type == 'max_energy': cost = int(500 * (1.6 ** u['max_energy']))
+                elif upg_type == 'regen': cost = int(1000 * (1.8 ** u['regen']))
                 
                 if players_db[user_id]["coins"] >= cost:
                     players_db[user_id]["coins"] -= cost
@@ -722,3 +722,8 @@ async def get_friends(user_id: str):
     for f_id in players_db[user_id].get("friends", []):
         if f_id in players_db: friends_list.append({"id": f_id, "name": players_db[f_id]["name"], "avatar": players_db[f_id].get("avatar", "")})
     return friends_list
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
