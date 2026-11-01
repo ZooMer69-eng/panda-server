@@ -64,7 +64,6 @@ def load_players():
             if "bamboos" not in p_data: p_data["bamboos"] = [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}]
             if "lobby_partner" not in p_data: p_data["lobby_partner"] = None
             if "lobby_partner_name" not in p_data: p_data["lobby_partner_name"] = None
-            if "lobby_partner_avatar" not in p_data: p_data["lobby_partner_avatar"] = ""
             if "gifts" not in p_data: p_data["gifts"] = 0
             if "gift_history" not in p_data: p_data["gift_history"] = []
             
@@ -172,7 +171,7 @@ HTML_CONTENT = r"""
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 39.1</title>
+    <title>Panda Game 40.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -292,17 +291,17 @@ HTML_CONTENT = r"""
         /* Lobby Styles */
         .lobby-active-view { display: none; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; width: 100%; height: 100%;}
         
-        .house-bg-1 { background: linear-gradient(180deg, #2c3e50 0%, #000000 100%); }
-        .house-bg-2 { background: linear-gradient(180deg, #4e342e 0%, #1e1e1e 100%); border: 2px solid #8d6e63; }
-        .house-bg-3 { background: linear-gradient(180deg, #1a237e 0%, #000000 100%); border: 2px solid #ffd700; box-shadow: inset 0 0 20px #ffd700; }
+        /* House BG levels - overriding the main background */
+        .house-bg-1 { background: transparent; }
+        .house-bg-2 { background: rgba(78, 52, 46, 0.4); border: 2px solid #8d6e63; border-radius: 15px; }
+        .house-bg-3 { background: rgba(26, 35, 126, 0.4); border: 2px solid #ffd700; box-shadow: inset 0 0 20px #ffd700; border-radius: 15px; }
         
-        .room-container { width: 100%; height: 250px; border-radius: 15px; position: relative; margin-top: 10px; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 20px; gap: 20px; transition: all 0.5s; }
+        .room-container { width: 100%; height: 280px; position: relative; margin-top: 10px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 20px; gap: 15px; transition: all 0.5s; }
         
-        .duo-panda { position: relative; text-align: center; transition: transform 0.3s; }
-        .duo-panda.baby { transform: scale(0.6); transform-origin: bottom center; }
-        .duo-panda .avatar-wrap { width: 70px; height: 70px; margin: 0 auto 5px; }
-        .duo-panda .profile-avatar-mini { font-size: 30px; }
-        .duo-name { font-size: 12px; font-weight: 900; }
+        .duo-panda { position: relative; text-align: center; transition: transform 0.3s; display: flex; flex-direction: column; align-items: center;}
+        .duo-panda.baby { transform: scale(0.65); transform-origin: bottom center; margin-left:-10px; margin-right:-10px;}
+        .duo-panda svg { width: 110px; height: 120px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5)); }
+        .duo-name { font-size: 14px; font-weight: 900; text-shadow: 2px 2px 0 #000; margin-top: -10px; z-index: 2; position: relative;}
         
         .baby-stats { width: 100%; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px; margin-top: 15px; border: 1px solid #ff9800;}
         .baby-bar-bg { width: 100%; height: 10px; background: #333; border-radius: 5px; overflow: hidden; margin-top: 5px; }
@@ -365,10 +364,10 @@ HTML_CONTENT = r"""
         </div>
 
         <div class="screen" id="screen-friends">
-            <div class="content">
+            <div class="content" id="friends-content" style="padding: 0; background: transparent; backdrop-filter: none;">
                 
                 <!-- Default view (not in lobby) -->
-                <div id="default-friends-view">
+                <div id="default-friends-view" style="padding: 15px; background: rgba(10,18,14,0.95); backdrop-filter: blur(10px); height: 100%;">
                     <div class="section-title">Друзья 👥</div>
                     <div class="tabs-sub" style="display:flex; gap:10px; margin-bottom:15px;">
                         <button class="tab-btn active" onclick="switchFriendsTab('list', this)">Мои друзья</button>
@@ -391,54 +390,47 @@ HTML_CONTENT = r"""
 
                 <!-- Lobby Active View -->
                 <div id="lobby-active-view" class="lobby-active-view">
-                    <div class="section-title" style="color:#ffd700; margin-bottom:0;">Наше Лобби 🏠</div>
-                    <p style="font-size:12px; color:#aaa;">Уровень Дома: <span id="house-level-text">1</span></p>
+                    <div class="section-title" style="color:#ffd700; margin-bottom:0; padding-top:15px; text-shadow: 2px 2px 4px #000;">Наше Лобби 🏠</div>
+                    <p style="font-size:12px; color:#ddd; text-shadow: 1px 1px 2px #000;">Уровень Дома: <span id="house-level-text">1</span></p>
                     
                     <div id="room-bg" class="room-container house-bg-1">
                         <div class="duo-panda" id="duo-me">
-                            <div class="avatar-wrap">
-                                <div class="avatar-frame default" id="lobby-my-frame"></div>
-                                <div class="profile-avatar-mini" id="lobby-my-avatar">🐼</div>
-                            </div>
+                            <div id="lobby-my-svg"></div>
                             <div class="duo-name" id="lobby-my-name">Ты</div>
                         </div>
                         <div class="duo-panda" id="duo-partner">
-                            <div class="avatar-wrap">
-                                <div class="avatar-frame default" id="lobby-partner-frame"></div>
-                                <div class="profile-avatar-mini" id="lobby-partner-avatar">🐼</div>
-                            </div>
+                            <div id="lobby-partner-svg"></div>
                             <div class="duo-name" id="lobby-partner-name">Партнер</div>
                         </div>
                         <!-- Baby will be inserted here -->
                         <div class="duo-panda baby" id="duo-baby" style="display:none;">
-                            <div class="avatar-wrap">
-                                <div class="avatar-frame default"></div>
-                                <div class="profile-avatar-mini">🐼</div>
-                            </div>
+                            <div id="lobby-baby-svg"></div>
                             <div class="duo-name">Малыш</div>
                         </div>
                     </div>
 
-                    <div id="pregnancy-alert" class="pregnancy-alert" style="display:none;">
-                        🤰 Панда беременна! Осталось: <span id="preg-time">0</span> сек.
-                    </div>
-
-                    <div class="baby-stats" id="baby-care" style="display:none;">
-                        <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:900;">
-                            <span>Сытость малыша</span>
-                            <span id="baby-hunger-text">100%</span>
+                    <div style="width: 100%; padding: 0 15px;">
+                        <div id="pregnancy-alert" class="pregnancy-alert" style="display:none;">
+                            🤰 Панда беременна! Осталось: <span id="preg-time">0</span> сек.
                         </div>
-                        <div class="baby-bar-bg"><div class="baby-bar-fill" id="baby-hunger-bar"></div></div>
-                    </div>
 
-                    <div class="card" style="width: 100%; margin-top: 15px; padding: 10px;">
-                        <button class="card-price" style="background:#ff9800; color:#fff; margin-bottom:8px;" onclick="hugPartner()">Обнять 🤗 (+1000)</button>
-                        
-                        <button id="btn-make-baby" class="card-price" style="background:#ff69b4; color:#fff; margin-bottom:8px; display:none;" onclick="makePregnant()">Забеременеть 🤰</button>
-                        
-                        <button id="btn-feed-baby" class="card-price" style="background:#4caf50; color:#fff; margin-bottom:8px; display:none;" onclick="feedBaby()">Покормить (10,000)</button>
+                        <div class="baby-stats" id="baby-care" style="display:none;">
+                            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:900;">
+                                <span>Сытость малыша</span>
+                                <span id="baby-hunger-text">100%</span>
+                            </div>
+                            <div class="baby-bar-bg"><div class="baby-bar-fill" id="baby-hunger-bar"></div></div>
+                        </div>
 
-                        <button class="card-price" style="background:#e53935; color:#fff;" onclick="leaveLobby()">Выйти из лобби</button>
+                        <div class="card" style="margin-top: 15px; padding: 10px; background: rgba(10,18,14,0.9);">
+                            <button class="card-price" style="background:#ff9800; color:#fff; margin-bottom:8px;" onclick="hugPartner()">Обнять 🤗 (+1000)</button>
+                            
+                            <button id="btn-make-baby" class="card-price" style="background:#ff69b4; color:#fff; margin-bottom:8px; display:none;" onclick="makePregnant()">Забеременеть 🤰</button>
+                            
+                            <button id="btn-feed-baby" class="card-price" style="background:#4caf50; color:#fff; margin-bottom:8px; display:none;" onclick="feedBaby()">Покормить (10,000)</button>
+
+                            <button class="card-price" style="background:#e53935; color:#fff;" onclick="leaveLobby()">Выйти из лобби</button>
+                        </div>
                     </div>
                 </div>
 
@@ -602,8 +594,25 @@ HTML_CONTENT = r"""
         const tg = window.Telegram.WebApp; tg.expand();
         const myId = String(tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 10000));
         const WS_URL = window.location.origin.replace('https://', 'wss://');
+        
+        const pandaSVG = `<svg viewBox="0 0 200 220" style="width:100%; height:100%; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));">
+            <ellipse cx="100" cy="205" rx="75" ry="15" fill="rgba(0,0,0,0.35)" />
+            <ellipse cx="55" cy="175" rx="24" ry="18" fill="#1a1a1a" /><ellipse cx="145" cy="175" rx="24" ry="18" fill="#1a1a1a" />
+            <ellipse cx="100" cy="140" rx="62" ry="55" fill="#fff" />
+            <circle cx="45" cy="45" r="20" fill="#1a1a1a" /><circle cx="155" cy="45" r="20" fill="#1a1a1a" />
+            <ellipse cx="100" cy="90" rx="65" ry="58" fill="#fff" />
+            <ellipse cx="70" cy="85" rx="18" ry="23" fill="#111" /><ellipse cx="130" cy="85" rx="18" ry="23" fill="#111" />
+            <circle cx="70" cy="85" r="9" fill="#fff" /><circle cx="70" cy="85" r="6" fill="#111" />
+            <circle cx="130" cy="85" r="9" fill="#fff" /><circle cx="130" cy="85" r="6" fill="#111" />
+            <ellipse cx="45" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />
+            <ellipse cx="155" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />
+            <path id="mouth-path" d="M 92 112 Q 100 118 108 112" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" />
+            <ellipse cx="100" cy="105" rx="8" ry="5" fill="#111" />
+            <ellipse cx="45" cy="145" rx="18" ry="22" fill="#1a1a1a" /><ellipse cx="155" cy="145" rx="18" ry="22" fill="#1a1a1a" />
+        </svg>`;
+
         let ws;
-        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [], lobby_partner: null, lobby_partner_name: null, lobby_partner_avatar: null, gifts: 0, gift_history: [], gender: 'male', house_level: 1, is_pregnant: false, pregnancy_end: 0, has_baby: false, baby_hunger: 100 };
+        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [], lobby_partner: null, lobby_partner_name: null, gifts: 0, gift_history: [], gender: 'male', house_level: 1, is_pregnant: false, pregnancy_end: 0, has_baby: false, baby_hunger: 100 };
         
         let currentBet = 10000;
         let isSpinning = false;
@@ -715,11 +724,9 @@ HTML_CONTENT = r"""
             if (state.avatarUrl) {
                 if(document.getElementById('mini-avatar')) document.getElementById('mini-avatar').innerHTML = `<img src="${state.avatarUrl}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
                 if(document.getElementById('my-avatar-large')) document.getElementById('my-avatar-large').innerHTML = `<img src="${state.avatarUrl}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
-                if(document.getElementById('lobby-my-avatar')) document.getElementById('lobby-my-avatar').innerHTML = `<img src="${state.avatarUrl}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
             } else {
                 if(document.getElementById('mini-avatar')) document.getElementById('mini-avatar').innerHTML = `<span>🐼</span>`;
                 if(document.getElementById('my-avatar-large')) document.getElementById('my-avatar-large').innerHTML = `🐼`;
-                if(document.getElementById('lobby-my-avatar')) document.getElementById('lobby-my-avatar').innerHTML = `🐼`;
             }
 
             if(document.getElementById('stat-coins')) document.getElementById('stat-coins').innerText = Math.floor(state.coins).toLocaleString();
@@ -802,15 +809,16 @@ HTML_CONTENT = r"""
                 document.getElementById('lobby-my-name').innerText = state.nickname;
                 document.getElementById('lobby-partner-name').innerText = state.lobby_partner_name || 'Партнер';
                 
-                if (state.lobby_partner_avatar) {
-                    document.getElementById('lobby-partner-avatar').innerHTML = `<img src="${state.lobby_partner_avatar}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
-                } else {
-                    document.getElementById('lobby-partner-avatar').innerHTML = '🐼';
+                // Inject SVGs
+                if (!document.getElementById('lobby-my-svg').hasChildNodes()) {
+                    document.getElementById('lobby-my-svg').innerHTML = pandaSVG;
                 }
-                
-                const frame = allFrames.find(f => f.id === state.selectedFrame)?.cssClass || 'default';
-                document.getElementById('lobby-my-frame').className = `avatar-frame ${frame}`;
-                document.getElementById('lobby-partner-frame').className = `avatar-frame default`;
+                if (!document.getElementById('lobby-partner-svg').hasChildNodes()) {
+                    document.getElementById('lobby-partner-svg').innerHTML = pandaSVG;
+                }
+                if (!document.getElementById('lobby-baby-svg').hasChildNodes()) {
+                    document.getElementById('lobby-baby-svg').innerHTML = pandaSVG;
+                }
 
                 // House BG
                 const roomBg = document.getElementById('room-bg');
@@ -856,6 +864,7 @@ HTML_CONTENT = r"""
                         btnMakeBaby.innerText = "Забеременеть 🤰";
                         btnMakeBaby.onclick = makePregnant;
                         btnMakeBaby.disabled = false;
+                        btnMakeBaby.style.background = "#ff69b4";
                     } else {
                         btnMakeBaby.style.display = 'block';
                         btnMakeBaby.innerText = "Ждем потомство от партнера...";
@@ -1327,16 +1336,10 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             elif msg.get("type") == "accept_lobby":
                 inviter_id = msg.get("inviter_id")
                 if inviter_id in players_db and inviter_id in active_connections:
-                    p1_avatar = players_db[user_id].get("avatar", "")
-                    p2_avatar = players_db[inviter_id].get("avatar", "")
-                    
                     players_db[user_id]["lobby_partner"] = inviter_id
                     players_db[user_id]["lobby_partner_name"] = players_db[inviter_id]["name"]
-                    players_db[user_id]["lobby_partner_avatar"] = p2_avatar
-                    
                     players_db[inviter_id]["lobby_partner"] = user_id
                     players_db[inviter_id]["lobby_partner_name"] = players_db[user_id]["name"]
-                    players_db[inviter_id]["lobby_partner_avatar"] = p1_avatar
                     
                     save_player(user_id, players_db[user_id])
                     save_player(inviter_id, players_db[inviter_id])
@@ -1368,13 +1371,11 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 partner_id = players_db[user_id].get("lobby_partner")
                 players_db[user_id]["lobby_partner"] = None
                 players_db[user_id]["lobby_partner_name"] = None
-                players_db[user_id]["lobby_partner_avatar"] = ""
                 save_player(user_id, players_db[user_id])
                 
                 if partner_id and partner_id in players_db:
                     players_db[partner_id]["lobby_partner"] = None
                     players_db[partner_id]["lobby_partner_name"] = None
-                    players_db[partner_id]["lobby_partner_avatar"] = ""
                     save_player(partner_id, players_db[partner_id])
                     if partner_id in active_connections:
                         try: await active_connections[partner_id].send_text(json.dumps({"type": "sync", "data": players_db[partner_id]}))
@@ -1399,7 +1400,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             elif msg.get("type") == "make_pregnant":
                 if players_db[user_id]["gender"] == 'female' and not players_db[user_id].get("is_pregnant") and not players_db[user_id].get("has_baby"):
                     players_db[user_id]["is_pregnant"] = True
-                    # Тестовое время: 3 минуты (180 сек)
                     players_db[user_id]["pregnancy_end"] = int(time.time() * 1000) + 180000
                     save_player(user_id, players_db[user_id])
                     
@@ -1444,7 +1444,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
         if partner_id and partner_id in players_db:
             players_db[partner_id]["lobby_partner"] = None
             players_db[partner_id]["lobby_partner_name"] = None
-            players_db[partner_id]["lobby_partner_avatar"] = ""
             save_player(partner_id, players_db[partner_id])
             if partner_id in active_connections:
                 try: await active_connections[partner_id].send_text(json.dumps({"type": "sync", "data": players_db[partner_id]}))
@@ -1452,7 +1451,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 
         players_db[user_id]["lobby_partner"] = None
         players_db[user_id]["lobby_partner_name"] = None
-        players_db[user_id]["lobby_partner_avatar"] = ""
         save_player(user_id, players_db[user_id])
         
         if user_id in active_connections: del active_connections[user_id]
