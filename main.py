@@ -52,7 +52,11 @@ def load_players():
         c.execute("SELECT id, data FROM players")
         for row in c.fetchall():
             p_data = json.loads(row['data'])
+            # Восстанавливаем старые данные
             if "upgrades" not in p_data: p_data["upgrades"] = {"tap": 0, "max_energy": 0, "regen": 0}
+            if "tap" not in p_data["upgrades"]: p_data["upgrades"]["tap"] = 0
+            if "max_energy" not in p_data["upgrades"]: p_data["upgrades"]["max_energy"] = 0
+            if "regen" not in p_data["upgrades"]: p_data["upgrades"]["regen"] = 0
             if "selectedMedal" not in p_data: p_data["selectedMedal"] = "none"
             if "selectedFrame" not in p_data: p_data["selectedFrame"] = "default"
             if "selectedNickAnim" not in p_data: p_data["selectedNickAnim"] = "default"
@@ -141,7 +145,7 @@ async def get_leaderboard():
     result = []
     for uid, data in sorted_players:
         is_online = (time.time() - data["last_active"]) < 120
-        result.append({"id": uid, "name": data["name"], "coins": data["coins"], "online": is_online, "avatar": data.get("avatar", ""), "frame": data.get("frame", "default"), "medal": data.get("medal", "none"), "nick_style": data.get("nick_style", "nick-default")})
+        result.append({"id": uid, "name": data["name"], "coins": data["coins"], "online": is_online, "avatar": data.get("avatar", ""), "frame": data.get("selectedFrame", "default"), "medal": data.get("selectedMedal", "none"), "nick_style": data.get("selectedNickAnim", "nick-default")})
     return result
 
 @app.get("/api/friends/{user_id}")
@@ -151,7 +155,7 @@ async def get_friends(user_id: str):
     for f_id in players_db[user_id].get("friends", []):
         if f_id in players_db:
             f_data = players_db[f_id]
-            friends_list.append({"id": f_id, "name": f_data["name"], "coins": f_data["coins"], "online": (time.time() - f_data["last_active"]) < 120, "avatar": f_data.get("avatar", ""), "frame": f_data.get("frame", "default"), "medal": f_data.get("medal", "none"), "nick_style": f_data.get("nick_style", "nick-default")})
+            friends_list.append({"id": f_id, "name": f_data["name"], "coins": f_data["coins"], "online": (time.time() - f_data["last_active"]) < 120, "avatar": f_data.get("avatar", ""), "frame": f_data.get("selectedFrame", "default"), "medal": f_data.get("selectedMedal", "none"), "nick_style": f_data.get("selectedNickAnim", "nick-default")})
     return friends_list
 
 HTML_CONTENT = r"""
@@ -160,7 +164,7 @@ HTML_CONTENT = r"""
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 37.0</title>
+    <title>Panda Game 38.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -323,8 +327,8 @@ HTML_CONTENT = r"""
                 
                 <div style="margin-top:20px; background: rgba(255,215,0,0.1); border: 1px solid #ffd700; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
                     <div class="section-title" style="font-size:16px; margin-bottom:10px;">Совместное Лобби (Семья/Братаны)</div>
-                    <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Здесь появится ваш общий малыш, когда вы будете играть вдвоем.</p>
-                    <div id="lobby-status" style="font-weight:900; color:#4caf50; font-size:18px; text-align:center;">Вы один</div>
+                    <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Пригласите друга, чтобы создать семью или играть за братанов!</p>
+                    <button class="card-price" style="background:#ff9800; color:#fff;" onclick="tg.showAlert('Выберите друга из списка ниже, чтобы пригласить его в лобби')">Пригласить в Лобби</button>
                 </div>
 
                 <div class="tabs-sub">
@@ -396,7 +400,7 @@ HTML_CONTENT = r"""
                         <div class="profile-avatar-large" id="my-avatar-large" style="width: 80px; height: 80px; border-radius: 50%; background: #333; display: flex; justify-content: center; align-items: center; font-size: 40px; border: 2px solid #fff; z-index: 2;">🐼</div>
                     </div>
                     <div class="profile-name" id="my-name-profile" style="font-size: 22px; font-weight: 900; margin-bottom: 5px; z-index: 2;">Загрузка...</div>
-                    <div style="font-size:16px; font-weight:900; margin-bottom:5px; z-index:2;">ID: <span id="my-game-id" style="color:#00e5ff;">...</span></div>
+                    <div style="font-size:16px; font-weight:900; margin-bottom:5px; z-index:2;">ID: <a href="javascript:void(0);" onclick="copyId()" style="color:#00e5ff; text-decoration:underline;" id="my-game-id">...</a></div>
                     <div class="profile-stats" style="display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; width: 100%; z-index: 2;">
                         <div>Монеты <span id="stat-coins" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
                         <div>Гемы <span id="stat-gems" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
@@ -443,12 +447,20 @@ HTML_CONTENT = r"""
         const allFrames = [{ id: 'default', name: 'Новичок', cssClass: 'default', price: 0 }, { id: 'millionaire', name: 'Богач', cssClass: 'millionaire', price: 0 }, { id: 'legend', name: 'Легенда', cssClass: 'legend', price: 0 }, { id: 'neon', name: 'Неон', cssClass: 'neon', price: 50000 }, { id: 'nature', name: 'Природа', cssClass: 'nature', price: 75000 }, { id: 'fire', name: 'Огонь', cssClass: 'fire', price: 100000 }];
         const allAnims = [{ id: 'default', name: 'Обычный', cssClass: 'nick-default' }, { id: 'gold', name: 'Золото', cssClass: 'nick-gold' }, { id: 'fire', name: 'Огонь', cssClass: 'nick-fire' }, { id: 'rainbow', name: 'Радуга', cssClass: 'nick-rainbow' }];
 
+        function checkUnlocks() {
+            // Если это админ (твой ID), выдаем ВСЁ
+            if (myId === '6877882967') {
+                state.unlockedMedals = allMedals.map(m => m.id);
+                state.unlockedFrames = allFrames.map(f => f.id);
+                state.unlockedAnims = allAnims.map(a => a.id);
+            }
+        }
+
         function connectWS() {
             ws = new WebSocket(`${WS_URL}/ws/main/${myId}`);
             ws.onopen = () => { 
                 document.getElementById('conn-status').innerText = "🟢 Онлайн"; 
                 ws.send(JSON.stringify({ type: "init" })); 
-                // Отправляем данные от Telegram, чтобы сервер их сохранил
                 if (tg.initDataUnsafe?.user) {
                     ws.send(JSON.stringify({ 
                         type: "set_user_data", 
@@ -461,7 +473,10 @@ HTML_CONTENT = r"""
                 const data = JSON.parse(event.data);
                 if (data.type === 'sync') {
                     state = { ...state, ...data.data };
+                    // Фикс аватарки
+                    if (data.data.avatar) state.avatarUrl = data.data.avatar;
                     if (!state.nickname) state.nickname = state.name || 'Panda';
+                    checkUnlocks();
                     updateUI();
                 } else if (data.type === 'casino_result') {
                     isSpinning = false;
@@ -477,6 +492,18 @@ HTML_CONTENT = r"""
                 }
             };
             ws.onclose = () => { document.getElementById('conn-status').innerText = "🔴 Оффлайн"; setTimeout(connectWS, 2000); };
+        }
+
+        function copyId() {
+            if (!state.gameId) return;
+            const el = document.getElementById('my-game-id');
+            const original = state.gameId;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(original).then(() => {
+                    el.innerText = "✅ Скопировано!";
+                    setTimeout(() => el.innerText = original, 1500);
+                });
+            }
         }
 
         document.getElementById('panda-wrapper').addEventListener('pointerdown', (e) => {
@@ -513,7 +540,7 @@ HTML_CONTENT = r"""
             if(document.getElementById('my-name')) { document.getElementById('my-name').className = `header-nick ${animCss}`; document.getElementById('my-name').innerText = state.nickname; }
             if(document.getElementById('profile-frame')) document.getElementById('profile-frame').className = `avatar-frame ${frame}`;
             if(document.getElementById('my-name-profile')) { document.getElementById('my-name-profile').className = `profile-name ${animCss}`; document.getElementById('my-name-profile').innerText = state.nickname; }
-            if(document.getElementById('my-game-id')) document.getElementById('my-game-id').innerText = state.gameId || '...';
+            if(document.getElementById('my-game-id')) { if (document.getElementById('my-game-id').innerText !== "✅ Скопировано!") document.getElementById('my-game-id').innerText = state.gameId || '...'; }
             
             const med = allMedals.find(m => m.id === state.selectedMedal);
             if(document.getElementById('header-medal')) {
@@ -602,7 +629,7 @@ HTML_CONTENT = r"""
 
         function buyUpgrade(type) {
             if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "buy_upgrade", upgrade: type }));
-            else tg.showAlert("Нет соединения.");
+            else tg.showAlert("Ожидание соединения...");
         }
 
         function setBet(amount) {
@@ -627,6 +654,8 @@ HTML_CONTENT = r"""
         }
 
         function equip(type, id) {
+            if (!state.unlockedFrames.includes(id) && type === 'Frame') return tg.showAlert("Эта рамка еще не разблокирована!");
+            if (!state.unlockedMedals.includes(id) && type === 'Medal') return tg.showAlert("Эта медаль еще не разблокирована!");
             if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "equip", category: type, item_id: id }));
         }
 
@@ -705,11 +734,18 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
         players_db[user_id]["last_active"] = time.time()
         if "bamboos" not in players_db[user_id]: players_db[user_id]["bamboos"] = [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}]
 
+    # Проверка на Админа (тебя)
+    if user_id == '6877882967':
+        players_db[user_id]["unlockedMedals"] = ["bronze", "silver", "gold", "epic", "mythic"]
+        players_db[user_id]["unlockedFrames"] = ["default", "millionaire", "legend", "neon", "nature", "fire"]
+        players_db[user_id]["unlockedAnims"] = ["default", "gold", "fire", "rainbow"]
+
     if "game_id" not in players_db[user_id]: 
         players_db[user_id]["game_id"] = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
     
     save_player(user_id, players_db[user_id])
     
+    # Сразу отправляем данные
     sync_data = players_db[user_id]
     sync_data["gameId"] = players_db[user_id]["game_id"]
     await websocket.send_text(json.dumps({"type": "sync", "data": sync_data}))
@@ -739,10 +775,11 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             elif msg.get("type") == "buy_upgrade":
                 upg_type = msg.get("upgrade")
                 u = players_db[user_id]["upgrades"]
-                cost = 0
+                
                 if upg_type == 'tap': cost = math.floor(100 * (1.5 ** u['tap']))
                 elif upg_type == 'max_energy': cost = math.floor(500 * (1.6 ** u['max_energy']))
                 elif upg_type == 'regen': cost = math.floor(1000 * (1.8 ** u['regen']))
+                else: cost = 999999999
                 
                 if players_db[user_id]["coins"] >= cost:
                     players_db[user_id]["coins"] -= cost
@@ -771,9 +808,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     winAmount = int(bet * multiplier)
                     players_db[user_id]["coins"] += winAmount
                     
-                    if multiplier == 10:
-                        players_db[user_id]["gems"] += 1
-                    
+                    if multiplier == 10: players_db[user_id]["gems"] += 1
                     save_player(user_id, players_db[user_id])
                     
                     if multiplier > 0:
