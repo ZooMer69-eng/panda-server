@@ -58,6 +58,7 @@ def load_players():
             if "unlockedFrames" not in p_data: p_data["unlockedFrames"] = ["default"]
             if "unlockedAnims" not in p_data: p_data["unlockedAnims"] = ["default"]
             if "friends" not in p_data: p_data["friends"] = []
+            if "bamboos" not in p_data: p_data["bamboos"] = [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}]
             players[row['id']] = p_data
         conn.close()
     except Exception as e: print(f"DB Load Error: {e}")
@@ -127,13 +128,41 @@ async def search_players(q: str, my_id: str):
             if len(results) >= 15: break
     return results
 
+@app.get("/api/leaderboard")
+async def get_leaderboard():
+    sorted_players = sorted(players_db.items(), key=lambda x: x[1]["coins"], reverse=True)[:50]
+    result = []
+    for uid, data in sorted_players:
+        result.append({
+            "id": uid, "name": data["name"], "coins": data["coins"], 
+            "avatar": data.get("avatar", ""), "frame": data.get("selectedFrame", "default"),
+            "medal": data.get("selectedMedal", "none"), "nick_style": data.get("selectedNickAnim", "nick-default"),
+            "online": (time.time() - data["last_active"]) < 120
+        })
+    return result
+
+@app.get("/api/friends/{user_id}")
+async def get_friends(user_id: str):
+    if user_id not in players_db: return []
+    friends_list = []
+    for f_id in players_db[user_id].get("friends", []):
+        if f_id in players_db:
+            f_data = players_db[f_id]
+            friends_list.append({
+                "id": f_id, "name": f_data["name"], "avatar": f_data.get("avatar", ""),
+                "coins": f_data["coins"], "frame": f_data.get("selectedFrame", "default"),
+                "medal": f_data.get("selectedMedal", "none"), "nick_style": f_data.get("selectedNickAnim", "nick-default"),
+                "online": (time.time() - f_data["last_active"]) < 120
+            })
+    return friends_list
+
 HTML_CONTENT = r"""
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 36.3</title>
+    <title>Panda Game 37.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -209,7 +238,6 @@ HTML_CONTENT = r"""
         .card-price { background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 900; width: 100%; color: #ffd700; border: 1px solid rgba(255,215,0,0.3); cursor: pointer; }
         .card-price:active { background: rgba(255,215,0,0.2); }
         
-        /* Profile Card Fixes */
         .profile-card { background: #1a2e22; border-radius: 15px; padding: 20px; text-align: center; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; }
         .profile-avatar-large { width: 80px; height: 80px; border-radius: 50%; background: #333; display: flex; justify-content: center; align-items: center; font-size: 40px; position: relative; overflow: hidden; border: 2px solid #fff; z-index: 2; flex-shrink: 0; }
         .profile-avatar-large img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -230,11 +258,22 @@ HTML_CONTENT = r"""
         .bet-btn.active { background: #4caf50; border-color: #81c784; }
         .bet-btn.disabled { opacity: 0.5; pointer-events: none; }
 
+        .tab-btn { flex: 1; background: rgba(255,255,255,0.1); border: none; color: #aaa; padding: 8px; border-radius: 8px; font-weight: 900; cursor: pointer; }
+        .tab-btn.active { background: #4caf50; color: #fff; }
+        
+        .friend-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; margin-bottom: 10px;}
+        .friend-avatar { width: 35px; height: 35px; border-radius: 50%; background: #333; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        .friend-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
         .bottom-nav { background: rgba(10, 18, 14, 0.98); border-top: 1px solid rgba(46, 125, 50, 0.4); padding: 8px 5px 22px 5px; display: flex; justify-content: space-around; z-index: 30; position: relative; }
         .nav-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: #666; font-size: 9px; font-weight: 900; cursor: pointer; width: 16.6%; transition: 0.2s; }
         .nav-btn.active { color: #81c784; }
         .nav-btn span { font-size: 22px; margin-bottom: 2px; filter: grayscale(1); transition: 0.2s; }
         .nav-btn.active span { filter: drop-shadow(0 0 6px #81c784) grayscale(0); }
+
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; backdrop-filter: blur(5px); }
+        .modal.active { display: flex; }
+        .modal-box { background: #1a2e22; border: 2px solid #4caf50; border-radius: 20px; padding: 25px; width: 90%; max-width: 350px; position: relative; }
     </style>
 </head>
 <body>
@@ -279,6 +318,11 @@ HTML_CONTENT = r"""
                             <ellipse cx="70" cy="85" rx="18" ry="23" fill="#111" /><ellipse cx="130" cy="85" rx="18" ry="23" fill="#111" />
                             <circle cx="70" cy="85" r="9" fill="#fff" /><circle cx="70" cy="85" r="6" fill="#111" />
                             <circle cx="130" cy="85" r="9" fill="#fff" /><circle cx="130" cy="85" r="6" fill="#111" />
+                            
+                            <ellipse cx="45" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />
+                            <ellipse cx="155" cy="105" rx="14" ry="8" fill="rgba(255,100,150,0.5)" />
+                            <path id="mouth-path" d="M 92 112 Q 100 118 108 112" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" />
+                            
                             <ellipse cx="100" cy="105" rx="8" ry="5" fill="#111" />
                             <ellipse cx="45" cy="145" rx="18" ry="22" fill="#1a1a1a" /><ellipse cx="155" cy="145" rx="18" ry="22" fill="#1a1a1a" />
                         </svg>
@@ -290,17 +334,29 @@ HTML_CONTENT = r"""
         <div class="screen" id="screen-friends">
             <div class="content">
                 <div class="section-title">Друзья 👥</div>
-                <div style="display:flex; gap:10px; margin-bottom:15px;">
-                    <input type="text" id="search-input" placeholder="Ник или ID..." style="flex:1; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:#fff;">
-                    <button onclick="searchPlayers()" style="background:#2196f3; color:#fff; border:none; padding:10px 15px; border-radius:8px; font-weight:900; cursor:pointer;">Найти</button>
+                
+                <div class="tabs-sub" style="display:flex; gap:10px; margin-bottom:15px;">
+                    <button class="tab-btn active" onclick="switchFriendsTab('list', this)">Мои друзья</button>
+                    <button class="tab-btn" onclick="switchFriendsTab('top', this)">Топ 50</button>
                 </div>
-                <div id="search-results" class="friend-list"></div>
-                <div style="margin-top:20px; background: rgba(255,215,0,0.1); border: 1px solid #ffd700; padding: 15px; border-radius: 12px;">
-                    <div class="section-title" style="font-size:16px; margin-bottom:10px;">Совместное Лобби (Семья/Братаны)</div>
-                    <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Здесь появится ваш общий малыш, когда вы будете играть вдвоем.</p>
-                    <div style="font-weight:900; color:#4caf50; font-size:18px; text-align:center;">Вы один</div>
+
+                <div id="friends-list-container">
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <input type="text" id="search-input" placeholder="Ник или ID..." style="flex:1; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:#fff;">
+                        <button onclick="searchPlayers()" style="background:#2196f3; color:#fff; border:none; padding:10px 15px; border-radius:8px; font-weight:900; cursor:pointer;">Найти</button>
+                    </div>
+                    <div id="search-results" class="friend-list"></div>
+                    <div style="margin-top:20px; background: rgba(255,215,0,0.1); border: 1px solid #ffd700; padding: 15px; border-radius: 12px;">
+                        <div class="section-title" style="font-size:16px; margin-bottom:10px;">Совместное Лобби (Семья/Братаны)</div>
+                        <p style="font-size:12px; color:#aaa; margin-bottom:10px;">Пригласите друга, чтобы создать семью!</p>
+                        <div style="font-weight:900; color:#4caf50; font-size:18px; text-align:center;">Вы один</div>
+                    </div>
+                    <div class="friend-list" id="friends-list" style="margin-top:20px;"><p style="text-align:center; color:#888;">Загрузка...</p></div>
                 </div>
-                <div class="friend-list" id="friends-list" style="margin-top:20px;"><p style="text-align:center; color:#888;">Загрузка...</p></div>
+
+                <div id="leaderboard-container" style="display:none;">
+                    <div id="leaderboard-list"></div>
+                </div>
             </div>
         </div>
 
@@ -351,7 +407,7 @@ HTML_CONTENT = r"""
                         <div id="my-avatar-large" class="profile-avatar-large">🐼</div>
                     </div>
                     <div id="my-name-profile" class="nick-default" style="font-size: 22px; font-weight: 900; margin-bottom: 5px; z-index: 2;">Загрузка...</div>
-                    <div style="font-size:16px; font-weight:900; margin-bottom:5px; z-index:2;">ID: <span id="my-game-id" style="color:#00e5ff;">...</span></div>
+                    <div style="font-size:16px; font-weight:900; margin-bottom:5px; z-index:2;">ID: <span id="my-game-id" onclick="copyId()" style="color:#00e5ff; text-decoration:underline; cursor:pointer;">...</span></div>
                     <div style="display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 12px; color: #aaa; width: 100%;">
                         <div>Монеты <span id="stat-coins" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
                         <div>Гемы <span id="stat-gems" style="font-weight: 900; color: #fff; display: block; font-size: 16px;">0</span></div>
@@ -376,16 +432,33 @@ HTML_CONTENT = r"""
         <button class="nav-btn" onclick="switchTab('profile', this)"><span>👤</span>Профиль</button>
     </div>
 
+    <!-- Modal for viewing friend profile -->
+    <div class="modal" id="view-profile-modal">
+        <div class="modal-box" style="text-align:center;">
+            <div style="position: relative; width: 90px; height: 90px; display: flex; justify-content: center; align-items: center; margin:0 auto 10px;">
+                <div class="avatar-frame default" id="vp-frame"></div>
+                <div class="profile-avatar-large" id="vp-avatar">🐼</div>
+            </div>
+            <div class="profile-name" id="vp-name" style="font-size:22px; font-weight:900; margin-bottom:5px;">Ник</div>
+            <div class="medal-emoji large" id="vp-medal" style="display:none; margin:0 auto 10px;"></div>
+            <div style="font-size:16px; font-weight:900; margin-bottom:15px;">Монеты: <span id="vp-coins">0</span> $</div>
+            
+            <button class="card-price" style="background:#ff9800; color:#fff; margin-bottom:10px;" onclick="inviteToLobby()">Пригласить в Лобби</button>
+            <button class="card-price" style="background:#555; color:#fff;" onclick="document.getElementById('view-profile-modal').classList.remove('active')">Закрыть</button>
+        </div>
+    </div>
+
     <script>
         window.onerror = function(msg, url, line) { return false; };
         const tg = window.Telegram.WebApp; tg.expand();
         const myId = String(tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 10000));
         const WS_URL = window.location.origin.replace('https://', 'wss://');
         let ws;
-        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'] };
+        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [] };
         
         let currentBet = 10000;
         let isSpinning = false;
+        let currentViewPlayerId = null;
 
         const allMedals = [{ id: 'bronze', name: 'Бронза', req: 30, emoji: '🥉' }, { id: 'silver', name: 'Серебро', req: 90, emoji: '🥈' }, { id: 'gold', name: 'Золото', req: 180, emoji: '🥇' }, { id: 'epic', name: 'Эпик', req: 365, emoji: '💎' }, { id: 'mythic', name: 'Мифик', req: 730, emoji: '👑' }];
         const allFrames = [{ id: 'default', name: 'Новичок', cssClass: 'default', price: 0 }, { id: 'millionaire', name: 'Богач', cssClass: 'millionaire', price: 0 }, { id: 'legend', name: 'Легенда', cssClass: 'legend', price: 0 }, { id: 'neon', name: 'Неон', cssClass: 'neon', price: 50000 }, { id: 'nature', name: 'Природа', cssClass: 'nature', price: 75000 }, { id: 'fire', name: 'Огонь', cssClass: 'fire', price: 100000 }];
@@ -393,7 +466,11 @@ HTML_CONTENT = r"""
 
         function connectWS() {
             ws = new WebSocket(`${WS_URL}/ws/main/${myId}`);
-            ws.onopen = () => { document.getElementById('conn-status').innerText = "🟢 Онлайн"; ws.send(JSON.stringify({ type: "init" })); };
+            ws.onopen = () => { 
+                document.getElementById('conn-status').innerText = "🟢 Онлайн"; 
+                ws.send(JSON.stringify({ type: "init" })); 
+                if (state.avatarUrl) ws.send(JSON.stringify({ type: "update_avatar", avatar: state.avatarUrl }));
+            };
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.type === 'sync') {
@@ -458,6 +535,7 @@ HTML_CONTENT = r"""
             if(document.getElementById('my-name')) { document.getElementById('my-name').className = `header-nick ${animCss}`; document.getElementById('my-name').innerText = state.nickname; }
             if(document.getElementById('profile-frame')) document.getElementById('profile-frame').className = `avatar-frame ${frame}`;
             if(document.getElementById('my-name-profile')) { document.getElementById('my-name-profile').className = `${animCss}`; document.getElementById('my-name-profile').innerText = state.nickname; }
+            
             if(document.getElementById('my-game-id')) document.getElementById('my-game-id').innerText = state.gameId || '...';
             
             const med = allMedals.find(m => m.id === state.selectedMedal);
@@ -473,6 +551,9 @@ HTML_CONTENT = r"""
                 if(document.getElementById('mini-avatar')) document.getElementById('mini-avatar').innerHTML = `<span>🐼</span>`;
                 if(document.getElementById('my-avatar-large')) document.getElementById('my-avatar-large').innerHTML = `🐼`;
             }
+
+            if(document.getElementById('stat-coins')) document.getElementById('stat-coins').innerText = Math.floor(state.coins).toLocaleString();
+            if(document.getElementById('stat-gems')) document.getElementById('stat-gems').innerText = Math.floor(state.gems).toLocaleString();
 
             const u = state.upgrades || {tap:0, max_energy:0, regen:0};
             const shopHTML = `
@@ -520,12 +601,65 @@ HTML_CONTENT = r"""
             }
         }
 
+        function copyId() {
+            const idText = state.gameId;
+            const idEl = document.getElementById('my-game-id');
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(idText).then(() => {
+                    idEl.innerText = "✅ Скопировано!";
+                    setTimeout(() => idEl.innerText = idText, 1500);
+                });
+            }
+        }
+
         function switchTab(tabId, btn) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById('screen-' + tabId).classList.add('active');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             if (btn) btn.classList.add('active');
             if (tabId === 'friends') fetchFriends();
+            if (tabId === 'farm') renderFarm();
+        }
+
+        function switchFriendsTab(tab, btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (tab === 'list') {
+                document.getElementById('friends-list-container').style.display = 'block';
+                document.getElementById('leaderboard-container').style.display = 'none';
+                fetchFriends();
+            } else {
+                document.getElementById('friends-list-container').style.display = 'none';
+                document.getElementById('leaderboard-container').style.display = 'block';
+                fetchLeaderboard();
+            }
+        }
+
+        function renderFarm() {
+            const grid = document.getElementById('farm-grid'); if(!grid) return;
+            grid.innerHTML = '';
+            state.bamboos.forEach(b => {
+                let s = "Пусто", btn = "Посадить", icon = "🟫", dis = false;
+                if (b.stage === 1) {
+                    const t = Math.ceil((60000 - (Date.now() - b.planted)) / 1000);
+                    s = t > 0 ? `Растет... ${t}с` : "Созрел!";
+                    btn = "Ждем"; icon = "🌱"; dis = t > 0;
+                } else if (b.stage === 2) {
+                    s = "Созрел!"; btn = "Собрать"; icon = "🎋";
+                } else if (b.stage === 3) {
+                    s = "Сгнил!"; btn = "Убрать"; icon = "🥀";
+                }
+                grid.innerHTML += `<div class="card"><div class="card-icon">${icon}</div><div class="card-title">Участок ${b.id}</div><div class="card-desc">${s}</div><button class="card-price" ${dis ? 'disabled' : ''} onclick="handleFarmClick(${b.id})">${btn}</button></div>`;
+            });
+        }
+
+        function handleFarmClick(id) {
+            const b = state.bamboos.find(x => x.id === id);
+            if (b.stage === 0) { b.planted = Date.now(); b.stage = 1; }
+            else if (b.stage === 2) { state.coins += 500; b.stage = 0; tg.showAlert("+500 монет!"); }
+            else if (b.stage === 3) { b.stage = 0; }
+            updateUI();
+            if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "farm_click", id: id }));
         }
 
         function buyUpgrade(type) {
@@ -596,20 +730,55 @@ HTML_CONTENT = r"""
                 const res = await fetch(`${window.location.origin}/api/search_players?q=${encodeURIComponent(query)}&my_id=${myId}`);
                 const data = await res.json();
                 if (data.length === 0) { document.getElementById('search-results').innerHTML = '<p style="text-align:center; color:#888;">Не найдено.</p>'; return; }
-                document.getElementById('search-results').innerHTML = data.map(p => `<div style="display:flex; justify-content:space-between; background:rgba(255,255,255,0.1); padding:10px; border-radius:8px; margin-bottom:5px;"><span>${p.name}</span><button onclick="addFriend('${p.id}')" style="background:#4caf50; border:none; padding:5px 10px; border-radius:5px; color:#fff; cursor:pointer;">Добавить</button></div>`).join('');
+                document.getElementById('search-results').innerHTML = data.map(p => `<div class="friend-item" style="background: rgba(33, 150, 243, 0.1); border-color: #2196f3;"><div class="friend-avatar">${p.avatar ? `<img src="${p.avatar}">` : '🐼'}</div><div class="friend-name-box"><div class="friend-name-row"><span>${p.name}</span></div></div><button class="add-friend-btn" style="background:#ff9800; border:none; padding:5px 10px; border-radius:5px; color:#fff; cursor:pointer;" onclick="addFriend('${p.id}')">Заявка</button></div>`).join('');
             } catch(e) {}
+        }
+
+        function addFriend(id) {
+            if(ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "add_friend", friend_id: id }));
+                tg.showAlert("Заявка отправлена!");
+            }
         }
         
         async function fetchFriends() {
             try {
                 const res = await fetch(`${window.location.origin}/api/friends/${myId}`);
                 const data = await res.json();
+                state.friends = data;
                 if(data.length > 0) {
-                    document.getElementById('friends-list').innerHTML = data.map(f => `<div style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.1); padding:10px; border-radius:8px; margin-bottom:5px;"><div style="width:30px; height:30px; border-radius:50%; background:#333; display:flex; justify-content:center; align-items:center; overflow:hidden;">${f.avatar ? `<img src="${f.avatar}" style="width:100%; height:100%;">` : '🐼'}</div><span>${f.name}</span></div>`).join('');
+                    document.getElementById('friends-list').innerHTML = data.map(f => `<div class="friend-item" onclick="viewFriendProfile('${f.id}')"><div class="friend-avatar">${f.avatar ? `<img src="${f.avatar}">` : '🐼'}</div><div class="friend-name-box"><div class="friend-name-row"><span class="${f.nick_style}">${f.name}</span></div><div class="friend-sub"><span class="status-dot ${f.online ? 'status-online' : 'status-offline'}"></span> ${f.online ? 'В сети' : 'Не в сети'}</div></div><div class="friend-coins">${f.coins.toLocaleString()} <span class="icon-coin">$</span></div></div>`).join('');
                 } else {
                     document.getElementById('friends-list').innerHTML = '<p style="text-align:center; color:#888;">Нет друзей.</p>';
                 }
             } catch(e) {}
+        }
+
+        async function fetchLeaderboard() {
+            try {
+                const res = await fetch(`${window.location.origin}/api/leaderboard`);
+                const data = await res.json();
+                document.getElementById('leaderboard-list').innerHTML = data.map((p, i) => `<div class="friend-item" onclick="viewFriendProfile('${p.id}')"><span style="font-weight:900; color:#ffd700; width:20px;">${i+1}.</span><div class="friend-avatar">${p.avatar ? `<img src="${p.avatar}">` : '🐼'}</div><span class="${p.nick_style}" style="flex:1; margin-left:10px;">${p.name}</span><span style="color:#ffd700; font-weight:900;">${p.coins.toLocaleString()} $</span></div>`).join('');
+            } catch(e) {}
+        }
+
+        function viewFriendProfile(id) {
+            const friend = state.friends.find(f => f.id === id);
+            if(!friend) return;
+            currentViewPlayerId = id;
+            document.getElementById('vp-name').innerText = friend.name;
+            document.getElementById('vp-coins').innerText = friend.coins.toLocaleString();
+            if (friend.avatar) document.getElementById('vp-avatar').innerHTML = `<img src="${friend.avatar}" style="width:100%;height:100%;object-fit:cover;">`;
+            else document.getElementById('vp-avatar').innerText = '🐼';
+            document.getElementById('view-profile-modal').classList.add('active');
+        }
+
+        function inviteToLobby() {
+            if(ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "invite_lobby", friend_id: currentViewPlayerId }));
+                document.getElementById('view-profile-modal').classList.remove('active');
+                tg.showAlert("Приглашение отправлено! Ждем ответа...");
+            }
         }
 
         setInterval(() => {
@@ -617,6 +786,9 @@ HTML_CONTENT = r"""
                 state.energy = Math.min(state.maxEnergy, state.energy + state.regen);
                 if(document.getElementById('energy')) document.getElementById('energy').innerText = Math.floor(state.energy);
                 if(document.getElementById('energy-fill')) document.getElementById('energy-fill').style.width = (state.energy / state.maxEnergy * 100) + '%';
+            }
+            if (document.getElementById('screen-farm').classList.contains('active')) {
+                renderFarm();
             }
         }, 1000);
 
@@ -635,6 +807,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
         players_db[user_id] = {
             "name": f"Panda_{user_id[:4]}", "coins": 500, "gems": 0, "tapPower": 1, "energy": 1000, "maxEnergy": 1000, "regen": 1,
             "upgrades": {"tap": 0, "max_energy": 0, "regen": 0},
+            "bamboos": [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}],
             "selectedMedal": "none", "selectedFrame": "default", "selectedNickAnim": "default",
             "unlockedMedals": [], "unlockedFrames": ["default"], "unlockedAnims": ["default"],
             "friends": [], "last_active": time.time()
@@ -652,12 +825,26 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             data = await websocket.receive_text()
             msg = json.loads(data)
             
-            if msg.get("type") == "tap":
+            if msg.get("type") == "update_avatar":
+                players_db[user_id]["avatar"] = msg.get("avatar")
+                save_player(user_id, players_db[user_id])
+                
+            elif msg.get("type") == "tap":
                 players_db[user_id]["coins"] += msg.get("power", 1)
                 players_db[user_id]["energy"] = max(0, players_db[user_id]["energy"] - 1)
                 players_db[user_id]["last_active"] = time.time()
                 if random.random() < 0.1: save_player(user_id, players_db[user_id])
                 
+            elif msg.get("type") == "farm_click":
+                b_id = msg.get("id")
+                for b in players_db[user_id]["bamboos"]:
+                    if b["id"] == b_id:
+                        if b["stage"] == 0: b["planted"] = time.time(); b["stage"] = 1
+                        elif b["stage"] == 2: b["stage"] = 0 # Монеты уже начислены локально
+                        elif b["stage"] == 3: b["stage"] = 0
+                        break
+                save_player(user_id, players_db[user_id])
+
             elif msg.get("type") == "buy_upgrade":
                 upg_type = msg.get("upgrade")
                 u = players_db[user_id]["upgrades"]
@@ -710,18 +897,16 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 if fid not in players_db[user_id]["friends"]:
                     players_db[user_id]["friends"].append(fid)
                     save_player(user_id, players_db[user_id])
+                    
+            elif msg.get("type") == "invite_lobby":
+                fid = msg.get("friend_id")
+                if fid in active_connections:
+                    try: await active_connections[fid].send_text(json.dumps({"type": "lobby_invite", "from_name": players_db[user_id]["name"]}))
+                    except: pass
 
     except WebSocketDisconnect:
         save_player(user_id, players_db[user_id])
         if user_id in active_connections: del active_connections[user_id]
-
-@app.get("/api/friends/{user_id}")
-async def get_friends(user_id: str):
-    if user_id not in players_db: return []
-    friends_list = []
-    for f_id in players_db[user_id].get("friends", []):
-        if f_id in players_db: friends_list.append({"id": f_id, "name": players_db[f_id]["name"], "avatar": players_db[f_id].get("avatar", "")})
-    return friends_list
 
 if __name__ == "__main__":
     import uvicorn
