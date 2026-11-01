@@ -64,10 +64,10 @@ def load_players():
             if "bamboos" not in p_data: p_data["bamboos"] = [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}]
             if "lobby_partner" not in p_data: p_data["lobby_partner"] = None
             if "lobby_partner_name" not in p_data: p_data["lobby_partner_name"] = None
+            if "lobby_partner_avatar" not in p_data: p_data["lobby_partner_avatar"] = ""
             if "gifts" not in p_data: p_data["gifts"] = 0
             if "gift_history" not in p_data: p_data["gift_history"] = []
             
-            # Новые поля для семьи
             if "gender" not in p_data: p_data["gender"] = random.choice(["male", "female"])
             if "house_level" not in p_data: p_data["house_level"] = 1
             if "is_pregnant" not in p_data: p_data["is_pregnant"] = False
@@ -172,7 +172,7 @@ HTML_CONTENT = r"""
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 39.0</title>
+    <title>Panda Game 39.1</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -292,7 +292,6 @@ HTML_CONTENT = r"""
         /* Lobby Styles */
         .lobby-active-view { display: none; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; width: 100%; height: 100%;}
         
-        /* House Levels */
         .house-bg-1 { background: linear-gradient(180deg, #2c3e50 0%, #000000 100%); }
         .house-bg-2 { background: linear-gradient(180deg, #4e342e 0%, #1e1e1e 100%); border: 2px solid #8d6e63; }
         .house-bg-3 { background: linear-gradient(180deg, #1a237e 0%, #000000 100%); border: 2px solid #ffd700; box-shadow: inset 0 0 20px #ffd700; }
@@ -435,8 +434,6 @@ HTML_CONTENT = r"""
                     <div class="card" style="width: 100%; margin-top: 15px; padding: 10px;">
                         <button class="card-price" style="background:#ff9800; color:#fff; margin-bottom:8px;" onclick="hugPartner()">Обнять 🤗 (+1000)</button>
                         
-                        <button id="btn-upgrade-house" class="card-price" style="background:#2196f3; color:#fff; margin-bottom:8px;" onclick="upgradeHouse()">Улучшить Дом (50,000)</button>
-                        
                         <button id="btn-make-baby" class="card-price" style="background:#ff69b4; color:#fff; margin-bottom:8px; display:none;" onclick="makePregnant()">Забеременеть 🤰</button>
                         
                         <button id="btn-feed-baby" class="card-price" style="background:#4caf50; color:#fff; margin-bottom:8px; display:none;" onclick="feedBaby()">Покормить (10,000)</button>
@@ -477,6 +474,15 @@ HTML_CONTENT = r"""
         <div class="screen" id="screen-shop">
             <div class="content">
                 <div class="section-title">Магазин 🛍️</div>
+                
+                <div class="section-title" style="font-size:14px; color:#aaa; text-align:left;">Дом</div>
+                <div class="card" style="margin-bottom:15px;">
+                    <div class="card-icon">🏠</div>
+                    <div class="card-title">Улучшить Дом (Ур. <span id="shop-house-level">1</span>)</div>
+                    <div class="card-desc">Дает уют в лобби</div>
+                    <button id="shop-btn-upgrade-house" class="card-price" onclick="upgradeHouse()">Нужно лобби</button>
+                </div>
+
                 <div class="section-title" style="font-size:14px; color:#aaa; text-align:left;">Улучшения</div>
                 <div class="grid" id="upgrades-grid"></div>
                 <div class="section-title" style="font-size:14px; color:#aaa; text-align:left; margin-top:20px;">Гемы 💎</div>
@@ -597,7 +603,7 @@ HTML_CONTENT = r"""
         const myId = String(tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 10000));
         const WS_URL = window.location.origin.replace('https://', 'wss://');
         let ws;
-        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [], lobby_partner: null, lobby_partner_name: null, gifts: 0, gift_history: [], gender: 'male', house_level: 1, is_pregnant: false, pregnancy_end: 0, has_baby: false, baby_hunger: 100 };
+        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [], lobby_partner: null, lobby_partner_name: null, lobby_partner_avatar: null, gifts: 0, gift_history: [], gender: 'male', house_level: 1, is_pregnant: false, pregnancy_end: 0, has_baby: false, baby_hunger: 100 };
         
         let currentBet = 10000;
         let isSpinning = false;
@@ -737,6 +743,26 @@ HTML_CONTENT = r"""
             `;
             if(document.getElementById('upgrades-grid')) document.getElementById('upgrades-grid').innerHTML = shopHTML;
 
+            // House in Shop
+            if(document.getElementById('shop-house-level')) document.getElementById('shop-house-level').innerText = state.house_level;
+            const shopHouseBtn = document.getElementById('shop-btn-upgrade-house');
+            if (shopHouseBtn) {
+                if (!state.lobby_partner) {
+                    shopHouseBtn.innerText = "Нужно лобби";
+                    shopHouseBtn.style.background = "#555";
+                    shopHouseBtn.onclick = () => tg.showAlert("Сначала создайте лобби с другом!");
+                } else if (state.house_level >= 3) {
+                    shopHouseBtn.innerText = "Макс. уровень";
+                    shopHouseBtn.style.background = "#4caf50";
+                    shopHouseBtn.onclick = null;
+                } else {
+                    const hCost = state.house_level * 50000;
+                    shopHouseBtn.innerText = `${hCost.toLocaleString()} $`;
+                    shopHouseBtn.style.background = "#2196f3";
+                    shopHouseBtn.onclick = upgradeHouse;
+                }
+            }
+
             if(document.getElementById('anims-grid')) {
                 let aHtml = '';
                 allAnims.forEach(a => {
@@ -775,7 +801,12 @@ HTML_CONTENT = r"""
                 
                 document.getElementById('lobby-my-name').innerText = state.nickname;
                 document.getElementById('lobby-partner-name').innerText = state.lobby_partner_name || 'Партнер';
-                document.getElementById('lobby-partner-avatar').innerHTML = '🐼'; 
+                
+                if (state.lobby_partner_avatar) {
+                    document.getElementById('lobby-partner-avatar').innerHTML = `<img src="${state.lobby_partner_avatar}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+                } else {
+                    document.getElementById('lobby-partner-avatar').innerHTML = '🐼';
+                }
                 
                 const frame = allFrames.find(f => f.id === state.selectedFrame)?.cssClass || 'default';
                 document.getElementById('lobby-my-frame').className = `avatar-frame ${frame}`;
@@ -785,15 +816,6 @@ HTML_CONTENT = r"""
                 const roomBg = document.getElementById('room-bg');
                 roomBg.className = `room-container house-bg-${state.house_level}`;
                 document.getElementById('house-level-text').innerText = state.house_level;
-
-                // Upgrade btn
-                const upgBtn = document.getElementById('btn-upgrade-house');
-                if(state.house_level >= 3) {
-                    upgBtn.style.display = 'none';
-                } else {
-                    upgBtn.style.display = 'block';
-                    upgBtn.innerText = `Улучшить Дом (${(state.house_level * 50000).toLocaleString()})`;
-                }
 
                 // Pregnancy & Baby
                 const pregAlert = document.getElementById('pregnancy-alert');
@@ -821,14 +843,26 @@ HTML_CONTENT = r"""
                     const left = Math.max(0, Math.floor((state.pregnancy_end - Date.now())/1000));
                     document.getElementById('preg-time').innerText = left;
                     if(left === 0) {
-                        // Если время вышло, через секунду дернем обновление (сервер сам разрулит)
                         if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "check_baby" }));
                     }
                 } else {
                     babyVisual.style.display = 'none';
                     babyCare.style.display = 'none';
                     pregAlert.style.display = 'none';
-                    btnMakeBaby.style.display = 'block';
+                    
+                    // Show button ONLY for females
+                    if (state.gender === 'female') {
+                        btnMakeBaby.style.display = 'block';
+                        btnMakeBaby.innerText = "Забеременеть 🤰";
+                        btnMakeBaby.onclick = makePregnant;
+                        btnMakeBaby.disabled = false;
+                    } else {
+                        btnMakeBaby.style.display = 'block';
+                        btnMakeBaby.innerText = "Ждем потомство от партнера...";
+                        btnMakeBaby.disabled = true;
+                        btnMakeBaby.style.background = "#555";
+                    }
+                    
                     btnFeedBaby.style.display = 'none';
                 }
 
@@ -1173,7 +1207,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             "selectedMedal": "none", "selectedFrame": "default", "selectedNickAnim": "default",
             "unlockedMedals": [], "unlockedFrames": ["default"], "unlockedAnims": ["default"],
             "friends": [], "verified": True if user_id == ADMIN_ID else False, "last_active": time.time(), 
-            "lobby_partner": None, "lobby_partner_name": None, "gifts": 0, "gift_history": [],
+            "lobby_partner": None, "lobby_partner_name": None, "lobby_partner_avatar": "", "gifts": 0, "gift_history": [],
             "gender": random.choice(["male", "female"]), "house_level": 1, "is_pregnant": False, "pregnancy_end": 0, "has_baby": False, "baby_hunger": 100
         }
     if "game_id" not in players_db[user_id]: 
@@ -1293,10 +1327,16 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             elif msg.get("type") == "accept_lobby":
                 inviter_id = msg.get("inviter_id")
                 if inviter_id in players_db and inviter_id in active_connections:
+                    p1_avatar = players_db[user_id].get("avatar", "")
+                    p2_avatar = players_db[inviter_id].get("avatar", "")
+                    
                     players_db[user_id]["lobby_partner"] = inviter_id
                     players_db[user_id]["lobby_partner_name"] = players_db[inviter_id]["name"]
+                    players_db[user_id]["lobby_partner_avatar"] = p2_avatar
+                    
                     players_db[inviter_id]["lobby_partner"] = user_id
                     players_db[inviter_id]["lobby_partner_name"] = players_db[user_id]["name"]
+                    players_db[inviter_id]["lobby_partner_avatar"] = p1_avatar
                     
                     save_player(user_id, players_db[user_id])
                     save_player(inviter_id, players_db[inviter_id])
@@ -1328,11 +1368,13 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 partner_id = players_db[user_id].get("lobby_partner")
                 players_db[user_id]["lobby_partner"] = None
                 players_db[user_id]["lobby_partner_name"] = None
+                players_db[user_id]["lobby_partner_avatar"] = ""
                 save_player(user_id, players_db[user_id])
                 
                 if partner_id and partner_id in players_db:
                     players_db[partner_id]["lobby_partner"] = None
                     players_db[partner_id]["lobby_partner_name"] = None
+                    players_db[partner_id]["lobby_partner_avatar"] = ""
                     save_player(partner_id, players_db[partner_id])
                     if partner_id in active_connections:
                         try: await active_connections[partner_id].send_text(json.dumps({"type": "sync", "data": players_db[partner_id]}))
@@ -1355,7 +1397,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                     await websocket.send_text(json.dumps({"type": "error", "message": "Недостаточно монет или максимальный уровень!"}))
 
             elif msg.get("type") == "make_pregnant":
-                if not players_db[user_id].get("is_pregnant") and not players_db[user_id].get("has_baby"):
+                if players_db[user_id]["gender"] == 'female' and not players_db[user_id].get("is_pregnant") and not players_db[user_id].get("has_baby"):
                     players_db[user_id]["is_pregnant"] = True
                     # Тестовое время: 3 минуты (180 сек)
                     players_db[user_id]["pregnancy_end"] = int(time.time() * 1000) + 180000
@@ -1402,6 +1444,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
         if partner_id and partner_id in players_db:
             players_db[partner_id]["lobby_partner"] = None
             players_db[partner_id]["lobby_partner_name"] = None
+            players_db[partner_id]["lobby_partner_avatar"] = ""
             save_player(partner_id, players_db[partner_id])
             if partner_id in active_connections:
                 try: await active_connections[partner_id].send_text(json.dumps({"type": "sync", "data": players_db[partner_id]}))
@@ -1409,6 +1452,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 
         players_db[user_id]["lobby_partner"] = None
         players_db[user_id]["lobby_partner_name"] = None
+        players_db[user_id]["lobby_partner_avatar"] = ""
         save_player(user_id, players_db[user_id])
         
         if user_id in active_connections: del active_connections[user_id]
