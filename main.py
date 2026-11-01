@@ -53,7 +53,6 @@ def load_players():
             uid = row['id']
             p_data = json.loads(row['data'])
             
-            # Восстановление недостающих полей
             if "upgrades" not in p_data: p_data["upgrades"] = {"tap": 0, "max_energy": 0, "regen": 0}
             if "selectedMedal" not in p_data: p_data["selectedMedal"] = "none"
             if "selectedFrame" not in p_data: p_data["selectedFrame"] = "default"
@@ -64,6 +63,7 @@ def load_players():
             if "friends" not in p_data: p_data["friends"] = []
             if "bamboos" not in p_data: p_data["bamboos"] = [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}]
             if "lobby_partner" not in p_data: p_data["lobby_partner"] = None
+            if "lobby_partner_name" not in p_data: p_data["lobby_partner_name"] = None
             if "gifts" not in p_data: p_data["gifts"] = 0
             if "gift_history" not in p_data: p_data["gift_history"] = []
             
@@ -178,7 +178,7 @@ HTML_CONTENT = r"""
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 38.1</title>
+    <title>Panda Game 38.2</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -294,6 +294,14 @@ HTML_CONTENT = r"""
         
         .gift-history-item { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 8px; margin-bottom: 5px; font-size: 12px; text-align: left; }
         .gift-history-icon { font-size: 20px; }
+
+        /* Lobby Styles */
+        .lobby-active-view { display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; width: 100%; }
+        .duo-pandas { display: flex; gap: 20px; align-items: flex-end; justify-content: center; margin-top: 20px; }
+        .duo-panda { position: relative; text-align: center; }
+        .duo-panda .avatar-wrap { width: 80px; height: 80px; margin: 0 auto 10px; }
+        .duo-panda .profile-avatar-mini { font-size: 40px; }
+        .duo-name { font-size: 14px; font-weight: 900; }
     </style>
 </head>
 <body>
@@ -351,30 +359,58 @@ HTML_CONTENT = r"""
 
         <div class="screen" id="screen-friends">
             <div class="content">
-                <div class="section-title">Друзья 👥</div>
                 
-                <div class="tabs-sub" style="display:flex; gap:10px; margin-bottom:15px;">
-                    <button class="tab-btn active" onclick="switchFriendsTab('list', this)">Мои друзья</button>
-                    <button class="tab-btn" onclick="switchFriendsTab('top', this)">Топ 50</button>
+                <!-- Default view (not in lobby) -->
+                <div id="default-friends-view">
+                    <div class="section-title">Друзья 👥</div>
+                    <div class="tabs-sub" style="display:flex; gap:10px; margin-bottom:15px;">
+                        <button class="tab-btn active" onclick="switchFriendsTab('list', this)">Мои друзья</button>
+                        <button class="tab-btn" onclick="switchFriendsTab('top', this)">Топ 50</button>
+                    </div>
+
+                    <div id="friends-list-container">
+                        <div style="display:flex; gap:10px; margin-bottom:15px;">
+                            <input type="text" id="search-input" placeholder="Ник или ID..." style="flex:1; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:#fff;">
+                            <button onclick="searchPlayers()" style="background:#2196f3; color:#fff; border:none; padding:10px 15px; border-radius:8px; font-weight:900; cursor:pointer;">Найти</button>
+                        </div>
+                        <div id="search-results" class="friend-list"></div>
+                        <div class="friend-list" id="friends-list" style="margin-top:20px;"><p style="text-align:center; color:#888;">Загрузка...</p></div>
+                    </div>
+
+                    <div id="leaderboard-container" style="display:none;">
+                        <div id="leaderboard-list"></div>
+                    </div>
                 </div>
 
-                <div id="friends-list-container">
-                    <div style="display:flex; gap:10px; margin-bottom:15px;">
-                        <input type="text" id="search-input" placeholder="Ник или ID..." style="flex:1; padding:10px; border-radius:8px; border:none; background:rgba(255,255,255,0.1); color:#fff;">
-                        <button onclick="searchPlayers()" style="background:#2196f3; color:#fff; border:none; padding:10px 15px; border-radius:8px; font-weight:900; cursor:pointer;">Найти</button>
+                <!-- Lobby Active View -->
+                <div id="lobby-active-view" class="lobby-active-view">
+                    <div class="section-title" style="color:#ffd700; margin-bottom:5px;">Совместное Лобби 🏠</div>
+                    <p style="font-size:12px; color:#aaa; margin-bottom:20px;">Вы вместе! Зарабатывайте монеты и заботьтесь друг о друге.</p>
+                    
+                    <div class="duo-pandas">
+                        <div class="duo-panda">
+                            <div class="avatar-wrap">
+                                <div class="avatar-frame default" id="lobby-my-frame"></div>
+                                <div class="profile-avatar-mini" id="lobby-my-avatar">🐼</div>
+                            </div>
+                            <div class="duo-name" id="lobby-my-name">Ты</div>
+                        </div>
+                        <div class="duo-panda">
+                            <div class="avatar-wrap">
+                                <div class="avatar-frame default" id="lobby-partner-frame"></div>
+                                <div class="profile-avatar-mini" id="lobby-partner-avatar">🐼</div>
+                            </div>
+                            <div class="duo-name" id="lobby-partner-name">Партнер</div>
+                        </div>
                     </div>
-                    <div id="search-results" class="friend-list"></div>
-                    <div style="margin-top:20px; background: rgba(255,215,0,0.1); border: 1px solid #ffd700; padding: 15px; border-radius: 12px;">
-                        <div class="section-title" style="font-size:16px; margin-bottom:10px;">Совместное Лобби (Семья/Братаны)</div>
-                        <p id="lobby-text" style="font-size:12px; color:#aaa; margin-bottom:10px;">Пригласите друга, чтобы создать семью!</p>
-                        <div id="lobby-status" style="font-weight:900; color:#4caf50; font-size:18px; text-align:center;">Вы один</div>
+
+                    <div class="card" style="width: 100%; margin-top: 30px;">
+                        <div class="card-title" style="font-size: 16px; margin-bottom: 10px;">Действия</div>
+                        <button class="card-price" style="background:#ff9800; color:#fff; margin-bottom:10px;" onclick="hugPartner()">Обнять 🤗 (Бонус: +1000 монет)</button>
+                        <button class="card-price" style="background:#e53935; color:#fff;" onclick="leaveLobby()">Выйти из лобби</button>
                     </div>
-                    <div class="friend-list" id="friends-list" style="margin-top:20px;"><p style="text-align:center; color:#888;">Загрузка...</p></div>
                 </div>
 
-                <div id="leaderboard-container" style="display:none;">
-                    <div id="leaderboard-list"></div>
-                </div>
             </div>
         </div>
 
@@ -522,7 +558,7 @@ HTML_CONTENT = r"""
         const myId = String(tg.initDataUnsafe?.user?.id || Math.floor(Math.random() * 10000));
         const WS_URL = window.location.origin.replace('https://', 'wss://');
         let ws;
-        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [], lobby_partner: null, gifts: 0, gift_history: [] };
+        let state = { coins: 500, gems: 0, tapPower: 1, energy: 1000, maxEnergy: 1000, regen: 1, upgrades: { tap: 0, max_energy: 0, regen: 0 }, bamboos: [{ id: 1, stage: 0, planted: 0 }, { id: 2, stage: 0, planted: 0 }, { id: 3, stage: 0, planted: 0 }], nickname: '', selectedMedal: 'none', selectedFrame: 'default', selectedNickAnim: 'default', avatarUrl: tg.initDataUnsafe?.user?.photo_url || '', gameId: '', unlockedMedals: [], unlockedFrames: ['default'], unlockedAnims: ['default'], friends: [], lobby_partner: null, lobby_partner_name: null, gifts: 0, gift_history: [] };
         
         let currentBet = 10000;
         let isSpinning = false;
@@ -579,13 +615,17 @@ HTML_CONTENT = r"""
                     document.getElementById('invite-text').innerText = `${data.from_name} приглашает вас в лобби!`;
                     document.getElementById('invite-modal').classList.add('active');
                 } else if (data.type === 'lobby_joined') {
-                    state.lobby_partner = data.partner_name;
-                    document.getElementById('lobby-status').innerText = `Семья: ${data.partner_name}`;
-                    document.getElementById('lobby-text').innerText = "Вы в совместном лобби!";
+                    state.lobby_partner = data.partner_id;
+                    state.lobby_partner_name = data.partner_name;
                     tg.showAlert(`Вы в лобби с ${data.partner_name}!`);
+                    updateUI();
                     switchTab('friends', document.querySelectorAll('.nav-btn')[1]);
                 } else if (data.type === 'gift_received') {
                     tg.showAlert(`🎁 Тебе подарили ${data.gift} от ${data.from_name}!`);
+                } else if (data.type === 'hug_received') {
+                    tg.showAlert(`🤗 ${data.from_name} тебя обнял! Ты получил 1000 монет бонусом!`);
+                    state.coins += 1000;
+                    updateUI();
                 }
             };
             ws.onclose = () => { document.getElementById('conn-status').innerText = "🔴 Оффлайн"; setTimeout(connectWS, 2000); };
@@ -629,9 +669,11 @@ HTML_CONTENT = r"""
             if (state.avatarUrl) {
                 if(document.getElementById('mini-avatar')) document.getElementById('mini-avatar').innerHTML = `<img src="${state.avatarUrl}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
                 if(document.getElementById('my-avatar-large')) document.getElementById('my-avatar-large').innerHTML = `<img src="${state.avatarUrl}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
+                if(document.getElementById('lobby-my-avatar')) document.getElementById('lobby-my-avatar').innerHTML = `<img src="${state.avatarUrl}" style="width:100%;height:100%;object-fit:cover;display:block;">`;
             } else {
                 if(document.getElementById('mini-avatar')) document.getElementById('mini-avatar').innerHTML = `<span>🐼</span>`;
                 if(document.getElementById('my-avatar-large')) document.getElementById('my-avatar-large').innerHTML = `🐼`;
+                if(document.getElementById('lobby-my-avatar')) document.getElementById('lobby-my-avatar').innerHTML = `🐼`;
             }
 
             if(document.getElementById('stat-coins')) document.getElementById('stat-coins').innerText = Math.floor(state.coins).toLocaleString();
@@ -682,6 +724,29 @@ HTML_CONTENT = r"""
                 });
                 document.getElementById('frames-grid').innerHTML = fHtml;
             }
+            
+            renderLobbyUI();
+        }
+
+        function renderLobbyUI() {
+            if (state.lobby_partner) {
+                document.getElementById('default-friends-view').style.display = 'none';
+                document.getElementById('lobby-active-view').style.display = 'flex';
+                
+                document.getElementById('lobby-my-name').innerText = state.nickname;
+                document.getElementById('lobby-partner-name').innerText = state.lobby_partner_name || 'Партнер';
+                
+                // Заглушка для аватарки партнера, если нет в базе (для простоты)
+                document.getElementById('lobby-partner-avatar').innerHTML = '🐼'; 
+                
+                const frame = allFrames.find(f => f.id === state.selectedFrame)?.cssClass || 'default';
+                document.getElementById('lobby-my-frame').className = `avatar-frame ${frame}`;
+                // Партнерская рамка (пока дефолт)
+                document.getElementById('lobby-partner-frame').className = `avatar-frame default`;
+            } else {
+                document.getElementById('default-friends-view').style.display = 'block';
+                document.getElementById('lobby-active-view').style.display = 'none';
+            }
         }
 
         function copyId() {
@@ -700,7 +765,7 @@ HTML_CONTENT = r"""
             document.getElementById('screen-' + tabId).classList.add('active');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             if (btn) btn.classList.add('active');
-            if (tabId === 'friends') fetchFriends();
+            if (tabId === 'friends') { fetchFriends(); renderLobbyUI(); }
             if (tabId === 'farm') renderFarm();
         }
 
@@ -948,6 +1013,21 @@ HTML_CONTENT = r"""
             }
         }
 
+        function hugPartner() {
+            if(ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "hug_partner" }));
+            }
+        }
+
+        function leaveLobby() {
+            if(ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "leave_lobby" }));
+                state.lobby_partner = null;
+                state.lobby_partner_name = null;
+                updateUI();
+            }
+        }
+
         setInterval(() => {
             if (state.energy < state.maxEnergy) {
                 state.energy = Math.min(state.maxEnergy, state.energy + state.regen);
@@ -977,8 +1057,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             "bamboos": [{"id": 1, "stage": 0, "planted": 0}, {"id": 2, "stage": 0, "planted": 0}, {"id": 3, "stage": 0, "planted": 0}],
             "selectedMedal": "none", "selectedFrame": "default", "selectedNickAnim": "default",
             "unlockedMedals": [], "unlockedFrames": ["default"], "unlockedAnims": ["default"],
-            "friends": [], "verified": True if user_id == ADMIN_ID else False, "last_active": time.time(), "lobby_partner": None,
-            "gifts": 0, "gift_history": []
+            "friends": [], "verified": True if user_id == ADMIN_ID else False, "last_active": time.time(), 
+            "lobby_partner": None, "lobby_partner_name": None, "gifts": 0, "gift_history": []
         }
     if "game_id" not in players_db[user_id]: 
         players_db[user_id]["game_id"] = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -1098,16 +1178,63 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 inviter_id = msg.get("inviter_id")
                 if inviter_id in players_db and inviter_id in active_connections:
                     players_db[user_id]["lobby_partner"] = inviter_id
+                    players_db[user_id]["lobby_partner_name"] = players_db[inviter_id]["name"]
                     players_db[inviter_id]["lobby_partner"] = user_id
+                    players_db[inviter_id]["lobby_partner_name"] = players_db[user_id]["name"]
+                    
                     save_player(user_id, players_db[user_id])
                     save_player(inviter_id, players_db[inviter_id])
                     
-                    await websocket.send_text(json.dumps({"type": "lobby_joined", "partner_name": players_db[inviter_id]["name"]}))
-                    try: await active_connections[inviter_id].send_text(json.dumps({"type": "lobby_joined", "partner_name": players_db[user_id]["name"]}))
+                    # Синхронизируем обоих
+                    sync_u = players_db[user_id]; sync_u["gameId"] = players_db[user_id]["game_id"]
+                    sync_i = players_db[inviter_id]; sync_i["gameId"] = players_db[inviter_id]["game_id"]
+                    
+                    await websocket.send_text(json.dumps({"type": "lobby_joined", "partner_id": inviter_id, "partner_name": players_db[inviter_id]["name"]}))
+                    try: await active_connections[inviter_id].send_text(json.dumps({"type": "lobby_joined", "partner_id": user_id, "partner_name": players_db[user_id]["name"]}))
                     except: pass
 
+            elif msg.get("type") == "hug_partner":
+                partner_id = players_db[user_id].get("lobby_partner")
+                if partner_id and partner_id in players_db:
+                    players_db[user_id]["coins"] += 1000
+                    players_db[partner_id]["coins"] += 1000
+                    save_player(user_id, players_db[user_id])
+                    save_player(partner_id, players_db[partner_id])
+                    
+                    await websocket.send_text(json.dumps({"type": "sync", "data": players_db[user_id]}))
+                    if partner_id in active_connections:
+                        try: await active_connections[partner_id].send_text(json.dumps({"type": "hug_received", "from_name": players_db[user_id]["name"]}))
+                        except: pass
+
+            elif msg.get("type") == "leave_lobby":
+                partner_id = players_db[user_id].get("lobby_partner")
+                players_db[user_id]["lobby_partner"] = None
+                players_db[user_id]["lobby_partner_name"] = None
+                save_player(user_id, players_db[user_id])
+                
+                if partner_id and partner_id in players_db:
+                    players_db[partner_id]["lobby_partner"] = None
+                    players_db[partner_id]["lobby_partner_name"] = None
+                    save_player(partner_id, players_db[partner_id])
+                    if partner_id in active_connections:
+                        try: await active_connections[partner_id].send_text(json.dumps({"type": "sync", "data": players_db[partner_id]}))
+                        except: pass
+
     except WebSocketDisconnect:
+        # Если игрок выходит, принудительно разрываем лобби
+        partner_id = players_db[user_id].get("lobby_partner")
+        if partner_id and partner_id in players_db:
+            players_db[partner_id]["lobby_partner"] = None
+            players_db[partner_id]["lobby_partner_name"] = None
+            save_player(partner_id, players_db[partner_id])
+            if partner_id in active_connections:
+                try: await active_connections[partner_id].send_text(json.dumps({"type": "sync", "data": players_db[partner_id]}))
+                except: pass
+                
+        players_db[user_id]["lobby_partner"] = None
+        players_db[user_id]["lobby_partner_name"] = None
         save_player(user_id, players_db[user_id])
+        
         if user_id in active_connections: del active_connections[user_id]
 
 if __name__ == "__main__":
