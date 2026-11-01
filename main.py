@@ -131,7 +131,7 @@ HTML_CONTENT = r"""
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Panda Game 35.0 (Endgame)</title>
+    <title>Panda Game 35.0</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
@@ -167,7 +167,6 @@ HTML_CONTENT = r"""
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; }
         .screen.active { display: flex; }
         
-        /* Tap Screen */
         .tap-area { flex: 1; display: flex; justify-content: center; align-items: flex-end; gap: 20px; position: relative; padding-bottom: 10px; z-index: 5; }
         .panda-wrapper { position: relative; width: 190px; height: 210px; transform-origin: center bottom; cursor: pointer; transition: transform 1s ease-in-out; z-index: 10; }
         .panda-wrapper:active { transform: scale(0.95); }
@@ -176,7 +175,6 @@ HTML_CONTENT = r"""
         .particle-coin { position: absolute; font-size: 24px; font-weight: 900; color: #ffd700; pointer-events: none; animation: popCoin 0.9s ease-out forwards; z-index: 20; text-shadow: 0 0 10px #ffd700; }
         @keyframes popCoin { 0% { transform: translateY(0) scale(0.4); opacity: 1; } 100% { transform: translateY(-100px) scale(1.2); opacity: 0; } }
         
-        /* Content */
         .content { flex: 1; padding: 15px; overflow-y: auto; background: rgba(10, 18, 14, 0.85); backdrop-filter: blur(5px); z-index: 20; }
         .section-title { font-size: 18px; font-weight: 900; margin-bottom: 15px; color: #fff; text-align: center; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -187,7 +185,6 @@ HTML_CONTENT = r"""
         .card-price { background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 900; width: 100%; color: #ffd700; border: 1px solid rgba(255,215,0,0.3); cursor: pointer; }
         .card-price:active { background: rgba(255,215,0,0.2); }
         
-        /* Casino */
         .casino-box { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 20px;}
         .wheel { width: 200px; height: 200px; border-radius: 50%; border: 6px solid #ffd700; transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99); background: conic-gradient(#e53935 0deg 60deg, #1e88e5 60deg 120deg, #43a047 120deg 180deg, #fdd835 180deg 240deg, #8e24aa 240deg 300deg, #fb8c00 300deg 360deg); box-shadow: 0 0 20px rgba(255,215,0,0.4); position: relative; }
         .wheel-pointer { font-size: 40px; position: absolute; top: -20px; z-index: 10; filter: drop-shadow(0 2px 4px #000); }
@@ -195,13 +192,11 @@ HTML_CONTENT = r"""
         .bet-btn { background: #333; padding: 10px 15px; border-radius: 8px; border: 1px solid #555; font-weight: 900; cursor: pointer; }
         .bet-btn.active { background: #4caf50; border-color: #81c784; }
         
-        /* Lobby */
         .lobby-card { background: rgba(0,0,0,0.6); border: 2px solid #4caf50; border-radius: 20px; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center;}
         .baby-stats { width: 100%; margin-top: 15px; background: rgba(255,255,255,0.1); border-radius: 10px; padding: 10px; }
         .baby-bar { height: 10px; background: #333; border-radius: 5px; margin-top: 5px; overflow: hidden; }
         .baby-fill { height: 100%; background: #ff9800; width: 100%; }
         
-        /* Nav */
         .bottom-nav { background: rgba(10, 18, 14, 0.98); border-top: 1px solid rgba(46, 125, 50, 0.4); padding: 8px 5px 22px 5px; display: flex; justify-content: space-around; z-index: 30; position: relative; }
         .nav-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: #666; font-size: 9px; font-weight: 900; cursor: pointer; width: 20%; transition: 0.2s; }
         .nav-btn.active { color: #81c784; }
@@ -229,7 +224,6 @@ HTML_CONTENT = r"""
     </div>
 
     <div class="screens">
-        <!-- TAP SCREEN -->
         <div class="screen active" id="screen-tap">
             <div class="tap-area">
                 <div style="text-align: center; position: relative;">
@@ -251,7 +245,6 @@ HTML_CONTENT = r"""
             </div>
         </div>
 
-        <!-- LOBBY SCREEN -->
         <div class="screen" id="screen-lobby">
             <div class="content">
                 <div class="section-title">Лобби 👥</div>
@@ -271,7 +264,6 @@ HTML_CONTENT = r"""
             </div>
         </div>
 
-        <!-- CASINO SCREEN -->
         <div class="screen" id="screen-casino">
             <div class="content">
                 <div class="section-title">Казино 🎰</div>
@@ -291,7 +283,6 @@ HTML_CONTENT = r"""
             </div>
         </div>
 
-        <!-- SHOP SCREEN -->
         <div class="screen" id="screen-shop">
             <div class="content">
                 <div class="section-title">Улучшения 🛍️</div>
@@ -299,7 +290,6 @@ HTML_CONTENT = r"""
             </div>
         </div>
 
-        <!-- PROFILE SCREEN -->
         <div class="screen" id="screen-profile">
             <div class="content">
                 <div class="section-title">Профиль 👤</div>
@@ -331,7 +321,6 @@ HTML_CONTENT = r"""
         };
         let currentBet = 10000;
 
-        // Init
         function connectWS() {
             ws = new WebSocket(`${WS_URL}/ws/main/${myId}`);
             ws.onopen = () => { document.getElementById('conn-status').innerText = "🟢 Онлайн"; ws.send(JSON.stringify({ type: "init" })); };
@@ -355,7 +344,6 @@ HTML_CONTENT = r"""
             ws.onclose = () => { document.getElementById('conn-status').innerText = "🔴 Оффлайн"; setTimeout(connectWS, 3000); };
         }
 
-        // Tap
         document.getElementById('panda-wrapper').addEventListener('pointerdown', (e) => {
             if (state.energy <= 0) return;
             state.energy -= 1;
@@ -374,7 +362,6 @@ HTML_CONTENT = r"""
             updateUI();
         });
 
-        // UI Updates
         function updateUI() {
             document.getElementById('coins').innerText = Math.floor(state.coins).toLocaleString();
             document.getElementById('gems').innerText = Math.floor(state.gems).toLocaleString();
@@ -385,7 +372,6 @@ HTML_CONTENT = r"""
             document.getElementById('stat-tap').innerText = state.tapPower;
             document.getElementById('stat-max-energy').innerText = state.maxEnergy;
 
-            // Shop
             const u = state.upgrades;
             const shopHTML = `
                 <div class="card">
@@ -409,7 +395,6 @@ HTML_CONTENT = r"""
             `;
             document.getElementById('upgrades-grid').innerHTML = shopHTML;
 
-            // Baby/Lobby
             if (state.hasBaby) {
                 document.getElementById('baby-section').style.display = 'block';
                 document.getElementById('lobby-status').innerText = "Семья";
@@ -425,10 +410,7 @@ HTML_CONTENT = r"""
             if (btn) btn.classList.add('active');
         }
 
-        // Actions
-        function buyUpgrade(type) {
-            ws.send(JSON.stringify({ type: "buy_upgrade", upgrade: type }));
-        }
+        function buyUpgrade(type) { ws.send(JSON.stringify({ type: "buy_upgrade", upgrade: type })); }
 
         function setBet(amount) {
             currentBet = amount;
@@ -441,21 +423,13 @@ HTML_CONTENT = r"""
             const wheel = document.getElementById('casino-wheel');
             wheel.style.transform = `rotate(${Math.floor(Math.random() * 360) + 1800}deg)`;
             document.getElementById('casino-result').innerText = "Крутим...";
-            setTimeout(() => {
-                ws.send(JSON.stringify({ type: "casino", bet: currentBet }));
-            }, 3000); // Ждем анимацию
+            setTimeout(() => { ws.send(JSON.stringify({ type: "casino", bet: currentBet })); }, 3000);
         }
 
-        function feedBaby() {
-            ws.send(JSON.stringify({ type: "feed_baby" }));
-        }
+        function feedBaby() { ws.send(JSON.stringify({ type: "feed_baby" })); }
 
-        // Energy Loop
         setInterval(() => {
-            if (state.energy < state.maxEnergy) {
-                state.energy = Math.min(state.maxEnergy, state.energy + state.regen);
-                updateUI();
-            }
+            if (state.energy < state.maxEnergy) { state.energy = Math.min(state.maxEnergy, state.energy + state.regen); updateUI(); }
         }, 1000);
 
         connectWS();
@@ -470,7 +444,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     active_connections[user_id] = websocket
     if room_id not in rooms: rooms[room_id] = {"players": {}}
     
-    # Init Player
     if user_id not in players_db:
         players_db[user_id] = {
             "name": f"Panda_{user_id[:4]}", "coins": 500, "gems": 0, 
@@ -485,7 +458,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
     save_player(user_id, players_db[user_id])
     rooms[room_id]["players"][user_id] = websocket
     
-    # Отправляем текущее состояние
     sync_data = players_db[user_id]
     sync_data["gameId"] = players_db[user_id]["game_id"]
     await websocket.send_text(json.dumps({"type": "sync", "data": sync_data}))
@@ -498,7 +470,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
             if msg.get("type") == "tap":
                 players_db[user_id]["coins"] += msg.get("power", 1)
                 players_db[user_id]["energy"] = max(0, players_db[user_id]["energy"] - 1)
-                # Сохраняем в БД раз в 10 кликов, чтобы не спамить
                 if random.random() < 0.1: save_player(user_id, players_db[user_id])
                 
             elif msg.get("type") == "buy_upgrade":
@@ -526,7 +497,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
                 bet = int(msg.get("bet"))
                 if players_db[user_id]["coins"] >= bet:
                     players_db[user_id]["coins"] -= bet
-                    # Шансы: 50% проигрыш, 25% x1.5, 15% x2, 9% x10, 1% Джекпот (x50)
                     roll = random.random()
                     multiplier = 0
                     if roll < 0.5: multiplier = 0
@@ -563,3 +533,8 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, user_id: str):
         if user_id in active_connections: del active_connections[user_id]
         if user_id in rooms.get(room_id, {}).get("players", {}): 
             del rooms[room_id]["players"][user_id]
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
